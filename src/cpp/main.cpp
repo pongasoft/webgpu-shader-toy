@@ -1,7 +1,7 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_wgpu.h>
-#include <stdio.h>
+#include <cstdio>
 #include <emscripten.h>
 #include <emscripten/html5_webgpu.h>
 #include <GLFW/emscripten_glfw3.h>
@@ -71,6 +71,7 @@ static void MainLoopForEmscripten(void *iUserData)
 int main(int, char **)
 {
   glfwSetErrorCallback(glfw_error_callback);
+  printf("%s\n", glfwGetVersionString());
   if(!glfwInit())
     return 1;
 
