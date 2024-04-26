@@ -6,9 +6,15 @@ if(NOT EMSCRIPTEN)
   message(FATAL_ERROR "This project must be compiled with emscripten")
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(wgpu_shader_toy_sources
+    src/cpp/Application.h
+    src/cpp/Application.cpp
+    src/cpp/Errors.h
+    src/cpp/fmt.h
+    src/cpp/GPU.cpp
+    src/cpp/GPU.h
     src/cpp/main.cpp
 )
 
@@ -25,5 +31,6 @@ target_compile_options(wgpu_shader_toy PUBLIC
 
 target_link_options(wgpu_shader_toy PUBLIC
     "--shell-file=${CMAKE_CURRENT_LIST_DIR}/src/resources/emscripten/shell.html"
+    "-sNO_DISABLE_EXCEPTION_CATCHING"
     "${wgpu_shader_toy_options}"
 )
