@@ -92,7 +92,7 @@ def get(ports, settings, shared):
         # patching ImGui to use contrib.glfw3 (until ImGui is updated)
         patch_src_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
         patch_dst_directory = os.path.join(root_path, 'backends')
-        for patch_file in ['imgui_impl_glfw.h', 'imgui_impl_glfw.cpp']:
+        for patch_file in ['imgui_impl_glfw.cpp']:
             shutil.copy(os.path.join(patch_src_directory, patch_file), patch_dst_directory)
 
         # this port does not install the headers on purpose (see process_args)
@@ -106,6 +106,7 @@ def get(ports, settings, shared):
         srcs.append(os.path.join('backends', f'imgui_impl_{opts["renderer"]}.cpp'))
 
         flags = [f'--use-port={dep}' for dep in deps]
+        flags.append('-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3')
 
         ports.build_port(source_path, final, name, srcs=srcs, flags=flags)
 
