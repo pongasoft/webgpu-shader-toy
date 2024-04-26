@@ -172,7 +172,8 @@ void GPU::renderPass(wgpu::Color const &iColor,
                      GPU::render_pass_fn_t const &iRenderPassFn,
                      wgpu::TextureView const &iTextureView)
 {
-  SHADER_TOY_ASSERT(fSwapChain != nullptr, "fSwapChain is null");
+  SHADER_TOY_ASSERT(fCommandEncoder != nullptr, "GPU::beginFrame has not been called");
+  SHADER_TOY_ASSERT(iTextureView != nullptr || fSwapChain != nullptr);
 
   wgpu::RenderPassColorAttachment attachment{
     .view = iTextureView != nullptr ? iTextureView : fSwapChain.GetCurrentTextureView(),

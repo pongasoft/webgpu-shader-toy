@@ -15,6 +15,8 @@ set(wgpu_shader_toy_sources
     src/cpp/fmt.h
     src/cpp/GPU.cpp
     src/cpp/GPU.h
+    src/cpp/ShaderWindow.h
+    src/cpp/ShaderWindow.cpp
     src/cpp/main.cpp
 )
 

@@ -20,6 +20,7 @@
 #define WGPU_SHADER_TOY_APPLICATION_H
 
 #include "GPU.h"
+#include "ShaderWindow.h"
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <optional>
@@ -49,13 +50,14 @@ private:
   void initWebGPU(std::string_view iImGuiCanvasSelector);
   void initImGui();
   void renderImGui(wgpu::RenderPassEncoder &renderPass);
+  void onFramebufferSizeChange(ImVec2 const &iSize);
 
 private:
   std::unique_ptr<GPU> fGPU{};
+  ShaderWindow fShaderWindow{ImVec2{500, 500}};
   GLFWwindow *fImGuiWindow{};
   ImGuiContext *fImGuiContext{};
   bool fRunning{true};
-  void onFramebufferSizeChange(ImVec2 const &iSize);
 
   std::optional<ImVec2> fNewFrameBufferSize{};
   std::vector<action_t> fNewFrameActions{};

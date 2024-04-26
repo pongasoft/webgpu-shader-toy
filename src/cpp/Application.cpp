@@ -75,6 +75,7 @@ void Application::init(std::string_view iImGuiCanvasSelector)
   glfwSetWindowUserPointer(fImGuiWindow, this);
   initWebGPU(iImGuiCanvasSelector);
   initImGui();
+  fShaderWindow.init(*fGPU);
   glfwShowWindow(fImGuiWindow);
 }
 
@@ -189,6 +190,7 @@ void Application::mainLoop()
   glfwPollEvents();
 
   fGPU->beginFrame();
+  fShaderWindow.render(*fGPU);
   fGPU->renderPass({.r = clear_color.x, .g = clear_color.y, .b = clear_color.z, .a = clear_color.w},
                    [this](wgpu::RenderPassEncoder &pass) { renderImGui(pass); });
   fGPU->endFrame();
@@ -213,6 +215,12 @@ void Application::renderImGui(wgpu::RenderPassEncoder &renderPass)
 
     auto &io = ImGui::GetIO();
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+  }
+  ImGui::End();
+
+  if(ImGui::Begin("Shader"))
+  {
+    ImGui::Image(fShaderWindow.getTextureView(), fShaderWindow.getSize());
   }
   ImGui::End();
 
