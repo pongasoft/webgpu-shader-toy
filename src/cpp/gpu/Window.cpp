@@ -63,6 +63,7 @@ Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) : Renderable(std::m
   int w, h;
   glfwGetFramebufferSize(fWindow, &w, &h);
   callbacks::onFrameBufferSizeChange(fWindow, w, h);
+  glfwSetFramebufferSizeCallback(fWindow, callbacks::onFrameBufferSizeChange);
 }
 
 //------------------------------------------------------------------------

@@ -18,6 +18,7 @@
 
 #include "FragmentShaderWindow.h"
 #include "Errors.h"
+#include <GLFW/glfw3.h>
 
 namespace shader_toy {
 
@@ -27,10 +28,16 @@ fn vertexMain(@builtin(vertex_index) i : u32) -> @builtin(position) vec4f {
     const pos = array(vec2f(-1, 1), vec2f(-1, -1), vec2f(1, -1), vec2f(-1, 1), vec2f(1, -1), vec2f(1, 1));
     return vec4f(pos[i], 0, 1);
 }
+
+@group(0) @binding(0) var<uniform> iSize: vec4f; // x,y WindowSize; z,w FrameBufferSize
+
 @fragment
 fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-    let color = (pos + vec4f(1, 1, 1, 1)) / 2.0;
-    return vec4f(pos.x, 0, 0, 1);
+    var color = vec4f(0);
+    if(pos.x > 100) {
+      color = vec4f(1,0,0,1);
+    }
+    return vec4f(pos.x / iSize.z, pos.y / iSize.w, 0, 1);
 }
 )";
 
@@ -43,6 +50,8 @@ FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<GPU> iGPU, Args const
   createRenderPipeline();
 }
 
+#define MEMALIGN(_SIZE,_ALIGN)        (((_SIZE) + ((_ALIGN) - 1)) & ~((_ALIGN) - 1))    // Memory align (copied from IM_ALIGN() macro).
+
 //------------------------------------------------------------------------
 // FragmentShaderWindow::createRenderPipeline
 //------------------------------------------------------------------------
@@ -51,8 +60,10 @@ void FragmentShaderWindow::createRenderPipeline()
   wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
   wgslDesc.code = shaderCode;
 
+  auto device = fGPU->getDevice();
+
   wgpu::ShaderModuleDescriptor shaderModuleDescriptor{.nextInChain = &wgslDesc};
-  wgpu::ShaderModule shaderModule = fGPU->getDevice().CreateShaderModule(&shaderModuleDescriptor);
+  wgpu::ShaderModule shaderModule = device.CreateShaderModule(&shaderModuleDescriptor);
 
   wgpu::BlendState blendState {
     .color {
@@ -79,9 +90,29 @@ void FragmentShaderWindow::createRenderPipeline()
     .targets = &colorTargetState
   };
 
+  // Defining group(0)
+  wgpu::BindGroupLayoutEntry group0BindGroupLayoutEntries[1] = {};
+  // @group(0) @binding(0) var<uniforms> iSize: vec4f; // x,y WindowSize; z,w FrameBufferSize
+  group0BindGroupLayoutEntries[0].binding = 0;
+  group0BindGroupLayoutEntries[0].visibility = wgpu::ShaderStage::Fragment;
+  group0BindGroupLayoutEntries[0].buffer.type = wgpu::BufferBindingType::Uniform;
+
+  wgpu::BindGroupLayoutDescriptor group0BindGroupLayoutDescriptor = {
+    .entryCount = 1,
+    .entries = group0BindGroupLayoutEntries
+  };
+
+  wgpu::BindGroupLayout layout = device.CreateBindGroupLayout(&group0BindGroupLayoutDescriptor);
+
+  wgpu::PipelineLayoutDescriptor pipeLineLayoutDescriptor = {
+    .label = "Fragment Shader Pipeline Layout",
+    .bindGroupLayoutCount = 1,
+    .bindGroupLayouts = &layout
+  };
 
   wgpu::RenderPipelineDescriptor descriptor{
     .label = "Fragment Shader Pipeline",
+    .layout = device.CreatePipelineLayout(&pipeLineLayoutDescriptor),
     .vertex{
       .module = shaderModule,
       .entryPoint = "vertexMain"
@@ -91,8 +122,30 @@ void FragmentShaderWindow::createRenderPipeline()
     .fragment = &fragmentState,
   };
 
-  fRenderPipeline = fGPU->getDevice().CreateRenderPipeline(&descriptor);
+  fRenderPipeline = device.CreateRenderPipeline(&descriptor);
   ASSERT(fRenderPipeline != nullptr, "Cannot create render pipeline");
+
+  wgpu::BufferDescriptor desc{
+    .label = "Fragment Shader Uniform Buffer @group(0) @binding(0)",
+    .usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
+    .size = MEMALIGN(sizeof(float) * 4, 16)
+  };
+  fSizeBuffer = device.CreateBuffer(&desc);
+
+  wgpu::BindGroupEntry group0BindGroupEntries[] = {
+    { .binding = 0, .buffer = fSizeBuffer, .size = MEMALIGN(sizeof(float) * 4, 16) },
+  };
+
+  wgpu::BindGroupDescriptor group0BindGroupDescriptor = {
+    .label = "Fragment Shader Group0 Bind Group",
+    .layout = layout,
+    .entryCount = 1,
+    .entries = group0BindGroupEntries
+  };
+
+  fGroup0BindGroup = device.CreateBindGroup(&group0BindGroupDescriptor);
+
+  updateSizeBuffer();
 }
 
 //------------------------------------------------------------------------
@@ -101,7 +154,29 @@ void FragmentShaderWindow::createRenderPipeline()
 void FragmentShaderWindow::doRender(wgpu::RenderPassEncoder &iRenderPass)
 {
   iRenderPass.SetPipeline(fRenderPipeline);
+  iRenderPass.SetBindGroup(0, fGroup0BindGroup);
   iRenderPass.Draw(6);
+}
+
+//------------------------------------------------------------------------
+// FragmentShaderWindow::updateSizeBuffer
+//------------------------------------------------------------------------
+void FragmentShaderWindow::updateSizeBuffer()
+{
+  int w,h, fbw, fbh;
+  glfwGetWindowSize(fWindow, &w, &h);
+  glfwGetFramebufferSize(fWindow, &fbw, &fbh);
+  float size[4]{static_cast<float>(w), static_cast<float>(h), static_cast<float>(fbw), static_cast<float>(fbh)};
+  fGPU->getDevice().GetQueue().WriteBuffer(fSizeBuffer, 0, size, sizeof(float) * 4);
+}
+
+//------------------------------------------------------------------------
+// FragmentShaderWindow::doHandleFrameBufferSizeChange
+//------------------------------------------------------------------------
+void FragmentShaderWindow::doHandleFrameBufferSizeChange(Renderable::Size const &iSize)
+{
+  Window::doHandleFrameBufferSizeChange(iSize);
+  updateSizeBuffer();
 }
 
 }

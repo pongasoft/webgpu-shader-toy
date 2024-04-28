@@ -33,11 +33,18 @@ public:
 protected:
   void doRender(wgpu::RenderPassEncoder &iRenderPass) override;
 
+public:
+  void doHandleFrameBufferSizeChange(Size const &iSize) override;
+
 private:
   void createRenderPipeline();
+  void updateSizeBuffer();
 
 private:
   wgpu::RenderPipeline fRenderPipeline{};
+
+  wgpu::BindGroup fGroup0BindGroup{};
+  wgpu::Buffer fSizeBuffer{};
 };
 
 }
