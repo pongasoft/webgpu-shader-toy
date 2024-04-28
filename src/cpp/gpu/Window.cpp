@@ -39,29 +39,24 @@ void onFrameBufferSizeChange(GLFWwindow *window, int width, int height)
 //------------------------------------------------------------------------
 // Window::Window
 //------------------------------------------------------------------------
-Window::Window(std::shared_ptr<GPU> iGPU,
-               Size const &iSize,
-               char const *title,
-               char const *iCanvasSelector,
-               char const *iCanvasResizeSelector,
-               char const *iHandleSelector) : Renderable(std::move(iGPU))
+Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) : Renderable(std::move(iGPU))
 {
-  emscripten_glfw_set_next_window_canvas_selector(iCanvasSelector);
+  emscripten_glfw_set_next_window_canvas_selector(iArgs.canvas.selector);
 
-  fWindow = glfwCreateWindow(iSize.fWidth, iSize.fHeight, title, nullptr, nullptr);
-  ASSERT(fWindow != nullptr, "Cannot create GLFW Window [%s]", title);
+  fWindow = glfwCreateWindow(iArgs.size.width, iArgs.size.height, iArgs.title, nullptr, nullptr);
+  ASSERT(fWindow != nullptr, "Cannot create GLFW Window [%s]", iArgs.title);
 
-  emscripten_glfw_make_canvas_resizable(fWindow, iCanvasResizeSelector, iHandleSelector);
+  emscripten_glfw_make_canvas_resizable(fWindow, iArgs.canvas.resizeSelector, iArgs.canvas.handleSelector);
 
   glfwSetWindowUserPointer(fWindow, this);
 
   wgpu::SurfaceDescriptorFromCanvasHTMLSelector html_surface_desc = {};
-  html_surface_desc.selector = iCanvasSelector;
+  html_surface_desc.selector = iArgs.canvas.selector;
 
   wgpu::SurfaceDescriptor surface_desc = { .nextInChain = &html_surface_desc };
 
   fSurface = fGPU->getInstance().CreateSurface(&surface_desc);
-  ASSERT(fSurface != nullptr, "Cannot create surface for [%s]", iCanvasSelector);
+  ASSERT(fSurface != nullptr, "Cannot create surface for [%s]", iArgs.canvas.selector);
   initPreferredFormat(fSurface.GetPreferredFormat(nullptr));
 
   // will initialize the swapchain on first frame
@@ -115,8 +110,8 @@ void Window::createSwapChain(Renderable::Size const &iSize)
   wgpu::SwapChainDescriptor scDesc{
     .usage = wgpu::TextureUsage::RenderAttachment,
     .format = fPreferredFormat,
-    .width = static_cast<uint32_t>(iSize.fWidth),
-    .height = static_cast<uint32_t>(iSize.fHeight),
+    .width = static_cast<uint32_t>(iSize.width),
+    .height = static_cast<uint32_t>(iSize.height),
     .presentMode = wgpu::PresentMode::Fifo};
   fSwapChain = fGPU->getDevice().CreateSwapChain(fSurface, &scDesc);
 }

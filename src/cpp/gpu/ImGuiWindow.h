@@ -28,12 +28,7 @@ namespace pongasoft::gpu {
 class ImGuiWindow : public Window
 {
 public:
-  ImGuiWindow(std::shared_ptr<GPU> iGPU,
-              Size const &iSize,
-              char const *title,
-              char const *iCanvasSelector,
-              char const *iCanvasResizeSelector = nullptr,
-              char const *iHandleSelector = nullptr);
+  ImGuiWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs);
 
   ~ImGuiWindow() override;
 

@@ -28,12 +28,7 @@ namespace shader_toy {
 class FragmentShaderWindow : public Window
 {
 public:
-  FragmentShaderWindow(std::shared_ptr<GPU> iGPU,
-                       Size const &iSize,
-                       char const *title,
-                       char const *iCanvasSelector,
-                       char const *iCanvasResizeSelector = nullptr,
-                       char const *iHandleSelector = nullptr);
+  FragmentShaderWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs);
 
 protected:
   void doRender(wgpu::RenderPassEncoder &iRenderPass) override;

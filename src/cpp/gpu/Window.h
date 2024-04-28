@@ -29,8 +29,18 @@ namespace pongasoft::gpu {
 class Window: public Renderable
 {
 public:
-  Window(std::shared_ptr<GPU> iGPU, Size const &iSize, char const *title,
-         char const *iCanvasSelector, char const *iCanvasResizeSelector = nullptr, char const *iHandleSelector = nullptr);
+  struct Args
+  {
+    Size size{320, 200};
+    char const *title{"undefined"};
+    struct {
+      char const *selector{};
+      char const *resizeSelector{};
+      char const *handleSelector{};
+    } canvas{};
+  };
+public:
+  Window(std::shared_ptr<GPU> iGPU, Args const &iArgs);
   ~Window() override;
 
   void beforeFrame() override;

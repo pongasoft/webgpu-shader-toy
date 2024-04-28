@@ -25,15 +25,10 @@ namespace pongasoft::gpu {
 //------------------------------------------------------------------------
 // ImGuiWindow::ImGuiWindow
 //------------------------------------------------------------------------
-ImGuiWindow::ImGuiWindow(std::shared_ptr<GPU> iGPU,
-                         Renderable::Size const &iSize,
-                         char const *title,
-                         char const *iCanvasSelector, char const *iCanvasResizeSelector, char const *iHandleSelector) :
-  Window(std::move(iGPU),
-         iSize,
-         title,
-         iCanvasSelector, iCanvasResizeSelector, iHandleSelector)
+ImGuiWindow::ImGuiWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs) :
+  Window(std::move(iGPU), iArgs)
 {
+  IMGUI_CHECKVERSION();
   fImGuiContext = ImGui::CreateContext();
   ImGuiIO &io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls

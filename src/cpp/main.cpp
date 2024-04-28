@@ -21,20 +21,30 @@ static void MainLoopForEmscripten()
 // Main code
 int main(int, char **)
 {
-  IMGUI_CHECKVERSION();
-
   kApplication = std::make_unique<shader_toy::Application>();
 
   kApplication
-    ->registerRenderable<shader_toy::FragmentShaderWindow>(Renderable::Size{320, 200},
-                                                           "WebGPU Shader Toy | fragment shader",
-                                                           "#canvas2", "#canvas2-container", "#canvas2-handle")
+    ->registerRenderable<shader_toy::FragmentShaderWindow>(Window::Args{
+      .size = Renderable::Size{320, 200},
+      .title = "WebGPU Shader Toy | fragment shader",
+      .canvas = {
+        .selector = "#canvas2",
+        .resizeSelector = "#canvas2-container",
+        .handleSelector = "#canvas2-handle"
+      }
+    })
     ->show();
 
   kApplication
-    ->registerRenderable<shader_toy::MainWindow>(Renderable::Size{320, 200},
-                                                 "WebGPU Shader Toy",
-                                                 "#canvas1", "#canvas1-container", "#canvas1-handle")
+    ->registerRenderable<shader_toy::MainWindow>(Window::Args{
+      .size = Renderable::Size{320, 200},
+      .title = "WebGPU Shader Toy",
+      .canvas = {
+        .selector = "#canvas1",
+        .resizeSelector = "#canvas1-container",
+        .handleSelector = "#canvas1-handle"
+      }
+    })
     ->show();
 
   emscripten_set_main_loop(MainLoopForEmscripten, 0, true);

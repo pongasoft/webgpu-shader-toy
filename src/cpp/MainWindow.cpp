@@ -24,16 +24,9 @@ namespace shader_toy {
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
 //------------------------------------------------------------------------
-MainWindow::MainWindow(std::shared_ptr<GPU> iGPU,
-                       Renderable::Size const &iSize,
-                       char const *title,
-                       char const *iCanvasSelector, char const *iCanvasResizeSelector, char const *iHandleSelector) :
-  ImGuiWindow(std::move(iGPU),
-              iSize,
-              title,
-              iCanvasSelector, iCanvasResizeSelector, iHandleSelector)
+MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs) :
+  ImGuiWindow(std::move(iGPU), iArgs)
 {
-
 }
 
 //------------------------------------------------------------------------

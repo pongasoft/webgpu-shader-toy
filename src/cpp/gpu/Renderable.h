@@ -31,8 +31,8 @@ public:
 public:
   struct Size
   {
-    int fWidth{};
-    int fHeight{};
+    int width{};
+    int height{};
   };
 public:
   explicit Renderable(std::shared_ptr<GPU> iGPU) : fGPU{std::move(iGPU)} {}
