@@ -17,7 +17,6 @@
  */
 
 #include <GLFW/emscripten_glfw3.h>
-#include <backends/imgui_impl_wgpu.h>
 #include <backends/imgui_impl_glfw.h>
 #include "Application.h"
 #include "Errors.h"
@@ -32,57 +31,10 @@ void consoleErrorHandler(int iErrorCode, char const *iErrorMessage)
   printf("glfwError: %d | %s\n", iErrorCode, iErrorMessage);
 }
 
-namespace callbacks {
-
 //------------------------------------------------------------------------
-// callbacks::onFrameBufferSizeChange
+// Application::Application
 //------------------------------------------------------------------------
-void onFrameBufferSizeChange(GLFWwindow *window, int width, int height)
-{
-  auto application = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
-  application->asyncOnFramebufferSizeChange({static_cast<float>(width), static_cast<float>(height)});
-}
-
-}
-
-
-//------------------------------------------------------------------------
-// Application::~Application
-//------------------------------------------------------------------------
-shader_toy::Application::~Application()
-{
-  if(fImGuiContext)
-  {
-    ImGui_ImplWGPU_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-  }
-
-  if(fImGuiWindow)
-    glfwDestroyWindow(fImGuiWindow);
-
-  glfwTerminate();
-}
-
-//------------------------------------------------------------------------
-// Application::init
-//------------------------------------------------------------------------
-void Application::init(std::string_view iImGuiCanvasSelector)
-{
-  fImGuiWindow = initGLFW(iImGuiCanvasSelector);
-  // makes the canvas resizable and match the full window size
-  emscripten_glfw_make_canvas_resizable(fImGuiWindow, "window", nullptr);
-  glfwSetWindowUserPointer(fImGuiWindow, this);
-  initWebGPU(iImGuiCanvasSelector);
-  initImGui();
-  fShaderWindow.init(*fGPU);
-  glfwShowWindow(fImGuiWindow);
-}
-
-//------------------------------------------------------------------------
-// Application::initGLFW
-//------------------------------------------------------------------------
-GLFWwindow *Application::initGLFW(std::string_view iImGuiCanvasSelector)
+Application::Application()
 {
   // set a callback for errors otherwise if there is a problem, we won't know
   glfwSetErrorCallback(consoleErrorHandler);
@@ -91,84 +43,38 @@ GLFWwindow *Application::initGLFW(std::string_view iImGuiCanvasSelector)
   printf("%s\n", glfwGetVersionString());
 
   // initialize the library
-  if(!glfwInit())
-    return nullptr;
+  ASSERT(glfwInit() == GLFW_TRUE);
 
   // no OpenGL (use WebGPU)
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-  // setting the association window <-> canvas
-  emscripten_glfw_set_next_window_canvas_selector(iImGuiCanvasSelector.data());
+  fGPU = GPU::create();
 
-  // create the only window
-  auto window = glfwCreateWindow(320, 200, "WebGPU Shader Toy", nullptr, nullptr);
-  SHADER_TOY_ASSERT(window != nullptr, "Cannot create GLFW Window");
+  fFragmentShaderWindow = std::make_unique<FragmentShaderWindow>(fGPU,
+                                                                 Renderable::Size{320, 200},
+                                                                 "WebGPU Shader Toy | fragment shader",
+                                                                 "#canvas2", "#canvas2-container", "#canvas2-handle");
 
-  return window;
+  fFragmentShaderWindow->show();
+
+  fControlsWindow = std::make_unique<ImGuiWindow>(fGPU,
+                                                  Renderable::Size{320, 200},
+                                                  "WebGPU Shader Toy",
+                                                  "#canvas1", "#canvas1-container", "#canvas1-handle");
+
+  fControlsWindow->show();
 }
 
+
 //------------------------------------------------------------------------
-// Application::initWebGPU
+// Application::~Application
 //------------------------------------------------------------------------
-void Application::initWebGPU(std::string_view iImGuiCanvasSelector)
+shader_toy::Application::~Application()
 {
-  fGPU = shader_toy::GPU::create();
-  fGPU->createSurface(fImGuiWindow, iImGuiCanvasSelector);
-
-  // will initialize the swapchain on first frame
-  int w, h;
-  glfwGetFramebufferSize(fImGuiWindow, &w, &h);
-  callbacks::onFrameBufferSizeChange(fImGuiWindow, w, h);
-}
-
-//------------------------------------------------------------------------
-// Application::initImGui
-//------------------------------------------------------------------------
-void Application::initImGui()
-{
-  // Setup Dear ImGui context
-  fImGuiContext = ImGui::CreateContext();
-  ImGuiIO &io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-//  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-#ifdef IMGUI_ENABLE_DOCKING
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-  io.ConfigDockingWithShift = false;
-#endif
-
-  // Setup Dear ImGui style
-  ImGui::StyleColorsDark();
-
-  // Setup Platform/Renderer backends
-  ImGui_ImplGlfw_InitForOther(fImGuiWindow, true);
-  ImGui_ImplWGPU_InitInfo init_info;
-  init_info.Device = fGPU->getDevice().Get();
-  init_info.RenderTargetFormat = static_cast<WGPUTextureFormat>(fGPU->getPreferredFormat());
-  ImGui_ImplWGPU_Init(&init_info);
-}
-
-//------------------------------------------------------------------------
-// Application::onFramebufferSizeChange
-//------------------------------------------------------------------------
-void Application::onFramebufferSizeChange(ImVec2 const &iSize)
-{
-  ImGui_ImplWGPU_InvalidateDeviceObjects();
-  fGPU->createSwapChain(static_cast<int>(iSize.x), static_cast<int>(iSize.y));
-  ImGui_ImplWGPU_CreateDeviceObjects();
-}
-
-//------------------------------------------------------------------------
-// Application::newFrame
-//------------------------------------------------------------------------
-void Application::newFrame()
-{
-//  if(!fNewFrameActions.empty())
-//  {
-//    auto actions = std::move(fNewFrameActions);
-//    for(auto &action: actions)
-//      action(this);
-//  }
+  fControlsWindow = nullptr;
+  fFragmentShaderWindow = nullptr;
+  fGPU = nullptr;
+  glfwTerminate();
 }
 
 //------------------------------------------------------------------------
@@ -176,57 +82,49 @@ void Application::newFrame()
 //------------------------------------------------------------------------
 void Application::mainLoop()
 {
-  static ImVec4 clear_color = ImVec4(153.f/255.f, 153.f/255.f, 153.f/255.f, 1.00f);
-
-  // handle size change before everything
-  if(fNewFrameBufferSize)
-  {
-    onFramebufferSizeChange(*fNewFrameBufferSize);
-    fNewFrameBufferSize = std::nullopt;
-  }
-
-  newFrame();
+  fControlsWindow->handleFramebufferSizeChange();
+  fFragmentShaderWindow->handleFramebufferSizeChange();
 
   glfwPollEvents();
 
   fGPU->beginFrame();
-  fShaderWindow.render(*fGPU);
-  fGPU->renderPass({.r = clear_color.x, .g = clear_color.y, .b = clear_color.z, .a = clear_color.w},
-                   [this](wgpu::RenderPassEncoder &pass) { renderImGui(pass); });
+  fControlsWindow->render([this]() { renderControlsWindow(); });
+  fFragmentShaderWindow->render();
   fGPU->endFrame();
 
-  fRunning = !glfwWindowShouldClose(fImGuiWindow);
+  fRunning = fControlsWindow->running() && fFragmentShaderWindow->running();
+//  fRunning = false;
 }
 
 //------------------------------------------------------------------------
-// Application::renderImGui
+// Application::renderControlsWindow
 //------------------------------------------------------------------------
-void Application::renderImGui(wgpu::RenderPassEncoder &renderPass)
+void Application::renderControlsWindow()
 {
-  ImGui_ImplWGPU_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
+  static ImVec4 kClearColor = ImVec4(153.f/255.f, 153.f/255.f, 153.f/255.f, 1.00f);
 
-  if(ImGui::Begin("Hello, world!"))
+  ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
+  ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
+  if(ImGui::Begin("Hello, world!", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
   {
     ImGui::Text("This is some useful text.");
+
+    ImGui::ColorEdit3("Background", &kClearColor.x);
+
     if(ImGui::Button("Exit"))
-      glfwSetWindowShouldClose(fImGuiWindow, GLFW_TRUE);
+      fControlsWindow->stop();
 
     auto &io = ImGui::GetIO();
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
   }
+  fControlsWindow->setClearColor({kClearColor.x, kClearColor.y, kClearColor.z, kClearColor.w});
   ImGui::End();
 
-  if(ImGui::Begin("Shader"))
-  {
-    ImGui::Image(fShaderWindow.getTextureView(), fShaderWindow.getSize());
-  }
-  ImGui::End();
-
-  ImGui::EndFrame();
-  ImGui::Render();
-  ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass.Get());
+//  if(ImGui::Begin("Shader"))
+//  {
+//    ImGui::Image(fShaderWindow.getTextureView(), fShaderWindow.getSize());
+//  }
+//  ImGui::End();
 }
 
 

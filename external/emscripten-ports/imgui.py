@@ -168,7 +168,7 @@ def handle_options(options, error_handler):
         error_handler(f'backend [{opts["backend"]}] does not support [{opts["renderer"]}] renderer')
 
     if opts['backend'] == 'glfw':
-        deps.append('contrib.glfw3:disableMultiWindow=true')
+        deps.append('contrib.glfw3')
     else:
         deps.append('sdl2')
 

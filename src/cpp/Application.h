@@ -19,48 +19,33 @@
 #ifndef WGPU_SHADER_TOY_APPLICATION_H
 #define WGPU_SHADER_TOY_APPLICATION_H
 
-#include "GPU.h"
-#include "ShaderWindow.h"
+#include "gpu/GPU.h"
+#include "gpu/ImGuiWindow.h"
+#include "FragmentShaderWindow.h"
 #include <GLFW/glfw3.h>
 #include <vector>
-#include <optional>
 
 namespace shader_toy {
+
+using namespace pongasoft::gpu;
 
 class Application
 {
 public:
-  using action_t = std::function<void(Application *)>;
-
-public:
-  Application() = default;
+  Application();
   ~Application();
 
-  void init(std::string_view iImGuiCanvasSelector);
   void mainLoop();
   constexpr bool running() const { return fRunning; }
-  void asyncOnFramebufferSizeChange(ImVec2 const &iSize) { fNewFrameBufferSize = iSize; }
-
-  void newFrame();
-
-  void deferNextFrame(action_t iAction) { if(iAction) fNewFrameActions.emplace_back(std::move(iAction)); }
 
 private:
-  static GLFWwindow *initGLFW(std::string_view iImGuiCanvasSelector);
-  void initWebGPU(std::string_view iImGuiCanvasSelector);
-  void initImGui();
-  void renderImGui(wgpu::RenderPassEncoder &renderPass);
-  void onFramebufferSizeChange(ImVec2 const &iSize);
+  void renderControlsWindow();
 
 private:
-  std::unique_ptr<GPU> fGPU{};
-  ShaderWindow fShaderWindow{ImVec2{500, 500}};
-  GLFWwindow *fImGuiWindow{};
-  ImGuiContext *fImGuiContext{};
+  std::shared_ptr<GPU> fGPU{};
+  std::unique_ptr<ImGuiWindow> fControlsWindow{};
+  std::unique_ptr<FragmentShaderWindow> fFragmentShaderWindow{};
   bool fRunning{true};
-
-  std::optional<ImVec2> fNewFrameBufferSize{};
-  std::vector<action_t> fNewFrameActions{};
 };
 
 }

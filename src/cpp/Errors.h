@@ -23,7 +23,7 @@
 #include <string>
 #include "fmt.h"
 
-namespace shader_toy {
+namespace pongasoft {
 
 struct Exception : public std::logic_error {
   explicit Exception(std::string const &s) : std::logic_error(s.c_str()) {}
@@ -41,7 +41,7 @@ struct Exception : public std::logic_error {
   }
 };
 
-#define SHADER_TOY_ASSERT(test, ...) (test) == true ? (void)0 : shader_toy::Exception::throwException("CHECK FAILED: [" #test "]", __FILE__, __LINE__, ##__VA_ARGS__)
+#define ASSERT(test, ...) (test) == true ? (void)0 : pongasoft::Exception::throwException("CHECK FAILED: [" #test "]", __FILE__, __LINE__, ##__VA_ARGS__)
 
 
 }

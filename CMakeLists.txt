@@ -6,18 +6,27 @@ if(NOT EMSCRIPTEN)
   message(FATAL_ERROR "This project must be compiled with emscripten")
 endif()
 
+set(CMAKE_WARN_UNUSED OFF)
+
 set(CMAKE_CXX_STANDARD 20)
 
 set(wgpu_shader_toy_sources
     src/cpp/Application.h
     src/cpp/Application.cpp
+    src/cpp/FragmentShaderWindow.h
+    src/cpp/FragmentShaderWindow.cpp
     src/cpp/Errors.h
     src/cpp/fmt.h
-    src/cpp/GPU.cpp
-    src/cpp/GPU.h
-    src/cpp/ShaderWindow.h
-    src/cpp/ShaderWindow.cpp
+
     src/cpp/main.cpp
+
+    src/cpp/gpu/GPU.h
+    src/cpp/gpu/GPU.cpp
+    src/cpp/gpu/ImGuiWindow.h
+    src/cpp/gpu/ImGuiWindow.cpp
+    src/cpp/gpu/Renderable.h
+    src/cpp/gpu/Window.h
+    src/cpp/gpu/Window.cpp
 )
 
 add_executable(wgpu_shader_toy "${wgpu_shader_toy_sources}")

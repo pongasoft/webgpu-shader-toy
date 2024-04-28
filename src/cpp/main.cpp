@@ -23,7 +23,6 @@ int main(int, char **)
   IMGUI_CHECKVERSION();
 
   kApplication = std::make_unique<shader_toy::Application>();
-  kApplication->init("#canvas");
 
   emscripten_set_main_loop(MainLoopForEmscripten, 0, true);
 
