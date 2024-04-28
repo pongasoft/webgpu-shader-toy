@@ -16,8 +16,7 @@
  * @author Yan Pujante
  */
 
-#include <GLFW/emscripten_glfw3.h>
-#include <backends/imgui_impl_glfw.h>
+#include <GLFW/glfw3.h>
 #include "Application.h"
 #include "Errors.h"
 
@@ -49,20 +48,6 @@ Application::Application()
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
   fGPU = GPU::create();
-
-  fFragmentShaderWindow = std::make_unique<FragmentShaderWindow>(fGPU,
-                                                                 Renderable::Size{320, 200},
-                                                                 "WebGPU Shader Toy | fragment shader",
-                                                                 "#canvas2", "#canvas2-container", "#canvas2-handle");
-
-  fFragmentShaderWindow->show();
-
-  fControlsWindow = std::make_unique<ImGuiWindow>(fGPU,
-                                                  Renderable::Size{320, 200},
-                                                  "WebGPU Shader Toy",
-                                                  "#canvas1", "#canvas1-container", "#canvas1-handle");
-
-  fControlsWindow->show();
 }
 
 
@@ -71,8 +56,7 @@ Application::Application()
 //------------------------------------------------------------------------
 shader_toy::Application::~Application()
 {
-  fControlsWindow = nullptr;
-  fFragmentShaderWindow = nullptr;
+  fRenderableList.clear();
   fGPU = nullptr;
   glfwTerminate();
 }
@@ -82,49 +66,22 @@ shader_toy::Application::~Application()
 //------------------------------------------------------------------------
 void Application::mainLoop()
 {
-  fControlsWindow->handleFramebufferSizeChange();
-  fFragmentShaderWindow->handleFramebufferSizeChange();
+  for(auto &r: fRenderableList)
+    r->beforeFrame();
 
   glfwPollEvents();
 
   fGPU->beginFrame();
-  fControlsWindow->render([this]() { renderControlsWindow(); });
-  fFragmentShaderWindow->render();
+  for(auto &r: fRenderableList)
+    r->render();
   fGPU->endFrame();
 
-  fRunning = fControlsWindow->running() && fFragmentShaderWindow->running();
-//  fRunning = false;
-}
+  for(auto &r: fRenderableList)
+    r->afterFrame();
 
-//------------------------------------------------------------------------
-// Application::renderControlsWindow
-//------------------------------------------------------------------------
-void Application::renderControlsWindow()
-{
-  static ImVec4 kClearColor = ImVec4(153.f/255.f, 153.f/255.f, 153.f/255.f, 1.00f);
-
-  ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
-  ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
-  if(ImGui::Begin("Hello, world!", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
-  {
-    ImGui::Text("This is some useful text.");
-
-    ImGui::ColorEdit3("Background", &kClearColor.x);
-
-    if(ImGui::Button("Exit"))
-      fControlsWindow->stop();
-
-    auto &io = ImGui::GetIO();
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-  }
-  fControlsWindow->setClearColor({kClearColor.x, kClearColor.y, kClearColor.z, kClearColor.w});
-  ImGui::End();
-
-//  if(ImGui::Begin("Shader"))
-//  {
-//    ImGui::Image(fShaderWindow.getTextureView(), fShaderWindow.getSize());
-//  }
-//  ImGui::End();
+  fRunning = true;
+  for(auto &r: fRenderableList)
+    fRunning &= r->running();
 }
 
 

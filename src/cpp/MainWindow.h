@@ -16,35 +16,29 @@
  * @author Yan Pujante
  */
 
-#ifndef WGPU_SHADER_TOY_FRAGMENT_SHADER_WINDOW_H
-#define WGPU_SHADER_TOY_FRAGMENT_SHADER_WINDOW_H
+#ifndef WGPU_SHADER_TOY_MAIN_WINDOW_H
+#define WGPU_SHADER_TOY_MAIN_WINDOW_H
 
-#include "gpu/Window.h"
+#include "gpu/ImGuiWindow.h"
 
 using namespace pongasoft::gpu;
 
 namespace shader_toy {
 
-class FragmentShaderWindow : public Window
+class MainWindow : public ImGuiWindow
 {
 public:
-  FragmentShaderWindow(std::shared_ptr<GPU> iGPU,
-                       Size const &iSize,
-                       char const *title,
-                       char const *iCanvasSelector,
-                       char const *iCanvasResizeSelector = nullptr,
-                       char const *iHandleSelector = nullptr);
+  MainWindow(std::shared_ptr<GPU> iGPU,
+             Size const &iSize,
+             char const *title,
+             char const *iCanvasSelector,
+             char const *iCanvasResizeSelector = nullptr,
+             char const *iHandleSelector = nullptr);
 
 protected:
-  void doRender(wgpu::RenderPassEncoder &iRenderPass) override;
-
-private:
-  void createRenderPipeline();
-
-private:
-  wgpu::RenderPipeline fRenderPipeline{};
+  void doRender() override;
 };
 
 }
 
-#endif //WGPU_SHADER_TOY_FRAGMENT_SHADER_WINDOW_H
+#endif //WGPU_SHADER_TOY_MAIN_WINDOW_H

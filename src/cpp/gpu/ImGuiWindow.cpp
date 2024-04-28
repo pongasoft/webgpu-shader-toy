@@ -76,7 +76,7 @@ void ImGuiWindow::doHandleFrameBufferSizeChange(Renderable::Size const &iSize)
 //------------------------------------------------------------------------
 // ImGuiWindow::doRender
 //------------------------------------------------------------------------
-void ImGuiWindow::doRender(wgpu::RenderPassEncoder &iRenderPass, Renderable::render_fn_t iRenderFunction)
+void ImGuiWindow::doRender(wgpu::RenderPassEncoder &iRenderPass)
 {
   ImGui::SetCurrentContext(fImGuiContext);
 
@@ -84,7 +84,7 @@ void ImGuiWindow::doRender(wgpu::RenderPassEncoder &iRenderPass, Renderable::ren
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  iRenderFunction();
+  doRender();
 
   ImGui::EndFrame();
   ImGui::Render();

@@ -38,10 +38,14 @@ public:
   explicit Renderable(std::shared_ptr<GPU> iGPU) : fGPU{std::move(iGPU)} {}
   virtual ~Renderable() = default;
 
+  virtual void init() {}
+  virtual void beforeFrame() {}
+  virtual void afterFrame() {}
+  virtual bool running() const { return true; }
 
-  void render(render_fn_t iRenderFunction = {}) {
-    fGPU->renderPass(fClearColor, [fn = std::move(iRenderFunction), this](wgpu::RenderPassEncoder &renderPass) {
-      doRender(renderPass, fn);
+  void render() {
+    fGPU->renderPass(fClearColor, [this](wgpu::RenderPassEncoder &renderPass) {
+      doRender(renderPass);
     }, getTextureView());
   }
 
@@ -49,7 +53,7 @@ public:
   void setClearColor(wgpu::Color const &iClearColor) { fClearColor = gammaCorrect(iClearColor); }
 
 protected:
-  virtual void doRender(wgpu::RenderPassEncoder &iRenderPass, render_fn_t iRenderFunction) = 0;
+  virtual void doRender(wgpu::RenderPassEncoder &iRenderPass) = 0;
 
   void initPreferredFormat(wgpu::TextureFormat iPreferredFormat)
   {
@@ -76,6 +80,9 @@ protected:
   wgpu::TextureFormat fPreferredFormat{wgpu::TextureFormat::Undefined};
   float fGamma{1.0};
 };
+
+template<typename T>
+concept IsRenderable = std::is_base_of_v<Renderable, T> && !std::is_same_v<Renderable, T>;
 
 }
 

@@ -35,18 +35,28 @@ public:
   Application();
   ~Application();
 
+  template<IsRenderable R, typename... Args>
+  std::shared_ptr<R> registerRenderable(Args&&... args);
+
   void mainLoop();
   constexpr bool running() const { return fRunning; }
 
 private:
-  void renderControlsWindow();
-
-private:
   std::shared_ptr<GPU> fGPU{};
-  std::unique_ptr<ImGuiWindow> fControlsWindow{};
-  std::unique_ptr<FragmentShaderWindow> fFragmentShaderWindow{};
+  std::vector<std::shared_ptr<Renderable>> fRenderableList{};
   bool fRunning{true};
 };
+
+//------------------------------------------------------------------------
+// Application::registerRenderable
+//------------------------------------------------------------------------
+template<IsRenderable R, typename... Args>
+std::shared_ptr<R> Application::registerRenderable(Args &&... args)
+{
+  std::shared_ptr<R> renderable = std::make_unique<R>(fGPU, std::forward<Args>(args)...);
+  fRenderableList.emplace_back(renderable);
+  return renderable;
+}
 
 }
 

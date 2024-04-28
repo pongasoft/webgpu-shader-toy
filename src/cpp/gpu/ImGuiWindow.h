@@ -21,6 +21,8 @@
 
 #include "Window.h"
 
+class ImGuiContext;
+
 namespace pongasoft::gpu {
 
 class ImGuiWindow : public Window
@@ -38,7 +40,8 @@ public:
   void doHandleFrameBufferSizeChange(Size const &iSize) override;
 
 protected:
-  void doRender(wgpu::RenderPassEncoder &iRenderPass, render_fn_t iRenderFunction) override;
+  void doRender(wgpu::RenderPassEncoder &iRenderPass) override;
+  virtual void doRender() = 0;
 
 protected:
   ImGuiContext *fImGuiContext{};

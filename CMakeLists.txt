@@ -16,6 +16,8 @@ set(wgpu_shader_toy_sources
     src/cpp/FragmentShaderWindow.h
     src/cpp/FragmentShaderWindow.cpp
     src/cpp/Errors.h
+    src/cpp/MainWindow.h
+    src/cpp/MainWindow.cpp
     src/cpp/fmt.h
 
     src/cpp/main.cpp

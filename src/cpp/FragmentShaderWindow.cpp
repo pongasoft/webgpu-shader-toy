@@ -106,7 +106,7 @@ void FragmentShaderWindow::createRenderPipeline()
 //------------------------------------------------------------------------
 // FragmentShaderWindow::doRender
 //------------------------------------------------------------------------
-void FragmentShaderWindow::doRender(wgpu::RenderPassEncoder &iRenderPass, Renderable::render_fn_t iRenderFunction)
+void FragmentShaderWindow::doRender(wgpu::RenderPassEncoder &iRenderPass)
 {
   iRenderPass.SetPipeline(fRenderPipeline);
   iRenderPass.Draw(6);

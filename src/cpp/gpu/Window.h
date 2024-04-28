@@ -33,6 +33,8 @@ public:
          char const *iCanvasSelector, char const *iCanvasResizeSelector = nullptr, char const *iHandleSelector = nullptr);
   ~Window() override;
 
+  void beforeFrame() override;
+
   void handleFramebufferSizeChange();
 
   void asyncOnFramebufferSizeChange(Size const &iSize) { fNewFrameBufferSize = iSize; }
@@ -40,7 +42,7 @@ public:
   virtual void doHandleFrameBufferSizeChange(Size const &iSize);
 
   void show();
-  bool running() const;
+  bool running() const override;
   void stop();
 
 protected:
