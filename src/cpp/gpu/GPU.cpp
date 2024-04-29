@@ -17,10 +17,8 @@
  */
 
 #include <emscripten/html5_webgpu.h>
-#include <emscripten/emscripten.h>
 #include "GPU.h"
 #include "../Errors.h"
-#include <cstdio>
 #include <utility>
 
 namespace pongasoft::gpu {
@@ -105,25 +103,9 @@ void GPU::renderPass(wgpu::Color const &iColor,
 //------------------------------------------------------------------------
 void GPU::onGPUError(wgpu::ErrorType iErrorType, char const *iMessage)
 {
-  const char *error_type_lbl;
-  switch(iErrorType)
-  {
-    case wgpu::ErrorType::Validation:
-      error_type_lbl = "Validation";
-      break;
-    case wgpu::ErrorType::OutOfMemory:
-      error_type_lbl = "Out of memory";
-      break;
-    case wgpu::ErrorType::DeviceLost:
-      error_type_lbl = "Device lost";
-      break;
-    case wgpu::ErrorType::Unknown:
-    default:
-      error_type_lbl = "Unknown";
-      break;
-  }
+  fError = {iErrorType, iMessage};
   // can dynamically be changed (for example when parsing new shader code)
-  ASSERT(false, "[WebGPU] %s error | %s\n", error_type_lbl, iMessage);
+  printf("[WebGPU] %s error | %s\n", errorTypeAsString(iErrorType), iMessage);
 }
 
 }

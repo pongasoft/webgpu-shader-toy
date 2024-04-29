@@ -30,8 +30,8 @@ namespace callbacks {
 //------------------------------------------------------------------------
 void onFrameBufferSizeChange(GLFWwindow *window, int width, int height)
 {
-  auto application = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
-  application->asyncOnFramebufferSizeChange({width, height});
+  auto w = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
+  w->asyncOnFramebufferSizeChange({width, height});
 }
 
 }

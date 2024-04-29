@@ -24,8 +24,9 @@ namespace shader_toy {
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
 //------------------------------------------------------------------------
-MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs) :
-  ImGuiWindow(std::move(iGPU), iArgs)
+MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel) :
+  ImGuiWindow(std::move(iGPU), iArgs),
+  fModel{std::move(iModel)}
 {
 }
 
@@ -40,12 +41,16 @@ void MainWindow::doRender()
   ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
   if(ImGui::Begin("Hello, world!", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
   {
-    ImGui::Text("This is some useful text.");
-
     ImGui::ColorEdit3("Background", &kClearColor.x);
 
     if(ImGui::Button("Exit"))
       stop();
+
+    if(fModel->fFragmentShaderError)
+    {
+      ImGui::Text("%s", fModel->fFragmentShaderError->c_str());
+    }
+
 
     auto &io = ImGui::GetIO();
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);

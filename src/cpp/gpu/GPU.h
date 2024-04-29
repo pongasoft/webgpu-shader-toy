@@ -22,6 +22,7 @@
 #include <webgpu/webgpu_cpp.h>
 #include <memory>
 #include <functional>
+#include <optional>
 
 struct GLFWwindow;
 
@@ -29,6 +30,13 @@ namespace pongasoft::gpu {
 
 class GPU
 {
+public:
+  struct Error
+  {
+    wgpu::ErrorType fType{wgpu::ErrorType::NoError};
+    std::string fMessage{};
+  };
+
 public:
   using render_pass_fn_t = std::function<void(wgpu::RenderPassEncoder &)>;
 
@@ -41,10 +49,17 @@ public:
   wgpu::Device getDevice() const { return fDevice; }
   wgpu::Instance getInstance() const { return fInstance; }
 
+  inline bool hasError() const { return fError.has_value(); }
+  inline Error getError() const { return fError ? *fError : Error{}; }
+  std::optional<Error> consumeError() { auto error = fError; fError = std::nullopt; return error; }
+
   void beginFrame();
   void renderPass(wgpu::Color const &iColor, render_pass_fn_t const &iRenderPassFn, wgpu::TextureView const &iTextureView = nullptr);
   void endFrame();
 
+  //------------------------------------------------------------------------
+  // GPU::computeGamma
+  //------------------------------------------------------------------------
   constexpr static float computeGamma(wgpu::TextureFormat iTextureFormat)
   {
     float gamma;
@@ -80,6 +95,26 @@ public:
     return gamma;
   }
 
+  //------------------------------------------------------------------------
+  // GPU::errorTypeAsString
+  //------------------------------------------------------------------------
+  constexpr static char const *errorTypeAsString(wgpu::ErrorType iErrorType)
+  {
+    switch(iErrorType)
+    {
+      case wgpu::ErrorType::Validation:
+        return "Validation";
+      case wgpu::ErrorType::OutOfMemory:
+        return "Out of memory";
+      case wgpu::ErrorType::DeviceLost:
+        return "Device lost";
+      case wgpu::ErrorType::Unknown:
+      default:
+        return "Unknown";
+    }
+  }
+
+
 public: // should be private but called from C
   void onGPUError(wgpu::ErrorType iErrorType, const char *iMessage);
 
@@ -90,6 +125,8 @@ private:
   wgpu::Instance fInstance;
   wgpu::Device fDevice;
   wgpu::CommandEncoder fCommandEncoder{};
+
+  std::optional<Error> fError{};
 };
 
 }

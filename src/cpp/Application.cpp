@@ -66,22 +66,47 @@ shader_toy::Application::~Application()
 //------------------------------------------------------------------------
 void Application::mainLoop()
 {
-  for(auto &r: fRenderableList)
-    r->beforeFrame();
+  try
+  {
+    for(auto &r: fRenderableList)
+    {
+      r->beforeFrame();
+      ASSERT(!fGPU->hasError());
+    }
 
-  glfwPollEvents();
+    glfwPollEvents();
 
-  fGPU->beginFrame();
-  for(auto &r: fRenderableList)
-    r->render();
-  fGPU->endFrame();
+    fGPU->beginFrame();
+    ASSERT(!fGPU->hasError());
+    for(auto &r: fRenderableList)
+    {
+      r->render();
+      ASSERT(!fGPU->hasError());
+    }
+    fGPU->endFrame();
+    ASSERT(!fGPU->hasError());
 
-  for(auto &r: fRenderableList)
-    r->afterFrame();
+    for(auto &r: fRenderableList)
+    {
+      r->afterFrame();
+      ASSERT(!fGPU->hasError());
+    }
 
-  fRunning = true;
-  for(auto &r: fRenderableList)
-    fRunning &= r->running();
+    fRunning = true;
+    for(auto &r: fRenderableList)
+      fRunning &= r->running();
+  }
+  catch(pongasoft::Exception const &e)
+  {
+    auto gpuError = fGPU->consumeError();
+    if(gpuError)
+    {
+      fRunning = false;
+      printf("[WebGPU] %s error | %s\n", GPU::errorTypeAsString(gpuError->fType), gpuError->fMessage.c_str());
+    }
+    fRunning = false;
+  }
+
 }
 
 

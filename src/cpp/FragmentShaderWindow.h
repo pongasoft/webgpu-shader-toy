@@ -19,7 +19,9 @@
 #ifndef WGPU_SHADER_TOY_FRAGMENT_SHADER_WINDOW_H
 #define WGPU_SHADER_TOY_FRAGMENT_SHADER_WINDOW_H
 
+#include <imgui.h>
 #include "gpu/Window.h"
+#include "Model.h"
 
 using namespace pongasoft::gpu;
 
@@ -28,23 +30,38 @@ namespace shader_toy {
 class FragmentShaderWindow : public Window
 {
 public:
-  FragmentShaderWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs);
+  FragmentShaderWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel);
 
 protected:
   void doRender(wgpu::RenderPassEncoder &iRenderPass) override;
 
-public:
+public: // should be private (but used in callback...)
   void doHandleFrameBufferSizeChange(Size const &iSize) override;
+  void onMousePosChange(double xpos, double ypos);
+  void createRenderPipeline(wgpu::CompilationInfoRequestStatus iStatus, WGPUCompilationInfo const *iCompilationInfo);
 
 private:
   void createRenderPipeline();
-  void updateSizeBuffer();
 
 private:
+  struct ShaderToyInputs
+  {
+    ImVec2 size;
+    ImVec2 mouse;
+  };
+
+private:
+  std::shared_ptr<Model> fModel;
+  std::string fFragmentShader;
+  wgpu::ShaderModule fFragmentShaderModule{};
+
   wgpu::RenderPipeline fRenderPipeline{};
 
   wgpu::BindGroup fGroup0BindGroup{};
-  wgpu::Buffer fSizeBuffer{};
+
+  ShaderToyInputs fShaderToyInputs{};
+  wgpu::Buffer fShaderToyInputsBuffer{};
+
 };
 
 }

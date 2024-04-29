@@ -18,6 +18,7 @@ set(wgpu_shader_toy_sources
     src/cpp/Errors.h
     src/cpp/MainWindow.h
     src/cpp/MainWindow.cpp
+    src/cpp/Model.h
     src/cpp/fmt.h
 
     src/cpp/main.cpp
@@ -40,10 +41,11 @@ set(wgpu_shader_toy_options "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-
 
 target_compile_options(wgpu_shader_toy PUBLIC
     "${wgpu_shader_toy_options}"
+    "-fwasm-exceptions"
 )
 
 target_link_options(wgpu_shader_toy PUBLIC
+    "-fwasm-exceptions"
     "--shell-file=${CMAKE_CURRENT_LIST_DIR}/src/resources/emscripten/shell.html"
-    "-sNO_DISABLE_EXCEPTION_CATCHING"
     "${wgpu_shader_toy_options}"
 )

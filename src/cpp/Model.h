@@ -16,28 +16,19 @@
  * @author Yan Pujante
  */
 
-#ifndef WGPU_SHADER_TOY_MAIN_WINDOW_H
-#define WGPU_SHADER_TOY_MAIN_WINDOW_H
+#ifndef WGPU_SHADER_TOY_MODEL_H
+#define WGPU_SHADER_TOY_MODEL_H
 
-#include "gpu/ImGuiWindow.h"
-#include "Model.h"
-
-using namespace pongasoft::gpu;
+#include <optional>
+#include <string>
 
 namespace shader_toy {
 
-class MainWindow : public ImGuiWindow
+struct Model
 {
-public:
-  MainWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel);
-
-protected:
-  void doRender() override;
-
-private:
-  std::shared_ptr<Model> fModel;
+  std::optional<std::string> fFragmentShaderError{};
 };
 
 }
 
-#endif //WGPU_SHADER_TOY_MAIN_WINDOW_H
+#endif //WGPU_SHADER_TOY_MODEL_H
