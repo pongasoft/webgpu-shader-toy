@@ -27,6 +27,8 @@ namespace shader_toy {
 constexpr char kFragmentShaderHeader[] = R"(
 struct ShaderToyInputs {
   size: vec2f,  // size of the viewport (in pixels)
+  time: f32,    // time in seconds (since start)
+  frame: i32,   // frame count (since start)
   mouse: vec2f, // mouse position (in viewport coordinates [0 ... size.x, 0 ... size.y])
 };
 
@@ -43,8 +45,10 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 
 struct Model
 {
+  struct AspectRatio { int numerator{}; int denominator{}; };
   std::optional<std::string> fFragmentShaderError{};
   std::string fFragmentShader{kDefaultFragmentShader};
+  std::optional<AspectRatio> fAspectRatioRequest{};
 };
 
 }

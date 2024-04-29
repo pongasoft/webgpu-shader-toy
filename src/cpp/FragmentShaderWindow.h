@@ -23,14 +23,20 @@
 #include "gpu/Window.h"
 #include "Model.h"
 
-using namespace pongasoft::gpu;
+using namespace pongasoft;
+
+namespace pongasoft::gpu {
+using vec2f = ImVec2;
+using f32 = float;
+using i32 = int;
+}
 
 namespace shader_toy {
 
-class FragmentShaderWindow : public Window
+class FragmentShaderWindow : public gpu::Window
 {
 public:
-  FragmentShaderWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel);
+  FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel);
 
   void beforeFrame() override;
 
@@ -44,16 +50,20 @@ public: // should be private (but used in callback...)
 
 private:
   void createRenderPipeline();
+  void resetTime();
 
 private:
   struct ShaderToyInputs
   {
-    ImVec2 size;
-    ImVec2 mouse;
+    gpu::vec2f size{};
+    gpu::f32 time{};
+    gpu::i32 frame{};
+    gpu::vec2f mouse{};
   };
 
 private:
   std::shared_ptr<Model> fModel;
+  int fFrameCount{};
   wgpu::ShaderModule fFragmentShaderModule{};
 
   wgpu::RenderPipeline fRenderPipeline{};

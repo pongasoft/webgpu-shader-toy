@@ -59,7 +59,7 @@ void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus, struct 
 //------------------------------------------------------------------------
 // FragmentShaderWindow::FragmentShaderWindow
 //------------------------------------------------------------------------
-FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel) :
+FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel) :
   Window(std::move(iGPU), iArgs),
   fModel{std::move(iModel)}
 {
@@ -90,8 +90,8 @@ void FragmentShaderWindow::createRenderPipeline(wgpu::CompilationInfoRequestStat
   if(fGPU->hasError())
   {
     auto error = fGPU->consumeError();
-    printf("createRenderPipeline GPU in error => %s\n", GPU::errorTypeAsString(error->fType));
-    fModel->fFragmentShaderError = fmt::printf("[%s]: %s", GPU::errorTypeAsString(error->fType), error->fMessage);
+    printf("createRenderPipeline GPU in error => %s\n", gpu::GPU::errorTypeAsString(error->fType));
+    fModel->fFragmentShaderError = fmt::printf("[%s]: %s", gpu::GPU::errorTypeAsString(error->fType), error->fMessage);
     return;
   }
 
@@ -213,9 +213,22 @@ void FragmentShaderWindow::createRenderPipeline()
 //------------------------------------------------------------------------
 void FragmentShaderWindow::beforeFrame()
 {
+  if(fModel->fAspectRatioRequest)
+  {
+    auto aspectRatio = *fModel->fAspectRatioRequest;
+    fModel->fAspectRatioRequest = std::nullopt;
+    glfwSetWindowAspectRatio(fWindow, aspectRatio.numerator, aspectRatio.denominator);
+  }
+
   Window::beforeFrame();
+
   if(fCurrentFragmentShader != fModel->fFragmentShader)
+  {
     createRenderPipeline();
+    resetTime();
+  }
+  fShaderToyInputs.frame++;
+  fShaderToyInputs.time = static_cast<gpu::f32>(glfwGetTime());
 }
 
 //------------------------------------------------------------------------
@@ -251,6 +264,14 @@ void FragmentShaderWindow::onMousePosChange(double xpos, double ypos)
   fShaderToyInputs.mouse = {static_cast<float>(xpos * xScale), static_cast<float>(ypos * yScale)};
 }
 
+//------------------------------------------------------------------------
+// FragmentShaderWindow::resetTime
+//------------------------------------------------------------------------
+void FragmentShaderWindow::resetTime()
+{
+  fShaderToyInputs.frame = 0;
+  glfwSetTime(0);
+}
 
 
 }

@@ -34,18 +34,24 @@
       cursor: nwse-resize;
     }
 
+    #canvases {
+      display: flex;
+      flex-wrap: wrap;
+    }
 
   </style>
 </head>
 <body>
 <h4>Welcome to WebGPU Shader Toy</h4>
-<div id="canvas1-container" class="canvas-container">
-  <div id="canvas1-handle" class="canvas-handle"></div>
-  <canvas id="canvas1" oncontextmenu="event.preventDefault()"></canvas>
-</div>
-<div id="canvas2-container" class="canvas-container">
-  <div id="canvas2-handle" class="canvas-handle"></div>
-  <canvas id="canvas2" oncontextmenu="event.preventDefault()"></canvas>
+<div id="canvases">
+  <div id="canvas1-container" class="canvas-container">
+    <div id="canvas1-handle" class="canvas-handle"></div>
+    <canvas id="canvas1" oncontextmenu="event.preventDefault()"></canvas>
+  </div>
+  <div id="canvas2-container" class="canvas-container">
+    <div id="canvas2-handle" class="canvas-handle"></div>
+    <canvas id="canvas2" oncontextmenu="event.preventDefault()"></canvas>
+  </div>
 </div>
 <script type='text/javascript'>
   var Module;
