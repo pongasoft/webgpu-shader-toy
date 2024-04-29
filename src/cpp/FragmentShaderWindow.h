@@ -32,6 +32,8 @@ class FragmentShaderWindow : public Window
 public:
   FragmentShaderWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel);
 
+  void beforeFrame() override;
+
 protected:
   void doRender(wgpu::RenderPassEncoder &iRenderPass) override;
 
@@ -52,13 +54,13 @@ private:
 
 private:
   std::shared_ptr<Model> fModel;
-  std::string fFragmentShader;
   wgpu::ShaderModule fFragmentShaderModule{};
 
   wgpu::RenderPipeline fRenderPipeline{};
 
   wgpu::BindGroup fGroup0BindGroup{};
 
+  std::string fCurrentFragmentShader{};
   ShaderToyInputs fShaderToyInputs{};
   wgpu::Buffer fShaderToyInputsBuffer{};
 

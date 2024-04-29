@@ -30,6 +30,13 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared
 {
 }
 
+constexpr char kShader2[] = R"(
+@fragment
+fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    return vec4f(0, pos.xy / inputs.size, 1);
+}
+)";
+
 //------------------------------------------------------------------------
 // MainWindow::doRender
 //------------------------------------------------------------------------
@@ -42,6 +49,14 @@ void MainWindow::doRender()
   if(ImGui::Begin("Hello, world!", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
   {
     ImGui::ColorEdit3("Background", &kClearColor.x);
+
+    ImGui::Text("shader");
+    ImGui::SameLine();
+    if(ImGui::Button("Default"))
+      fModel->fFragmentShader = kDefaultFragmentShader;
+    ImGui::SameLine();
+    if(ImGui::Button("Shader2"))
+      fModel->fFragmentShader = kShader2;
 
     if(ImGui::Button("Exit"))
       stop();

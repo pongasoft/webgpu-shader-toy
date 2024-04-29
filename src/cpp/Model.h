@@ -24,9 +24,27 @@
 
 namespace shader_toy {
 
+constexpr char kFragmentShaderHeader[] = R"(
+struct ShaderToyInputs {
+  size: vec2f,  // size of the viewport (in pixels)
+  mouse: vec2f, // mouse position (in viewport coordinates [0 ... size.x, 0 ... size.y])
+};
+
+@group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;
+)";
+
+constexpr char kDefaultFragmentShader[] = R"(
+@fragment
+fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    return vec4f(pos.xy / inputs.size, 0, 1);
+}
+)";
+
+
 struct Model
 {
   std::optional<std::string> fFragmentShaderError{};
+  std::string fFragmentShader{kDefaultFragmentShader};
 };
 
 }

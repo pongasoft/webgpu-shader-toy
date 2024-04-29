@@ -32,26 +32,6 @@ fn vertexMain(@builtin(vertex_index) i : u32) -> @builtin(position) vec4f {
 }
 )";
 
-
-constexpr char kFragmentShader[] = R"(
-struct ShaderToyInputs {
-  size: vec2f,  // size of the viewport (in pixels)
-  mouse: vec2f, // in viewport coordinates
-};
-
-@group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;
-
-@fragment
-fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-    var color = vec4f(pos.xy / inputs.size, 0, 1);
-    if(pos.x <= inputs.mouse.x && pos.y <= inputs.mouse.y) {
-//      color.bpp = 0.5;
-      color.b = 0.5;
-    }
-    return color;
-}
-)";
-
 namespace callbacks {
 
 //------------------------------------------------------------------------
@@ -81,10 +61,8 @@ void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus, struct 
 //------------------------------------------------------------------------
 FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel) :
   Window(std::move(iGPU), iArgs),
-  fModel{std::move(iModel)},
-  fFragmentShader{kFragmentShader}
+  fModel{std::move(iModel)}
 {
-  createRenderPipeline();
   glfwSetCursorPosCallback(fWindow, callbacks::onCursorPosChange);
 }
 
@@ -214,15 +192,30 @@ void FragmentShaderWindow::createRenderPipeline(wgpu::CompilationInfoRequestStat
 void FragmentShaderWindow::createRenderPipeline()
 {
   fRenderPipeline = nullptr;
+
+  fCurrentFragmentShader = fModel->fFragmentShader;
+
+  auto shader = std::string(kFragmentShaderHeader) + fCurrentFragmentShader;
+
   // fragment shader
   wgpu::ShaderModuleWGSLDescriptor fragmentShaderModuleWGSLDescriptor{};
-  fragmentShaderModuleWGSLDescriptor.code = kFragmentShader;
+  fragmentShaderModuleWGSLDescriptor.code = shader.c_str();
   wgpu::ShaderModuleDescriptor fragmentShaderModuleDescriptor{
     .nextInChain = &fragmentShaderModuleWGSLDescriptor,
     .label = "FragmentShaderWindow | Fragment Shader"
   };
   fFragmentShaderModule = fGPU->getDevice().CreateShaderModule(&fragmentShaderModuleDescriptor);
   fFragmentShaderModule.GetCompilationInfo(callbacks::onShaderCompilationResult, this);
+}
+
+//------------------------------------------------------------------------
+// FragmentShaderWindow::beforeFrame
+//------------------------------------------------------------------------
+void FragmentShaderWindow::beforeFrame()
+{
+  Window::beforeFrame();
+  if(fCurrentFragmentShader != fModel->fFragmentShader)
+    createRenderPipeline();
 }
 
 //------------------------------------------------------------------------
