@@ -19,6 +19,8 @@ set(wgpu_shader_toy_sources
     src/cpp/MainWindow.h
     src/cpp/MainWindow.cpp
     src/cpp/Model.h
+    src/cpp/Preferences.h
+    src/cpp/Preferences.cpp
     src/cpp/fmt.h
 
     src/cpp/main.cpp
@@ -30,12 +32,19 @@ set(wgpu_shader_toy_sources
     src/cpp/gpu/Renderable.h
     src/cpp/gpu/Window.h
     src/cpp/gpu/Window.cpp
+
+    src/cpp/utils/Storage.h
+    src/cpp/utils/JSStorage.cpp
+    src/cpp/utils/Utils.h
 )
 
 add_executable(wgpu_shader_toy "${wgpu_shader_toy_sources}")
 
 set_target_properties(wgpu_shader_toy PROPERTIES OUTPUT_NAME "index")
 set_target_properties(wgpu_shader_toy PROPERTIES SUFFIX ".html")
+target_include_directories(wgpu_shader_toy PUBLIC
+    "external/nlohmann/json/single_include"
+)
 
 set(wgpu_shader_toy_options "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:branch=docking")
 

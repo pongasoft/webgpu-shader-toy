@@ -1,6 +1,6 @@
 #include <backends/imgui_impl_glfw.h>
 #include <emscripten.h>
-#include <webgpu/webgpu_cpp.h>
+#include "Preferences.h"
 #include "Application.h"
 #include "MainWindow.h"
 #include "Model.h"
@@ -25,9 +25,13 @@ int main(int, char **)
 
   kApplication = std::make_unique<shader_toy::Application>();
 
+  std::shared_ptr<shader_toy::Preferences> preferences =
+    std::make_unique<shader_toy::Preferences>(std::make_unique<utils::JSStorage>());
+
   kApplication
     ->registerRenderable<shader_toy::FragmentShaderWindow>(Window::Args{
-                                                             .size = Renderable::Size{320, 200},
+                                                             .size = preferences->loadSize(shader_toy::FragmentShaderWindow::kPreferencesSizeKey,
+                                                                                           {380, 380}),
                                                              .title = "WebGPU Shader Toy | fragment shader",
                                                              .canvas = {
                                                                .selector = "#canvas2",
@@ -35,12 +39,16 @@ int main(int, char **)
                                                                .handleSelector = "#canvas2-handle"
                                                              }
                                                            },
-                                                           model)
+                                                           shader_toy::FragmentShaderWindow::Args {
+                                                             .model = model,
+                                                             .preferences = preferences
+                                                           })
     ->show();
 
   kApplication
     ->registerRenderable<shader_toy::MainWindow>(Window::Args{
-                                                   .size = Renderable::Size{320, 200},
+                                                   .size = preferences->loadSize(shader_toy::MainWindow::kPreferencesSizeKey,
+                                                                                 {520, 600}),
                                                    .title = "WebGPU Shader Toy",
                                                    .canvas = {
                                                      .selector = "#canvas1",
@@ -48,7 +56,10 @@ int main(int, char **)
                                                      .handleSelector = "#canvas1-handle"
                                                    }
                                                  },
-                                                 model)
+                                                 shader_toy::MainWindow::Args {
+                                                   .model = model,
+                                                   .preferences = preferences
+                                                 })
     ->show();
 
   emscripten_set_main_loop(MainLoopForEmscripten, 0, true);

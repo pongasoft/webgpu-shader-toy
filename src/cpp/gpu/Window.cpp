@@ -48,6 +48,8 @@ Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) : Renderable(std::m
 
   emscripten_glfw_make_canvas_resizable(fWindow, iArgs.canvas.resizeSelector, iArgs.canvas.handleSelector);
 
+  resize(iArgs.size);
+
   glfwSetWindowUserPointer(fWindow, this);
 
   wgpu::SurfaceDescriptorFromCanvasHTMLSelector html_surface_desc = {};
@@ -147,6 +149,14 @@ bool Window::running() const
 void Window::stop()
 {
   glfwSetWindowShouldClose(fWindow, GLFW_TRUE);
+}
+
+//------------------------------------------------------------------------
+// Window::resize
+//------------------------------------------------------------------------
+void Window::resize(Renderable::Size const &iSize)
+{
+  glfwSetWindowSize(fWindow, iSize.width, iSize.height);
 }
 
 }

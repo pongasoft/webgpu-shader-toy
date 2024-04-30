@@ -59,9 +59,10 @@ void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus, struct 
 //------------------------------------------------------------------------
 // FragmentShaderWindow::FragmentShaderWindow
 //------------------------------------------------------------------------
-FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel) :
-  Window(std::move(iGPU), iArgs),
-  fModel{std::move(iModel)}
+FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs) :
+  Window(std::move(iGPU), iWindowArgs),
+  fModel{iMainWindowArgs.model},
+  fPreferences{iMainWindowArgs.preferences}
 {
   glfwSetCursorPosCallback(fWindow, callbacks::onCursorPosChange);
 }
@@ -252,6 +253,9 @@ void FragmentShaderWindow::doHandleFrameBufferSizeChange(Renderable::Size const 
 {
   Window::doHandleFrameBufferSizeChange(iSize);
   fShaderToyInputs.size = {static_cast<float>(iSize.width), static_cast<float>(iSize.height)};
+  int w, h;
+  glfwGetWindowSize(fWindow, &w, &h);
+  fPreferences->storeSize(kPreferencesSizeKey, {w, h});
 }
 
 //------------------------------------------------------------------------

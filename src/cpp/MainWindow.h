@@ -21,6 +21,7 @@
 
 #include "gpu/ImGuiWindow.h"
 #include "Model.h"
+#include "Preferences.h"
 
 using namespace pongasoft::gpu;
 
@@ -29,13 +30,26 @@ namespace shader_toy {
 class MainWindow : public ImGuiWindow
 {
 public:
-  MainWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel);
+  static constexpr auto kPreferencesSizeKey = "shader_toy::MainWindow::Size";
+
+public:
+  struct Args
+  {
+    std::shared_ptr<Model> model;
+    std::shared_ptr<Preferences> preferences;
+  };
+
+public:
+  MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs);
+
+  void doHandleFrameBufferSizeChange(Size const &iSize) override;
 
 protected:
   void doRender() override;
 
 private:
   std::shared_ptr<Model> fModel;
+  std::shared_ptr<Preferences> fPreferences;
 };
 
 }

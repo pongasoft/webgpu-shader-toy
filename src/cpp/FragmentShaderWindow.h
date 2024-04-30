@@ -22,6 +22,7 @@
 #include <imgui.h>
 #include "gpu/Window.h"
 #include "Model.h"
+#include "Preferences.h"
 
 using namespace pongasoft;
 
@@ -36,7 +37,17 @@ namespace shader_toy {
 class FragmentShaderWindow : public gpu::Window
 {
 public:
-  FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel);
+  static constexpr auto kPreferencesSizeKey = "shader_toy::FragmentShaderWindow::Size";
+
+public:
+  struct Args
+  {
+    std::shared_ptr<Model> model;
+    std::shared_ptr<Preferences> preferences;
+  };
+
+public:
+  FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs);
 
   void beforeFrame() override;
 
@@ -63,6 +74,7 @@ private:
 
 private:
   std::shared_ptr<Model> fModel;
+  std::shared_ptr<Preferences> fPreferences;
   int fFrameCount{};
   wgpu::ShaderModule fFragmentShaderModule{};
 

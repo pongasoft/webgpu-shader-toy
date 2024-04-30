@@ -25,9 +25,10 @@ namespace shader_toy {
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
 //------------------------------------------------------------------------
-MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs, std::shared_ptr<Model> iModel) :
-  ImGuiWindow(std::move(iGPU), iArgs),
-  fModel{std::move(iModel)}
+MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs) :
+  ImGuiWindow(std::move(iGPU), iWindowArgs),
+  fModel{iMainWindowArgs.model},
+  fPreferences{iMainWindowArgs.preferences}
 {
 }
 
@@ -104,5 +105,16 @@ void MainWindow::doRender()
     }
   }
   ImGui::End();
+}
+
+//------------------------------------------------------------------------
+// MainWindow::doHandleFrameBufferSizeChange
+//------------------------------------------------------------------------
+void MainWindow::doHandleFrameBufferSizeChange(Renderable::Size const &iSize)
+{
+  ImGuiWindow::doHandleFrameBufferSizeChange(iSize);
+  int w, h;
+  glfwGetWindowSize(fWindow, &w, &h);
+  fPreferences->storeSize(kPreferencesSizeKey, {w, h});
 }
 }

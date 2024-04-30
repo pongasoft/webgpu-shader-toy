@@ -55,6 +55,8 @@ public:
   bool running() const override;
   void stop();
 
+  void resize(Size const &iSize);
+
 protected:
   wgpu::TextureView getTextureView() const override;
 
