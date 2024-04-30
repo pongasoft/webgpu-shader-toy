@@ -20,8 +20,34 @@
 #include <GLFW/glfw3.h>
 #include "MainWindow.h"
 #include "JetBrainsMono-Regular.cpp"
+#include <emscripten.h>
 
 namespace shader_toy {
+
+//------------------------------------------------------------------------
+// jsLoadShaderFragment
+//------------------------------------------------------------------------
+EM_JS(bool, jsLoadShaderFragment, (char const *iValue, size_t iSize), {
+
+  if(Module.shaderFragment) {
+    stringToUTF8(Module.shaderFragment, iValue, iSize);
+    delete Module.shaderFragment;
+    return true;
+  }
+  return false;
+})
+
+//------------------------------------------------------------------------
+// jsCheckShaderFragment
+//------------------------------------------------------------------------
+EM_JS(size_t, jsCheckShaderFragment, (), {
+
+  if(Module.shaderFragment) {
+    return Module.shaderFragment.length;
+  } else {
+    return 0;
+  }
+})
 
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
@@ -125,5 +151,21 @@ void MainWindow::doHandleFrameBufferSizeChange(Renderable::Size const &iSize)
   int w, h;
   glfwGetWindowSize(fWindow, &w, &h);
   fPreferences->storeSize(kPreferencesSizeKey, {w, h});
+}
+
+//------------------------------------------------------------------------
+// MainWindow::beforeFrame
+//------------------------------------------------------------------------
+void MainWindow::beforeFrame()
+{
+  Window::beforeFrame();
+
+  auto fragmentShaderSize = jsCheckShaderFragment();
+  if(fragmentShaderSize > 0)
+  {
+    std::vector<char> fragmentShader(fragmentShaderSize);
+    jsLoadShaderFragment(fragmentShader.data(), fragmentShader.size());
+    fModel->fFragmentShader = fragmentShader.data();
+  }
 }
 }

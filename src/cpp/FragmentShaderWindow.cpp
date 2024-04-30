@@ -205,6 +205,7 @@ void FragmentShaderWindow::createRenderPipeline()
     .nextInChain = &fragmentShaderModuleWGSLDescriptor,
     .label = "FragmentShaderWindow | Fragment Shader"
   };
+  fModel->fFragmentShaderError = std::nullopt;
   fFragmentShaderModule = fGPU->getDevice().CreateShaderModule(&fragmentShaderModuleDescriptor);
   fFragmentShaderModule.GetCompilationInfo(callbacks::onShaderCompilationResult, this);
 }

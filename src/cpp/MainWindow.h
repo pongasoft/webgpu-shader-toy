@@ -42,6 +42,8 @@ public:
 public:
   MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs);
 
+  void beforeFrame() override;
+
   void doHandleFrameBufferSizeChange(Size const &iSize) override;
 
 protected:

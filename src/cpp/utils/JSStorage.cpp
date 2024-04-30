@@ -30,7 +30,7 @@ EM_JS(void, jsLocalStorageSetItem, (char const *iKey, char const *iValue), {
 //------------------------------------------------------------------------
 // jsLocalStorageGetItem
 //------------------------------------------------------------------------
-EM_JS(size_t, jsLocalStorageGetItem, (char const *iKey, char const *iValue, size_t iSize), {
+EM_JS(long, jsLocalStorageGetItem, (char const *iKey, char const *iValue, size_t iSize), {
   let value = localStorage.getItem(UTF8ToString(iKey));
   if(value === null)
     return -1;

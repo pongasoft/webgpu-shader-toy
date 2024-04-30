@@ -33,7 +33,16 @@
 
     #canvases {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    #canvases {
+      border: 2px dashed transparent;
+    }
+
+    #canvases.highlight {
+      border: 2px dashed purple;
     }
 
     #canvas1 {
@@ -43,14 +52,12 @@
 
     #canvas1-container {
       margin-right: 5px;
-      margin-bottom: 5px;
     }
 
     #canvas2 {
       width: 380px;
       height: 380px;
     }
-
   </style>
 </head>
 <body>
@@ -73,6 +80,62 @@
     const device = await adapter.requestDevice();
     Module.preinitializedWebGPUDevice = device;
   })();
+
+  function handleDrop(e) {
+    var dt = e.dataTransfer;
+    var files = dt.files;
+
+    if (files.length > 0) {
+      onNewShaderFile(files[0]);
+    }
+  }
+
+  function onNewShaderFile(file) {
+    console.log(file.name);
+    let reader = new FileReader();
+    reader.onload = function(evt) {
+      Module.shaderFragment = evt.target.result;
+    };
+    reader.readAsText(file);
+  }
+
+  function makeDropZone(dropZone) {
+    // Prevent default drag behaviors
+    ["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
+      dropZone.addEventListener(eventName, preventDefaults, false);
+      document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    // Highlight drop area when item is dragged over it
+    ["dragenter", "dragover"].forEach(eventName => {
+      dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ["dragleave", "drop"].forEach(eventName => {
+      dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    // Handle dropped files
+    dropZone.addEventListener("drop", handleDrop, false);
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    function highlight(e) {
+      dropZone.classList.add('highlight')
+    }
+
+    function unhighlight(e) {
+      dropZone.classList.remove('highlight')
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    makeDropZone(document.getElementById('canvases'))
+  });
+
 </script>
 {{{ SCRIPT }}}
 </body>
