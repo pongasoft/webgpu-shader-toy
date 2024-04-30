@@ -19,6 +19,7 @@
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 #include "MainWindow.h"
+#include "JetBrainsMono-Regular.cpp"
 
 namespace shader_toy {
 
@@ -30,6 +31,14 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   fModel{iMainWindowArgs.model},
   fPreferences{iMainWindowArgs.preferences}
 {
+  auto &io = ImGui::GetIO();
+  io.Fonts->Clear();
+  ImFontConfig fontConfig;
+  fontConfig.OversampleH = 2;
+  float fontScale; float dummy;
+  glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
+  io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
+  io.FontGlobalScale = 1.0f / fontScale;
 }
 
 constexpr char kShader2[] = R"(
