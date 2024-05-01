@@ -39,6 +39,7 @@
 
     #canvases {
       border: 2px dashed transparent;
+      position: relative;
     }
 
     #canvases.highlight {
@@ -58,6 +59,35 @@
       width: 380px;
       height: 380px;
     }
+
+    #canvases #drop-zone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0);
+      pointer-events: none;
+    }
+
+    #canvases #drop-zone #drop-zone-content {
+      display: none;
+      color: white;
+      font-size: 30px;
+      text-align: center;
+    }
+
+    #canvases.highlight #drop-zone {
+      background-color: rgba(1, 1, 1, 0.5);
+    }
+
+    #canvases.highlight #drop-zone #drop-zone-content {
+      display: block;
+    }
+
   </style>
 </head>
 <body>
@@ -71,6 +101,11 @@
     <div id="canvas2-handle" class="canvas-handle"></div>
     <canvas id="canvas2" oncontextmenu="event.preventDefault()"></canvas>
   </div>
+
+  <div id="drop-zone">
+    <p id="drop-zone-content">Drop Shader Here</p>
+  </div>
+
 </div>
 <script type='text/javascript'>
   var Module;
@@ -124,16 +159,16 @@
     }
 
     function highlight(e) {
-      dropZone.classList.add('highlight')
+      dropZone.classList.add('highlight');
     }
 
     function unhighlight(e) {
-      dropZone.classList.remove('highlight')
+      dropZone.classList.remove('highlight');
     }
   }
 
   document.addEventListener("DOMContentLoaded", function() {
-    makeDropZone(document.getElementById('canvases'))
+    makeDropZone(document.getElementById('canvases'));
   });
 
 </script>
