@@ -194,7 +194,7 @@ void FragmentShaderWindow::createRenderPipeline()
 {
   fRenderPipeline = nullptr;
 
-  fCurrentFragmentShader = fModel->fFragmentShader;
+  fCurrentFragmentShader = fModel->getFragmentShader();
 
   auto shader = std::string(kFragmentShaderHeader) + fCurrentFragmentShader;
 
@@ -224,7 +224,7 @@ void FragmentShaderWindow::beforeFrame()
 
   Window::beforeFrame();
 
-  if(fCurrentFragmentShader != fModel->fFragmentShader)
+  if(fCurrentFragmentShader != fModel->getFragmentShader())
   {
     createRenderPipeline();
     resetTime();

@@ -22,6 +22,9 @@
 #include "gpu/ImGuiWindow.h"
 #include "Model.h"
 #include "Preferences.h"
+#include <optional>
+#include <string>
+#include <map>
 
 using namespace pongasoft::gpu;
 
@@ -42,16 +45,25 @@ public:
 public:
   MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs);
 
-  void beforeFrame() override;
+  ~MainWindow() override;
 
   void doHandleFrameBufferSizeChange(Size const &iSize) override;
+  void onNewFragmentShader(char const *iFilename, char const *iContent);
 
 protected:
   void doRender() override;
 
 private:
+  void deleteFragmentShader(std::string const &iName);
+
+private:
   std::shared_ptr<Model> fModel;
   std::shared_ptr<Preferences> fPreferences;
+  std::optional<std::string> fFragmentShaderFilename{};
+  std::map<std::string, std::string> fFragmentShaders{};
+  std::vector<std::string> fFragmentShaderTabs{};
+  std::string fCurrentFragmentShaderName{};
+  std::optional<std::string> fCurrentFragmentShaderNameRequest{};
 };
 
 }

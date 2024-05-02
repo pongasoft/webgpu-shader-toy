@@ -47,8 +47,13 @@ struct Model
 {
   struct AspectRatio { int numerator{}; int denominator{}; };
   std::optional<std::string> fFragmentShaderError{};
-  std::string fFragmentShader{kDefaultFragmentShader};
   std::optional<AspectRatio> fAspectRatioRequest{};
+
+  void setFragmentShader(std::string_view iFragmentShader) { fFragmentShader = iFragmentShader; }
+  std::string const &getFragmentShader() const { return fFragmentShader; }
+
+private:
+  std::string fFragmentShader{kDefaultFragmentShader};
 };
 
 }

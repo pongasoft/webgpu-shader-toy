@@ -20,34 +20,30 @@
 #include <GLFW/glfw3.h>
 #include "MainWindow.h"
 #include "JetBrainsMono-Regular.cpp"
-#include <emscripten.h>
+#include <ranges>
 
 namespace shader_toy {
 
-//------------------------------------------------------------------------
-// jsLoadShaderFragment
-//------------------------------------------------------------------------
-EM_JS(bool, jsLoadShaderFragment, (char const *iValue, size_t iSize), {
+extern "C" {
+using OnNewFragmentShaderHandler = void (*)(MainWindow *iMainWindow, char const *iFilename, char const *iContent);
+void wgpu_shader_toy_install_new_fragment_shader_handler(OnNewFragmentShaderHandler iHandler, MainWindow *iMainWindow);
+void wgpu_shader_toy_uninstall_new_fragment_shader_handler();
+void wgpu_shader_toy_open_file_dialog();
+}
 
-  if(Module.shaderFragment) {
-    stringToUTF8(Module.shaderFragment, iValue, iSize);
-    delete Module.shaderFragment;
-    return true;
-  }
-  return false;
-})
+namespace callbacks {
 
 //------------------------------------------------------------------------
-// jsCheckShaderFragment
+// callbacks::OnNewFragmentShaderCallback
 //------------------------------------------------------------------------
-EM_JS(size_t, jsCheckShaderFragment, (), {
+void OnNewFragmentShaderCallback(MainWindow *iMainWindow, char const *iFilename, char const *iContent)
+{
+  iMainWindow->onNewFragmentShader(iFilename, iContent);
+}
 
-  if(Module.shaderFragment) {
-    return Module.shaderFragment.length;
-  } else {
-    return 0;
-  }
-})
+}
+
+constexpr auto kHelloWorldFragmentShader = "Hello World";
 
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
@@ -65,6 +61,19 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
   io.FontGlobalScale = 1.0f / fontScale;
+  wgpu_shader_toy_install_new_fragment_shader_handler(callbacks::OnNewFragmentShaderCallback, this);
+
+  fFragmentShaders[kHelloWorldFragmentShader] = kDefaultFragmentShader;
+  fFragmentShaderTabs.emplace_back(kHelloWorldFragmentShader);
+  fCurrentFragmentShaderName = kHelloWorldFragmentShader;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::~MainWindow
+//------------------------------------------------------------------------
+MainWindow::~MainWindow()
+{
+  wgpu_shader_toy_uninstall_new_fragment_shader_handler();
 }
 
 constexpr char kShader2[] = R"(
@@ -97,13 +106,43 @@ void MainWindow::doRender()
 
   if(ImGui::Begin("WebGPU Shader Toy", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_HorizontalScrollbar))
   {
-    ImGui::Text("shader");
-    ImGui::SameLine();
-    if(ImGui::Button("Default"))
-      fModel->fFragmentShader = kDefaultFragmentShader;
-    ImGui::SameLine();
-    if(ImGui::Button("Shader2"))
-      fModel->fFragmentShader = kShader2;
+    if(ImGui::BeginTabBar("Fragment Shaders"))
+    {
+      std::string selectedFragmentShader = fFragmentShaderTabs[0];
+      std::optional<std::string> fragmentShaderToDelete{};
+      for(auto &fragmentShaderName: fFragmentShaderTabs)
+      {
+        bool open = true;
+        auto flags = ImGuiTabItemFlags_None;
+        if(fCurrentFragmentShaderNameRequest && *fCurrentFragmentShaderNameRequest == fragmentShaderName)
+        {
+          flags = ImGuiTabItemFlags_SetSelected;
+          fCurrentFragmentShaderNameRequest = std::nullopt;
+        }
+        if(ImGui::BeginTabItem(fragmentShaderName.c_str(), &open, flags))
+        {
+          selectedFragmentShader = fragmentShaderName;
+          ImGui::EndTabItem();
+        }
+        if(!open)
+          fragmentShaderToDelete = fragmentShaderName;
+      }
+      if(ImGui::TabItemButton("+"))
+      {
+        wgpu_shader_toy_open_file_dialog();
+      }
+      if(fragmentShaderToDelete)
+        deleteFragmentShader(*fragmentShaderToDelete);
+      else
+      {
+        if(fCurrentFragmentShaderName != selectedFragmentShader)
+        {
+          fCurrentFragmentShaderName = selectedFragmentShader;
+          fModel->setFragmentShader(fFragmentShaders[fCurrentFragmentShaderName]);
+        }
+      }
+      ImGui::EndTabBar();
+    }
 
     ImGui::Text("aspect_ratio");
     ImGui::SameLine();
@@ -127,7 +166,7 @@ void MainWindow::doRender()
       ImGui::TreePop();
     }
 
-    ImGui::Text("%s", fModel->fFragmentShader.c_str());
+    ImGui::Text("%s", fModel->getFragmentShader().c_str());
 
     ImGui::Separator();
 
@@ -154,18 +193,40 @@ void MainWindow::doHandleFrameBufferSizeChange(Renderable::Size const &iSize)
 }
 
 //------------------------------------------------------------------------
-// MainWindow::beforeFrame
+// MainWindow::onNewFragmentShader
 //------------------------------------------------------------------------
-void MainWindow::beforeFrame()
+void MainWindow::onNewFragmentShader(char const *iFilename, char const *iContent)
 {
-  Window::beforeFrame();
-
-  auto fragmentShaderSize = jsCheckShaderFragment();
-  if(fragmentShaderSize > 0)
+  fCurrentFragmentShaderName = iFilename;
+  fCurrentFragmentShaderNameRequest = iFilename;
+  if(std::ranges::find(fFragmentShaderTabs, fCurrentFragmentShaderName) == fFragmentShaderTabs.end())
   {
-    std::vector<char> fragmentShader(fragmentShaderSize);
-    jsLoadShaderFragment(fragmentShader.data(), fragmentShader.size());
-    fModel->fFragmentShader = fragmentShader.data();
+    fFragmentShaderTabs.emplace_back(fCurrentFragmentShaderName);
   }
+  fModel->setFragmentShader(iContent);
+  fFragmentShaders[fCurrentFragmentShaderName] = iContent;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::deleteFragmentShader
+//------------------------------------------------------------------------
+void MainWindow::deleteFragmentShader(std::string const &iName)
+{
+  fFragmentShaderTabs.erase(std::remove(fFragmentShaderTabs.begin(), fFragmentShaderTabs.end(), iName),
+                            fFragmentShaderTabs.end());
+  fFragmentShaders.erase(iName);
+  if(fFragmentShaders.empty())
+  {
+    onNewFragmentShader(kHelloWorldFragmentShader, kDefaultFragmentShader);
+  }
+  else
+  {
+    if(fCurrentFragmentShaderName == iName)
+    {
+      fCurrentFragmentShaderName = fFragmentShaderTabs[0];
+      fCurrentFragmentShaderNameRequest = fCurrentFragmentShaderName;
+    }
+  }
+  fModel->setFragmentShader(fFragmentShaders[fCurrentFragmentShaderName]);
 }
 }

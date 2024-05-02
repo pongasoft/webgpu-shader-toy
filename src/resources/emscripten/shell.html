@@ -105,7 +105,6 @@
   <div id="drop-zone">
     <p id="drop-zone-content">Drop Shader Here</p>
   </div>
-
 </div>
 <script type='text/javascript'>
   var Module;
@@ -121,17 +120,8 @@
     var files = dt.files;
 
     if (files.length > 0) {
-      onNewShaderFile(files[0]);
+      Module.wgpuShaderToyLoadFragmentShader(files[0]);
     }
-  }
-
-  function onNewShaderFile(file) {
-    console.log(file.name);
-    let reader = new FileReader();
-    reader.onload = function(evt) {
-      Module.shaderFragment = evt.target.result;
-    };
-    reader.readAsText(file);
   }
 
   function makeDropZone(dropZone) {

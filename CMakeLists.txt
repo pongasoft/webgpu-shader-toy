@@ -60,4 +60,5 @@ target_link_options(wgpu_shader_toy PUBLIC
     "-fwasm-exceptions"
     "--shell-file=${CMAKE_CURRENT_LIST_DIR}/src/resources/emscripten/shell.html"
     "${wgpu_shader_toy_options}"
+    "--js-library" "${CMAKE_CURRENT_LIST_DIR}/src/js/lib_wgpu_shader_toy.js"
 )
