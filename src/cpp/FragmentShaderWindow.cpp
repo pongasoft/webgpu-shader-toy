@@ -162,7 +162,7 @@ void FragmentShaderWindow::initGPU()
 //------------------------------------------------------------------------
 void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> const &iFragmentShader)
 {
-  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::compile");
+//  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::compile");
   auto shader = std::string(FragmentShader::kHeader) + iFragmentShader->getCode();
 
   // fragment shader
@@ -197,7 +197,7 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
                                                      wgpu::CompilationInfoRequestStatus iStatus,
                                                      WGPUCompilationInfo const *iCompilationInfo)
 {
-  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::onShaderCompilationResult");
+//  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::onShaderCompilationResult");
 
   // sanity check
   ASSERT(iFragmentShader->isCompiling());

@@ -37,7 +37,7 @@ namespace shader_toy {
 class FragmentShader
 {
 public:
-  static constexpr char kHeader[] = R"(
+  static constexpr char kHeader[] = R"(// Begin ShaderToy Header
 struct ShaderToyInputs {
   size: vec2f,  // size of the viewport (in pixels)
   time: f32,    // time in seconds (since start)
@@ -46,7 +46,16 @@ struct ShaderToyInputs {
 };
 
 @group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;
+// End ShaderToy Header
+
 )";
+
+  static constexpr char kHeaderTemplate[] = R"(struct ShaderToyInputs {
+  size: vec2f,  [%d, %d]
+  time: f32,    [%.2f]
+  frame: i32,   [%d]
+  mouse: vec2f, [%d, %d]
+};)";
 
   struct ShaderToyInputs
   {

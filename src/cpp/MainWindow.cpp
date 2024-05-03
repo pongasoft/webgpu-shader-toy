@@ -21,6 +21,8 @@
 #include "MainWindow.h"
 #include "JetBrainsMono-Regular.cpp"
 #include <ranges>
+#include <iostream>
+#include <sstream>
 
 namespace shader_toy {
 
@@ -43,13 +45,32 @@ void OnNewFragmentShaderCallback(MainWindow *iMainWindow, char const *iFilename,
 
 }
 
-constexpr auto kHelloWorldFragmentShaderName = "Hello World";
-constexpr char kHelloWorldFragmentShaderCode[] = R"(
-@fragment
+constexpr char kHelloWorldFragmentShaderCode[] = R"(@fragment
 fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
     return vec4f(pos.xy / inputs.size, 0, 1);
 }
 )";
+
+constexpr char kTutorialFragmentShaderCode[] = R"(
+fn isInCircle(center: vec2f, radius: f32, point: vec2f) -> bool {
+    let delta = point - center;
+    return (delta.x*delta.x + delta.y*delta.y) <= (radius*radius);
+}
+
+@fragment
+fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  let period = 5.0;
+  let half_period = period / 2.0;
+  let cycle_value = inputs.time % period;
+  let b = half_period - abs(cycle_value - half_period);
+  var color = vec4f(b / half_period, pos.xy / inputs.size, 1);
+  if(isInCircle(inputs.mouse, 50.0, pos.xy)) {
+    color.a = 0.8;
+  }
+  return color;
+}
+)";
+
 
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
@@ -76,7 +97,7 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
   io.FontGlobalScale = 1.0f / fontScale;
   wgpu_shader_toy_install_new_fragment_shader_handler(callbacks::OnNewFragmentShaderCallback, this);
-  onNewFragmentShader(kHelloWorldFragmentShaderName, kHelloWorldFragmentShaderCode);
+  onNewFragmentShader("Hello World", kHelloWorldFragmentShaderCode);
 }
 
 //------------------------------------------------------------------------
@@ -86,26 +107,6 @@ MainWindow::~MainWindow()
 {
   wgpu_shader_toy_uninstall_new_fragment_shader_handler();
 }
-
-constexpr char kShader2[] = R"(
-fn isInCircle(center: vec2f, radius: f32, point: vec2f) -> bool {
-    let delta = point - center;
-    return (delta.x*delta.x + delta.y*delta.y) <= (radius*radius);
-}
-
-@fragment
-fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  let period = 5.0;
-  let half_period = period / 2.0;
-  let cycle_value = inputs.time % period;
-  let b = half_period - abs(cycle_value - half_period);
-  var color = vec4f(b / half_period, pos.xy / inputs.size, 1);
-  if(isInCircle(inputs.mouse, 50.0, pos.xy)) {
-    color.a = 0.8;
-  }
-  return color;
-}
-)";
 
 //------------------------------------------------------------------------
 // MainWindow::doRender
@@ -176,18 +177,42 @@ void MainWindow::doRender()
 
     if(fCurrentFragmentShader)
     {
-      if(ImGui::TreeNode("Shader Inputs"))
+      ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+      if(ImGui::TreeNode("Inputs"))
       {
-        ImGui::Text("%s", FragmentShader::kHeader);
+        auto &inputs = fCurrentFragmentShader->getInputs();
+        ImGui::Text(FragmentShader::kHeaderTemplate,
+                    static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), // size: vec2f
+                    inputs.time, // time: f32
+                    inputs.frame, // frame: i32
+                    static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y) // mouse: vec2f
+                    );
         ImGui::TreePop();
       }
-
-      ImGui::Text("%s", fCurrentFragmentShader->getCode().c_str());
+      ImGui::Separator();
+      ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+      if(ImGui::TreeNode("Code"))
+      {
+        ImGui::Text("%s", fCurrentFragmentShader->getCode().c_str());
+        ImGui::TreePop();
+      }
 
       if(fCurrentFragmentShader->hasCompilationError())
       {
         ImGui::SeparatorText("Compilation Errors");
         ImGui::Text("%s", fCurrentFragmentShader->getCompilationError().c_str());
+        ImGui::Separator();
+        if(ImGui::TreeNode("Annotated Code"))
+        {
+          std::istringstream fullCode(FragmentShader::kHeader + fCurrentFragmentShader->getCode());
+          std::string line;
+          int lineNumber = 1;
+          while(std::getline(fullCode, line))
+          {
+            ImGui::Text("[%d] %s", lineNumber++, line.c_str());
+          }
+          ImGui::TreePop();
+        }
       }
     }
     else
@@ -199,9 +224,6 @@ void MainWindow::doRender()
 
     if(ImGui::Button("Reset"))
       fResetRequest = true;
-
-    if(ImGui::Button("Compile"))
-      fFragmentShaderWindow->setCurrentFragmentShader(std::make_unique<FragmentShader>("Shader 2", kShader2));
 
     ImGui::Separator();
 
