@@ -21,7 +21,6 @@
 
 #include <imgui.h>
 #include "gpu/Window.h"
-#include "Model.h"
 #include "Preferences.h"
 #include "FragmentShader.h"
 
@@ -43,7 +42,6 @@ public:
 public:
   struct Args
   {
-    std::shared_ptr<Model> model;
     std::shared_ptr<Preferences> preferences;
   };
 
@@ -81,7 +79,6 @@ private:
   };
 
 private:
-  std::shared_ptr<Model> fModel;
   std::shared_ptr<Preferences> fPreferences;
   Renderable::Size fFrameBufferSize;
 

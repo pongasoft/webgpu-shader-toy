@@ -43,7 +43,13 @@ void OnNewFragmentShaderCallback(MainWindow *iMainWindow, char const *iFilename,
 
 }
 
-constexpr auto kHelloWorldFragmentShader = "Hello World";
+constexpr auto kHelloWorldFragmentShaderName = "Hello World";
+constexpr char kHelloWorldFragmentShaderCode[] = R"(
+@fragment
+fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    return vec4f(pos.xy / inputs.size, 0, 1);
+}
+)";
 
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
@@ -52,11 +58,9 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   ImGuiWindow(std::move(iGPU), iWindowArgs),
   fDefaultSize{iWindowArgs.size},
   fPreferences{iMainWindowArgs.preferences},
-  fModel{std::make_unique<Model>()},
   fFragmentShaderWindow{std::make_unique<FragmentShaderWindow>(fGPU,
                                                                iMainWindowArgs.fragmentShaderWindow,
                                                                FragmentShaderWindow::Args{
-                                                                 .model = fModel,
                                                                  .preferences = fPreferences})},
   fDefaultFragmentShaderWindowSize{iMainWindowArgs.fragmentShaderWindow.size}
 {
@@ -72,12 +76,7 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
   io.FontGlobalScale = 1.0f / fontScale;
   wgpu_shader_toy_install_new_fragment_shader_handler(callbacks::OnNewFragmentShaderCallback, this);
-
-  fFragmentShaders[kHelloWorldFragmentShader] = kDefaultFragmentShader;
-  fFragmentShaderTabs.emplace_back(kHelloWorldFragmentShader);
-  fCurrentFragmentShaderName = kHelloWorldFragmentShader;
-
-  fFragmentShaderWindow->setCurrentFragmentShader(std::make_unique<FragmentShader>(kHelloWorldFragmentShader, kDefaultFragmentShader));
+  onNewFragmentShader(kHelloWorldFragmentShaderName, kHelloWorldFragmentShaderCode);
 }
 
 //------------------------------------------------------------------------
@@ -120,38 +119,41 @@ void MainWindow::doRender()
   {
     if(ImGui::BeginTabBar("Fragment Shaders"))
     {
-      std::string selectedFragmentShader = fFragmentShaderTabs[0];
-      std::optional<std::string> fragmentShaderToDelete{};
-      for(auto &fragmentShaderName: fFragmentShaderTabs)
+      if(!fFragmentShaderTabs.empty())
       {
-        bool open = true;
-        auto flags = ImGuiTabItemFlags_None;
-        if(fCurrentFragmentShaderNameRequest && *fCurrentFragmentShaderNameRequest == fragmentShaderName)
+        std::string selectedFragmentShader = fFragmentShaderTabs[0];
+        std::optional<std::string> fragmentShaderToDelete{};
+        for(auto &fragmentShaderName: fFragmentShaderTabs)
         {
-          flags = ImGuiTabItemFlags_SetSelected;
-          fCurrentFragmentShaderNameRequest = std::nullopt;
+          bool open = true;
+          auto flags = ImGuiTabItemFlags_None;
+          if(fCurrentFragmentShaderNameRequest && *fCurrentFragmentShaderNameRequest == fragmentShaderName)
+          {
+            flags = ImGuiTabItemFlags_SetSelected;
+            fCurrentFragmentShaderNameRequest = std::nullopt;
+          }
+          if(ImGui::BeginTabItem(fragmentShaderName.c_str(), &open, flags))
+          {
+            selectedFragmentShader = fragmentShaderName;
+            ImGui::EndTabItem();
+          }
+          if(!open)
+            fragmentShaderToDelete = fragmentShaderName;
         }
-        if(ImGui::BeginTabItem(fragmentShaderName.c_str(), &open, flags))
+        if(fragmentShaderToDelete)
+          deleteFragmentShader(*fragmentShaderToDelete);
+        else
         {
-          selectedFragmentShader = fragmentShaderName;
-          ImGui::EndTabItem();
+          if(fCurrentFragmentShader->getName() != selectedFragmentShader)
+          {
+            fCurrentFragmentShader = fFragmentShaders[selectedFragmentShader];
+            fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+          }
         }
-        if(!open)
-          fragmentShaderToDelete = fragmentShaderName;
       }
       if(ImGui::TabItemButton("+"))
       {
         wgpu_shader_toy_open_file_dialog();
-      }
-      if(fragmentShaderToDelete)
-        deleteFragmentShader(*fragmentShaderToDelete);
-      else
-      {
-        if(fCurrentFragmentShaderName != selectedFragmentShader)
-        {
-          fCurrentFragmentShaderName = selectedFragmentShader;
-          fModel->setFragmentShader(fFragmentShaders[fCurrentFragmentShaderName]);
-        }
       }
       ImGui::EndTabBar();
     }
@@ -172,13 +174,26 @@ void MainWindow::doRender()
 
     ImGui::SeparatorText("Shader");
 
-    if(ImGui::TreeNode("Shader Inputs"))
+    if(fCurrentFragmentShader)
     {
-      ImGui::Text("%s", kFragmentShaderHeader);
-      ImGui::TreePop();
-    }
+      if(ImGui::TreeNode("Shader Inputs"))
+      {
+        ImGui::Text("%s", FragmentShader::kHeader);
+        ImGui::TreePop();
+      }
 
-    ImGui::Text("%s", fModel->getFragmentShader().c_str());
+      ImGui::Text("%s", fCurrentFragmentShader->getCode().c_str());
+
+      if(fCurrentFragmentShader->hasCompilationError())
+      {
+        ImGui::SeparatorText("Compilation Errors");
+        ImGui::Text("%s", fCurrentFragmentShader->getCompilationError().c_str());
+      }
+    }
+    else
+    {
+      ImGui::Text("Click on [+] to add a shader or drag and drop a shader file here");
+    }
 
     ImGui::Separator();
 
@@ -192,11 +207,6 @@ void MainWindow::doRender()
 
     if(ImGui::Button("Exit"))
       stop();
-
-    if(fModel->fFragmentShaderError)
-    {
-      ImGui::Text("%s", fModel->fFragmentShaderError->c_str());
-    }
   }
   ImGui::End();
 }
@@ -217,14 +227,14 @@ void MainWindow::doHandleFrameBufferSizeChange(Renderable::Size const &iSize)
 //------------------------------------------------------------------------
 void MainWindow::onNewFragmentShader(char const *iFilename, char const *iContent)
 {
-  fCurrentFragmentShaderName = iFilename;
-  fCurrentFragmentShaderNameRequest = iFilename;
-  if(std::ranges::find(fFragmentShaderTabs, fCurrentFragmentShaderName) == fFragmentShaderTabs.end())
+  fCurrentFragmentShader = std::make_shared<FragmentShader>(iFilename, iContent);
+  fFragmentShaders[fCurrentFragmentShader->getName()] = fCurrentFragmentShader;
+  if(std::ranges::find(fFragmentShaderTabs, fCurrentFragmentShader->getName()) == fFragmentShaderTabs.end())
   {
-    fFragmentShaderTabs.emplace_back(fCurrentFragmentShaderName);
+    fFragmentShaderTabs.emplace_back(fCurrentFragmentShader->getName());
   }
-  fModel->setFragmentShader(iContent);
-  fFragmentShaders[fCurrentFragmentShaderName] = iContent;
+  fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+  fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();
 }
 
 //------------------------------------------------------------------------
@@ -235,19 +245,16 @@ void MainWindow::deleteFragmentShader(std::string const &iName)
   fFragmentShaderTabs.erase(std::remove(fFragmentShaderTabs.begin(), fFragmentShaderTabs.end(), iName),
                             fFragmentShaderTabs.end());
   fFragmentShaders.erase(iName);
-  if(fFragmentShaders.empty())
+  if(!fFragmentShaders.empty())
   {
-    onNewFragmentShader(kHelloWorldFragmentShader, kDefaultFragmentShader);
-  }
-  else
-  {
-    if(fCurrentFragmentShaderName == iName)
+    if(!fCurrentFragmentShader || fCurrentFragmentShader->getName() != iName)
     {
-      fCurrentFragmentShaderName = fFragmentShaderTabs[0];
-      fCurrentFragmentShaderNameRequest = fCurrentFragmentShaderName;
+      fCurrentFragmentShader = fFragmentShaders[fFragmentShaderTabs[0]];
+      fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
     }
   }
-  fModel->setFragmentShader(fFragmentShaders[fCurrentFragmentShaderName]);
+  else
+    fCurrentFragmentShader = nullptr;
 }
 
 //------------------------------------------------------------------------

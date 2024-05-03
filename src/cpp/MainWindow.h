@@ -20,7 +20,6 @@
 #define WGPU_SHADER_TOY_MAIN_WINDOW_H
 
 #include "gpu/ImGuiWindow.h"
-#include "Model.h"
 #include "Preferences.h"
 #include "FragmentShaderWindow.h"
 #include <optional>
@@ -64,7 +63,6 @@ private:
 private:
   Renderable::Size fDefaultSize;
   std::shared_ptr<Preferences> fPreferences;
-  std::shared_ptr<Model> fModel;
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
   Renderable::Size fDefaultFragmentShaderWindowSize;
@@ -72,10 +70,9 @@ private:
   std::optional<AspectRatio> fAspectRatioRequest{};
   bool fResetRequest{};
 
-  std::optional<std::string> fFragmentShaderFilename{};
-  std::map<std::string, std::string> fFragmentShaders{};
+  std::map<std::string, std::shared_ptr<FragmentShader>> fFragmentShaders{};
   std::vector<std::string> fFragmentShaderTabs{};
-  std::string fCurrentFragmentShaderName{};
+  std::shared_ptr<FragmentShader>fCurrentFragmentShader{};
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
 };
 

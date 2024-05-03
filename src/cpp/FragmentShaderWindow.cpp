@@ -85,7 +85,6 @@ void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus, struct 
 //------------------------------------------------------------------------
 FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs) :
   Window(std::move(iGPU), iWindowArgs),
-  fModel{iMainWindowArgs.model},
   fPreferences{iMainWindowArgs.preferences}
 {
   // adjust size according to preferences

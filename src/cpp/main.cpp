@@ -4,7 +4,6 @@
 #include "Preferences.h"
 #include "Application.h"
 #include "MainWindow.h"
-#include "Model.h"
 
 std::unique_ptr<shader_toy::Application> kApplication;
 
@@ -22,8 +21,6 @@ static void MainLoopForEmscripten()
 // Main code
 int main(int, char **)
 {
-  std::shared_ptr<shader_toy::Model> model{new shader_toy::Model()};
-
   kApplication = std::make_unique<shader_toy::Application>();
 
   std::shared_ptr<shader_toy::Preferences> preferences =

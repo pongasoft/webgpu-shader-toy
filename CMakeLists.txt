@@ -22,7 +22,6 @@ set(wgpu_shader_toy_sources
     src/cpp/Errors.h
     src/cpp/MainWindow.h
     src/cpp/MainWindow.cpp
-    src/cpp/Model.h
     src/cpp/Preferences.h
     src/cpp/Preferences.cpp
     src/cpp/fmt.h
