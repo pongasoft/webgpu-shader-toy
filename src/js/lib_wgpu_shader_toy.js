@@ -79,6 +79,13 @@ let wgpu_shader_toy = {
       console.log('wgpu_shader_toy_open_file_dialog.click()');
       WGPU_SHADER_TOY.fFragmentShaderFileDialog.click();
     }
+  },
+
+  // wgpu_shader_toy_print_stack_trace
+  wgpu_shader_toy_print_stack_trace: (message) => {
+    message = message ? UTF8ToString(message): null;
+    const error = new Error(message);
+    console.log(error.stack);
   }
 }
 

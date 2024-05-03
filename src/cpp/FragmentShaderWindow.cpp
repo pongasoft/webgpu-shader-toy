@@ -17,10 +17,16 @@
  */
 
 #include "FragmentShaderWindow.h"
+#include "FragmentShader.h"
 #include "Errors.h"
 #include <GLFW/glfw3.h>
+#include <map>
 
 #include <utility>
+
+extern "C" {
+void wgpu_shader_toy_print_stack_trace(char const *iMessage);
+}
 
 namespace shader_toy {
 
@@ -33,6 +39,17 @@ fn vertexMain(@builtin(vertex_index) i : u32) -> @builtin(position) vec4f {
 )";
 
 namespace callbacks {
+
+
+struct FragmentShaderCompilationRequest
+{
+  std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
+  std::shared_ptr<FragmentShader> fFragmentShader;
+  wgpu::ShaderModule fShaderModule{};
+};
+
+static auto kLastCompilationKey = 0;
+static std::map<void *, std::shared_ptr<FragmentShaderCompilationRequest>> kFragmentShaderCompilationRequests{};
 
 //------------------------------------------------------------------------
 // callbacks::onFrameBufferSizeChange
@@ -49,9 +66,16 @@ void onCursorPosChange(GLFWwindow *window, double xpos, double ypos)
 //------------------------------------------------------------------------
 void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus, struct WGPUCompilationInfo const *iCompilationInfo, void *iUserdata)
 {
-  printf("onShaderCompilation %d\n", iStatus);
-  auto fsw = reinterpret_cast<FragmentShaderWindow *>(iUserdata);
-  fsw->createRenderPipeline(static_cast<wgpu::CompilationInfoRequestStatus>(iStatus), iCompilationInfo);
+  if(kFragmentShaderCompilationRequests.find(iUserdata) != kFragmentShaderCompilationRequests.end())
+  {
+    auto request = kFragmentShaderCompilationRequests[iUserdata];
+    printf("onShaderCompilation [%s] %d\n", request->fFragmentShader->getName().c_str(), iStatus);
+    kFragmentShaderCompilationRequests.erase(iUserdata);
+    request->fFragmentShaderWindow->onShaderCompilationResult(request->fFragmentShader,
+                                                              request->fShaderModule,
+                                                              static_cast<wgpu::CompilationInfoRequestStatus>(iStatus),
+                                                              iCompilationInfo);
+  }
 }
 
 }
@@ -66,40 +90,61 @@ FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Windo
 {
   // adjust size according to preferences
   resize(fPreferences->loadSize(kPreferencesSizeKey, iWindowArgs.size));
-
+  fFrameBufferSize = getFrameBufferSize();
   glfwSetCursorPosCallback(fWindow, callbacks::onCursorPosChange);
+  initGPU();
+}
+
+//------------------------------------------------------------------------
+// FragmentShaderWindow::~FragmentShaderWindow
+//------------------------------------------------------------------------
+FragmentShaderWindow::~FragmentShaderWindow()
+{
+  callbacks::kFragmentShaderCompilationRequests.clear();
 }
 
 #define MEMALIGN(_SIZE,_ALIGN)        (((_SIZE) + ((_ALIGN) - 1)) & ~((_ALIGN) - 1))    // Memory align (copied from IM_ALIGN() macro).
 
 //------------------------------------------------------------------------
-// FragmentShaderWindow::createRenderPipeline
+// FragmentShaderWindow::initGPU
 //------------------------------------------------------------------------
-void FragmentShaderWindow::createRenderPipeline(wgpu::CompilationInfoRequestStatus iStatus,
-                                                WGPUCompilationInfo const *iCompilationInfo)
+void FragmentShaderWindow::initGPU()
 {
-  if(iStatus != wgpu::CompilationInfoRequestStatus::Success)
-  {
-    printf("Fragment shader compilation error\n");
-    if(iCompilationInfo)
-    {
-      for(auto i = 0; i < iCompilationInfo->messageCount; i++)
-      {
-        printf("Message[%d] | %s", i, iCompilationInfo->messages[0].message);
-      }
-    }
-    return;
-  }
-
-  if(fGPU->hasError())
-  {
-    auto error = fGPU->consumeError();
-    printf("createRenderPipeline GPU in error => %s\n", gpu::GPU::errorTypeAsString(error->fType));
-    fModel->fFragmentShaderError = fmt::printf("[%s]: %s", gpu::GPU::errorTypeAsString(error->fType), error->fMessage);
-    return;
-  }
-
   auto device = fGPU->getDevice();
+
+  // Defining group(0)
+  wgpu::BindGroupLayoutEntry group0BindGroupLayoutEntries[1] = {};
+  // @group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;
+  group0BindGroupLayoutEntries[0].binding = 0;
+  group0BindGroupLayoutEntries[0].visibility = wgpu::ShaderStage::Fragment;
+  group0BindGroupLayoutEntries[0].buffer.type = wgpu::BufferBindingType::Uniform;
+
+  wgpu::BindGroupLayoutDescriptor group0BindGroupLayoutDescriptor = {
+    .entryCount = 1,
+    .entries = group0BindGroupLayoutEntries
+  };
+
+  fGroup0BindGroupLayout = device.CreateBindGroupLayout(&group0BindGroupLayoutDescriptor);
+
+  wgpu::BufferDescriptor desc{
+    .label = "FragmentShaderWindow | ShaderToyInputs Buffer",
+    .usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
+    .size = MEMALIGN(sizeof(FragmentShader::ShaderToyInputs), 16)
+  };
+  fShaderToyInputsBuffer = device.CreateBuffer(&desc);
+
+  wgpu::BindGroupEntry group0BindGroupEntries[] = {
+    { .binding = 0, .buffer = fShaderToyInputsBuffer, .size = MEMALIGN(sizeof(FragmentShader::ShaderToyInputs), 16) },
+  };
+
+  wgpu::BindGroupDescriptor group0BindGroupDescriptor = {
+    .label = "Fragment Shader Group0 Bind Group",
+    .layout = fGroup0BindGroupLayout,
+    .entryCount = 1,
+    .entries = group0BindGroupEntries
+  };
+
+  fGroup0BindGroup = device.CreateBindGroup(&group0BindGroupDescriptor);
 
   // vertex shader
   wgpu::ShaderModuleWGSLDescriptor vertexShaderModuleWGSLDescriptor{};
@@ -108,7 +153,82 @@ void FragmentShaderWindow::createRenderPipeline(wgpu::CompilationInfoRequestStat
     .nextInChain = &vertexShaderModuleWGSLDescriptor,
     .label = "FragmentShaderWindow | Vertex Shader"
   };
-  wgpu::ShaderModule vertexShaderModule = device.CreateShaderModule(&vertexShaderModuleDescriptor);
+  fVertexShaderModule = device.CreateShaderModule(&vertexShaderModuleDescriptor);
+}
+
+
+
+//------------------------------------------------------------------------
+// FragmentShaderWindow::compile
+//------------------------------------------------------------------------
+void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> const &iFragmentShader)
+{
+  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::compile");
+  auto shader = std::string(FragmentShader::kHeader) + iFragmentShader->getCode();
+
+  // fragment shader
+  wgpu::ShaderModuleWGSLDescriptor fragmentShaderModuleWGSLDescriptor{};
+  fragmentShaderModuleWGSLDescriptor.code = shader.c_str();
+  wgpu::ShaderModuleDescriptor fragmentShaderModuleDescriptor{
+    .nextInChain = &fragmentShaderModuleWGSLDescriptor,
+    .label = "FragmentShaderWindow | Fragment Shader"
+  };
+
+  iFragmentShader->fState = FragmentShader::State::Compiling{};
+
+  auto shaderModule = fGPU->getDevice().CreateShaderModule(&fragmentShaderModuleDescriptor);
+
+  auto key = reinterpret_cast<void *>(callbacks::kLastCompilationKey++);
+
+  callbacks::kFragmentShaderCompilationRequests[key] =
+    std::make_unique<callbacks::FragmentShaderCompilationRequest>(callbacks::FragmentShaderCompilationRequest{
+      .fFragmentShaderWindow = shared_from_this(),
+      .fFragmentShader = iFragmentShader,
+      .fShaderModule = shaderModule
+    });
+
+  shaderModule.GetCompilationInfo(callbacks::onShaderCompilationResult, key);
+}
+
+//------------------------------------------------------------------------
+// FragmentShaderWindow::onShaderCompilationResult
+//------------------------------------------------------------------------
+void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentShader> const &iFragmentShader,
+                                                     wgpu::ShaderModule iShaderModule,
+                                                     wgpu::CompilationInfoRequestStatus iStatus,
+                                                     WGPUCompilationInfo const *iCompilationInfo)
+{
+  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::onShaderCompilationResult");
+
+  // sanity check
+  ASSERT(iFragmentShader->isCompiling());
+
+  // at this time, it always returns success even when failure...
+//  if(iStatus != wgpu::CompilationInfoRequestStatus::Success)
+//  {
+//    printf("Fragment shader compilation error\n");
+//    if(iCompilationInfo)
+//    {
+//      for(auto i = 0; i < iCompilationInfo->messageCount; i++)
+//      {
+//        printf("Message[%d] | %s", i, iCompilationInfo->messages[0].message);
+//      }
+//    }
+//    return;
+//  }
+
+  // compilation resulted in error
+  if(fGPU->hasError())
+  {
+    auto error = fGPU->consumeError();
+    printf("onShaderCompilationResult (%s) GPU in error => %s\n",
+           iFragmentShader->getName().c_str(),
+           gpu::GPU::errorTypeAsString(error->fType));
+    iFragmentShader->fState = FragmentShader::State::CompiledInError{.fErrorMessage = fmt::printf("[%s]: %s", gpu::GPU::errorTypeAsString(error->fType), error->fMessage) };
+    return;
+  }
+
+  auto device = fGPU->getDevice();
 
   wgpu::BlendState blendState {
     .color {
@@ -127,7 +247,7 @@ void FragmentShaderWindow::createRenderPipeline(wgpu::CompilationInfoRequestStat
   wgpu::ColorTargetState colorTargetState{.format = fPreferredFormat, .blend = &blendState};
 
   wgpu::FragmentState fragmentState{
-    .module = fFragmentShaderModule,
+    .module = std::move(iShaderModule),
     .entryPoint = "fragmentMain",
     .constantCount = 0,
     .constants = nullptr,
@@ -135,31 +255,17 @@ void FragmentShaderWindow::createRenderPipeline(wgpu::CompilationInfoRequestStat
     .targets = &colorTargetState
   };
 
-  // Defining group(0)
-  wgpu::BindGroupLayoutEntry group0BindGroupLayoutEntries[1] = {};
-  // @group(0) @binding(0) var<uniform> stInputs: ShaderToyInputs;
-  group0BindGroupLayoutEntries[0].binding = 0;
-  group0BindGroupLayoutEntries[0].visibility = wgpu::ShaderStage::Fragment;
-  group0BindGroupLayoutEntries[0].buffer.type = wgpu::BufferBindingType::Uniform;
-
-  wgpu::BindGroupLayoutDescriptor group0BindGroupLayoutDescriptor = {
-    .entryCount = 1,
-    .entries = group0BindGroupLayoutEntries
-  };
-
-  wgpu::BindGroupLayout layout = device.CreateBindGroupLayout(&group0BindGroupLayoutDescriptor);
-
   wgpu::PipelineLayoutDescriptor pipeLineLayoutDescriptor = {
     .label = "Fragment Shader Pipeline Layout",
     .bindGroupLayoutCount = 1,
-    .bindGroupLayouts = &layout
+    .bindGroupLayouts = &fGroup0BindGroupLayout
   };
 
   wgpu::RenderPipelineDescriptor renderPipelineDescriptor{
     .label = "Fragment Shader Pipeline",
     .layout = device.CreatePipelineLayout(&pipeLineLayoutDescriptor),
     .vertex{
-      .module = vertexShaderModule,
+      .module = fVertexShaderModule,
       .entryPoint = "vertexMain"
     },
     .primitive = wgpu::PrimitiveState{},
@@ -167,50 +273,39 @@ void FragmentShaderWindow::createRenderPipeline(wgpu::CompilationInfoRequestStat
     .fragment = &fragmentState,
   };
 
-  wgpu::BufferDescriptor desc{
-    .label = "Fragment Shader | ShaderToyInputs Buffer",
-    .usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform,
-    .size = MEMALIGN(sizeof(ShaderToyInputs), 16)
-  };
-  fShaderToyInputsBuffer = device.CreateBuffer(&desc);
+  auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
+  ASSERT(pipeline != nullptr, "Cannot create render pipeline");
 
-  wgpu::BindGroupEntry group0BindGroupEntries[] = {
-    { .binding = 0, .buffer = fShaderToyInputsBuffer, .size = MEMALIGN(sizeof(ShaderToyInputs), 16) },
-  };
-
-  wgpu::BindGroupDescriptor group0BindGroupDescriptor = {
-    .label = "Fragment Shader Group0 Bind Group",
-    .layout = layout,
-    .entryCount = 1,
-    .entries = group0BindGroupEntries
-  };
-
-  fGroup0BindGroup = device.CreateBindGroup(&group0BindGroupDescriptor);
-
-  fRenderPipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
-  ASSERT(fRenderPipeline != nullptr, "Cannot create render pipeline");
+  iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
+  if(fCurrentFragmentShader == iFragmentShader)
+    initCurrentFragmentShader();
 }
+
 //------------------------------------------------------------------------
-// FragmentShaderWindow::createRenderPipeline
+// FragmentShaderWindow::setCurrentFragmentShader
 //------------------------------------------------------------------------
-void FragmentShaderWindow::createRenderPipeline()
+void FragmentShaderWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
 {
-  fRenderPipeline = nullptr;
+  fCurrentFragmentShader = std::move(iFragmentShader);
+  if(fCurrentFragmentShader->isNotCompiled())
+    compile(fCurrentFragmentShader);
+  else
+  {
+    if(fCurrentFragmentShader->isCompiled())
+      initCurrentFragmentShader();
+  }
+}
 
-  fCurrentFragmentShader = fModel->getFragmentShader();
-
-  auto shader = std::string(kFragmentShaderHeader) + fCurrentFragmentShader;
-
-  // fragment shader
-  wgpu::ShaderModuleWGSLDescriptor fragmentShaderModuleWGSLDescriptor{};
-  fragmentShaderModuleWGSLDescriptor.code = shader.c_str();
-  wgpu::ShaderModuleDescriptor fragmentShaderModuleDescriptor{
-    .nextInChain = &fragmentShaderModuleWGSLDescriptor,
-    .label = "FragmentShaderWindow | Fragment Shader"
-  };
-  fModel->fFragmentShaderError = std::nullopt;
-  fFragmentShaderModule = fGPU->getDevice().CreateShaderModule(&fragmentShaderModuleDescriptor);
-  fFragmentShaderModule.GetCompilationInfo(callbacks::onShaderCompilationResult, this);
+//------------------------------------------------------------------------
+// FragmentShaderWindow::initCurrentFragmentShader
+//------------------------------------------------------------------------
+void FragmentShaderWindow::initCurrentFragmentShader()
+{
+  if(fCurrentFragmentShader)
+  {
+    fCurrentFragmentShader->fStartTime = glfwGetTime();
+    fCurrentFragmentShader->fInputs.size = {static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height)};
+  }
 }
 
 //------------------------------------------------------------------------
@@ -220,13 +315,11 @@ void FragmentShaderWindow::beforeFrame()
 {
   Window::beforeFrame();
 
-  if(fCurrentFragmentShader != fModel->getFragmentShader())
+  if(fCurrentFragmentShader && fCurrentFragmentShader->isCompiled())
   {
-    createRenderPipeline();
-    resetTime();
+    fCurrentFragmentShader->fInputs.frame++;
+    fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(glfwGetTime() - fCurrentFragmentShader->fStartTime);
   }
-  fShaderToyInputs.frame++;
-  fShaderToyInputs.time = static_cast<gpu::f32>(glfwGetTime());
 }
 
 //------------------------------------------------------------------------
@@ -234,10 +327,10 @@ void FragmentShaderWindow::beforeFrame()
 //------------------------------------------------------------------------
 void FragmentShaderWindow::doRender(wgpu::RenderPassEncoder &iRenderPass)
 {
-  if(fRenderPipeline)
+  if(fCurrentFragmentShader && fCurrentFragmentShader->isCompiled())
   {
-    fGPU->getDevice().GetQueue().WriteBuffer(fShaderToyInputsBuffer, 0, &fShaderToyInputs, sizeof(ShaderToyInputs));
-    iRenderPass.SetPipeline(fRenderPipeline);
+    fGPU->getDevice().GetQueue().WriteBuffer(fShaderToyInputsBuffer, 0, &fCurrentFragmentShader->fInputs, sizeof(ShaderToyInputs));
+    iRenderPass.SetPipeline(fCurrentFragmentShader->getRenderPipeline());
     iRenderPass.SetBindGroup(0, fGroup0BindGroup);
     iRenderPass.Draw(6);
   }
@@ -249,7 +342,9 @@ void FragmentShaderWindow::doRender(wgpu::RenderPassEncoder &iRenderPass)
 void FragmentShaderWindow::doHandleFrameBufferSizeChange(Renderable::Size const &iSize)
 {
   Window::doHandleFrameBufferSizeChange(iSize);
-  fShaderToyInputs.size = {static_cast<float>(iSize.width), static_cast<float>(iSize.height)};
+  fFrameBufferSize = iSize;
+  if(fCurrentFragmentShader)
+    fCurrentFragmentShader->fInputs.size = {static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height)};
   int w, h;
   glfwGetWindowSize(fWindow, &w, &h);
   fPreferences->storeSize(kPreferencesSizeKey, {w, h});
@@ -262,16 +357,8 @@ void FragmentShaderWindow::onMousePosChange(double xpos, double ypos)
 {
   float xScale, yScale;
   glfwGetWindowContentScale(fWindow, &xScale, &yScale);
-  fShaderToyInputs.mouse = {static_cast<float>(xpos * xScale), static_cast<float>(ypos * yScale)};
-}
-
-//------------------------------------------------------------------------
-// FragmentShaderWindow::resetTime
-//------------------------------------------------------------------------
-void FragmentShaderWindow::resetTime()
-{
-  fShaderToyInputs.frame = 0;
-  glfwSetTime(0);
+  if(fCurrentFragmentShader)
+    fCurrentFragmentShader->fInputs.mouse = {static_cast<float>(xpos * xScale), static_cast<float>(ypos * yScale)};
 }
 
 

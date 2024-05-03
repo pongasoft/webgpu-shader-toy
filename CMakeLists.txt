@@ -16,6 +16,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(wgpu_shader_toy_sources
     src/cpp/Application.h
     src/cpp/Application.cpp
+    src/cpp/FragmentShader.h
     src/cpp/FragmentShaderWindow.h
     src/cpp/FragmentShaderWindow.cpp
     src/cpp/Errors.h

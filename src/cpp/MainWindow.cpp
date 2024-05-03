@@ -53,11 +53,11 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   fDefaultSize{iWindowArgs.size},
   fPreferences{iMainWindowArgs.preferences},
   fModel{std::make_unique<Model>()},
-  fFragmentShaderWindow{fGPU,
-                        iMainWindowArgs.fragmentShaderWindow,
-                        FragmentShaderWindow::Args{
-                          .model = fModel,
-                          .preferences = fPreferences}},
+  fFragmentShaderWindow{std::make_unique<FragmentShaderWindow>(fGPU,
+                                                               iMainWindowArgs.fragmentShaderWindow,
+                                                               FragmentShaderWindow::Args{
+                                                                 .model = fModel,
+                                                                 .preferences = fPreferences})},
   fDefaultFragmentShaderWindowSize{iMainWindowArgs.fragmentShaderWindow.size}
 {
   // adjust size according to preferences
@@ -76,6 +76,8 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   fFragmentShaders[kHelloWorldFragmentShader] = kDefaultFragmentShader;
   fFragmentShaderTabs.emplace_back(kHelloWorldFragmentShader);
   fCurrentFragmentShaderName = kHelloWorldFragmentShader;
+
+  fFragmentShaderWindow->setCurrentFragmentShader(std::make_unique<FragmentShader>(kHelloWorldFragmentShader, kDefaultFragmentShader));
 }
 
 //------------------------------------------------------------------------
@@ -183,6 +185,9 @@ void MainWindow::doRender()
     if(ImGui::Button("Reset"))
       fResetRequest = true;
 
+    if(ImGui::Button("Compile"))
+      fFragmentShaderWindow->setCurrentFragmentShader(std::make_unique<FragmentShader>("Shader 2", kShader2));
+
     ImGui::Separator();
 
     if(ImGui::Button("Exit"))
@@ -259,10 +264,10 @@ void MainWindow::beforeFrame()
   Window::beforeFrame();
   if(fAspectRatioRequest)
   {
-    fFragmentShaderWindow.setAspectRatio(*fAspectRatioRequest);
+    fFragmentShaderWindow->setAspectRatio(*fAspectRatioRequest);
     fAspectRatioRequest = std::nullopt;
   }
-  fFragmentShaderWindow.beforeFrame();
+  fFragmentShaderWindow->beforeFrame();
 }
 
 //------------------------------------------------------------------------
@@ -271,7 +276,7 @@ void MainWindow::beforeFrame()
 void MainWindow::render()
 {
   Renderable::render();
-  fFragmentShaderWindow.render();
+  fFragmentShaderWindow->render();
 }
 
 //------------------------------------------------------------------------
@@ -280,7 +285,7 @@ void MainWindow::render()
 void MainWindow::reset()
 {
   resize(fDefaultSize);
-  fFragmentShaderWindow.resize(fDefaultFragmentShaderWindowSize);
+  fFragmentShaderWindow->resize(fDefaultFragmentShaderWindowSize);
 }
 
 }

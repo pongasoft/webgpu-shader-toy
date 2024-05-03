@@ -66,7 +66,7 @@ private:
   std::shared_ptr<Preferences> fPreferences;
   std::shared_ptr<Model> fModel;
 
-  FragmentShaderWindow fFragmentShaderWindow;
+  std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
   Renderable::Size fDefaultFragmentShaderWindowSize;
 
   std::optional<AspectRatio> fAspectRatioRequest{};

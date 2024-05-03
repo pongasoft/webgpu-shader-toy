@@ -23,6 +23,7 @@
 #include "gpu/Window.h"
 #include "Model.h"
 #include "Preferences.h"
+#include "FragmentShader.h"
 
 using namespace pongasoft;
 
@@ -34,7 +35,7 @@ using i32 = int;
 
 namespace shader_toy {
 
-class FragmentShaderWindow : public gpu::Window
+class FragmentShaderWindow : public gpu::Window, public std::enable_shared_from_this<FragmentShaderWindow>
 {
 public:
   static constexpr auto kPreferencesSizeKey = "shader_toy::FragmentShaderWindow::Size";
@@ -48,8 +49,12 @@ public:
 
 public:
   FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs);
+  ~FragmentShaderWindow() override;
 
   void beforeFrame() override;
+
+  void compile(std::shared_ptr<FragmentShader> const &iFragmentShader);
+  void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
 
 protected:
   void doRender(wgpu::RenderPassEncoder &iRenderPass) override;
@@ -57,11 +62,14 @@ protected:
 public: // should be private (but used in callback...)
   void doHandleFrameBufferSizeChange(Size const &iSize) override;
   void onMousePosChange(double xpos, double ypos);
-  void createRenderPipeline(wgpu::CompilationInfoRequestStatus iStatus, WGPUCompilationInfo const *iCompilationInfo);
+  void onShaderCompilationResult(std::shared_ptr<FragmentShader> const &iFragmentShader,
+                                 wgpu::ShaderModule iShaderModule,
+                                 wgpu::CompilationInfoRequestStatus iStatus,
+                                 WGPUCompilationInfo const *iCompilationInfo);
 
 private:
-  void createRenderPipeline();
-  void resetTime();
+  void initGPU();
+  void initCurrentFragmentShader();
 
 private:
   struct ShaderToyInputs
@@ -75,17 +83,15 @@ private:
 private:
   std::shared_ptr<Model> fModel;
   std::shared_ptr<Preferences> fPreferences;
-  int fFrameCount{};
-  wgpu::ShaderModule fFragmentShaderModule{};
+  Renderable::Size fFrameBufferSize;
 
-  wgpu::RenderPipeline fRenderPipeline{};
-
+  // Common gpu part
+  wgpu::BindGroupLayout fGroup0BindGroupLayout{};
   wgpu::BindGroup fGroup0BindGroup{};
-
-  std::string fCurrentFragmentShader{};
-  ShaderToyInputs fShaderToyInputs{};
   wgpu::Buffer fShaderToyInputsBuffer{};
+  wgpu::ShaderModule fVertexShaderModule{};
 
+  std::shared_ptr<FragmentShader> fCurrentFragmentShader{};
 };
 
 }

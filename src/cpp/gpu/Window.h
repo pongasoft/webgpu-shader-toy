@@ -62,6 +62,7 @@ public:
   void stop();
 
   void resize(Size const &iSize);
+  Size getFrameBufferSize() const;
   void setAspectRatio(AspectRatio const &iAspectRatio);
 
 protected:
