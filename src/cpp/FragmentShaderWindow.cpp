@@ -304,6 +304,7 @@ void FragmentShaderWindow::initCurrentFragmentShader()
   {
     fCurrentFragmentShader->fStartTime = glfwGetTime();
     fCurrentFragmentShader->fInputs.size = {static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height)};
+    fCurrentFragmentShader->fInputs.frame = 0;
   }
 }
 
