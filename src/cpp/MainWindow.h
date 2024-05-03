@@ -67,6 +67,8 @@ private:
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
   Renderable::Size fDefaultFragmentShaderWindowSize;
 
+  std::string fCurrentAspectRatio{"Free"};
+
   std::optional<AspectRatio> fAspectRatioRequest{};
   bool fResetRequest{};
 

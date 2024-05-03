@@ -71,6 +71,15 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 }
 )";
 
+// kAspectRatios
+static std::vector<std::pair<std::string, Window::AspectRatio>> kAspectRatios{
+  {"Free", Window::AspectRatio{GLFW_DONT_CARE, GLFW_DONT_CARE}},
+  {"1x1", Window::AspectRatio{1, 1}},
+  {"16x9", Window::AspectRatio{16, 9}},
+  {"9x16", Window::AspectRatio{9, 16}},
+  {"4x3", Window::AspectRatio{4, 3}},
+  {"3x4", Window::AspectRatio{3, 4}},
+};
 
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
@@ -113,10 +122,38 @@ MainWindow::~MainWindow()
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
+  if(ImGui::BeginMainMenuBar())
+  {
+    if(ImGui::BeginMenu("WebGPU Shader Toy"))
+    {
+      if(ImGui::MenuItem("Reset"))
+        fResetRequest = true;
+      if(ImGui::MenuItem("Quit"))
+        stop();
+      ImGui::EndMenu();
+    }
+    if(ImGui::BeginMenu("Window"))
+    {
+      if(ImGui::BeginMenu("Aspect Ratio"))
+      {
+        for(auto &[name, aspectRatio]: kAspectRatios)
+        {
+          if(ImGui::MenuItem(name.c_str(), nullptr, name == fCurrentAspectRatio))
+          {
+            fCurrentAspectRatio = name;
+            fAspectRatioRequest = aspectRatio;
+          }
+        }
+        ImGui::EndMenu();
+      }
+      ImGui::EndMenu();
+    }
+    ImGui::EndMainMenuBar();
+  }
+
   ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
   ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
-
-  if(ImGui::Begin("WebGPU Shader Toy", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_HorizontalScrollbar))
+  if(ImGui::Begin("WebGPU Shader Toy", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_HorizontalScrollbar))
   {
     if(ImGui::BeginTabBar("Fragment Shaders"))
     {
@@ -158,20 +195,6 @@ void MainWindow::doRender()
       }
       ImGui::EndTabBar();
     }
-
-    ImGui::Text("aspect_ratio");
-    ImGui::SameLine();
-    if(ImGui::Button("Free"))
-      fAspectRatioRequest = AspectRatio{GLFW_DONT_CARE, GLFW_DONT_CARE};
-    ImGui::SameLine();
-    if(ImGui::Button("16:9"))
-      fAspectRatioRequest = AspectRatio{16, 9};
-    ImGui::SameLine();
-    if(ImGui::Button("4:3"))
-      fAspectRatioRequest = AspectRatio{4,3};
-    ImGui::SameLine();
-    if(ImGui::Button("1:1"))
-      fAspectRatioRequest = AspectRatio{1,1};
 
     ImGui::SeparatorText("Shader");
 
@@ -219,16 +242,6 @@ void MainWindow::doRender()
     {
       ImGui::Text("Click on [+] to add a shader or drag and drop a shader file here");
     }
-
-    ImGui::Separator();
-
-    if(ImGui::Button("Reset"))
-      fResetRequest = true;
-
-    ImGui::Separator();
-
-    if(ImGui::Button("Exit"))
-      stop();
   }
   ImGui::End();
 }
@@ -315,6 +328,10 @@ void MainWindow::reset()
 {
   resize(fDefaultSize);
   fFragmentShaderWindow->resize(fDefaultFragmentShaderWindowSize);
+  fFragmentShaders.clear();
+  fFragmentShaderTabs.clear();
+  fCurrentFragmentShader = nullptr;
+  onNewFragmentShader("Hello World", kHelloWorldFragmentShaderCode);
 }
 
 }
