@@ -57,8 +57,8 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
                         iMainWindowArgs.fragmentShaderWindow,
                         FragmentShaderWindow::Args{
                           .model = fModel,
-                          .preferences = fPreferences}
-  }
+                          .preferences = fPreferences}},
+  fDefaultFragmentShaderWindowSize{iMainWindowArgs.fragmentShaderWindow.size}
 {
   // adjust size according to preferences
   resize(fPreferences->loadSize(kPreferencesSizeKey, iWindowArgs.size));
@@ -180,6 +180,11 @@ void MainWindow::doRender()
 
     ImGui::Separator();
 
+    if(ImGui::Button("Reset"))
+      fResetRequest = true;
+
+    ImGui::Separator();
+
     if(ImGui::Button("Exit"))
       stop();
 
@@ -245,6 +250,12 @@ void MainWindow::deleteFragmentShader(std::string const &iName)
 //------------------------------------------------------------------------
 void MainWindow::beforeFrame()
 {
+  if(fResetRequest)
+  {
+    reset();
+    fResetRequest = false;
+  }
+
   Window::beforeFrame();
   if(fAspectRatioRequest)
   {
@@ -261,6 +272,15 @@ void MainWindow::render()
 {
   Renderable::render();
   fFragmentShaderWindow.render();
+}
+
+//------------------------------------------------------------------------
+// MainWindow::reset
+//------------------------------------------------------------------------
+void MainWindow::reset()
+{
+  resize(fDefaultSize);
+  fFragmentShaderWindow.resize(fDefaultFragmentShaderWindowSize);
 }
 
 }

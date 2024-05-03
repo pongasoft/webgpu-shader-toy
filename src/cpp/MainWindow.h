@@ -59,14 +59,18 @@ protected:
 
 private:
   void deleteFragmentShader(std::string const &iName);
+  void reset();
 
 private:
   Renderable::Size fDefaultSize;
   std::shared_ptr<Preferences> fPreferences;
   std::shared_ptr<Model> fModel;
+
   FragmentShaderWindow fFragmentShaderWindow;
+  Renderable::Size fDefaultFragmentShaderWindowSize;
 
   std::optional<AspectRatio> fAspectRatioRequest{};
+  bool fResetRequest{};
 
   std::optional<std::string> fFragmentShaderFilename{};
   std::map<std::string, std::string> fFragmentShaders{};
