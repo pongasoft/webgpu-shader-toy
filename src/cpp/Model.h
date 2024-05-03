@@ -45,9 +45,7 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 
 struct Model
 {
-  struct AspectRatio { int numerator{}; int denominator{}; };
   std::optional<std::string> fFragmentShaderError{};
-  std::optional<AspectRatio> fAspectRatioRequest{};
 
   void setFragmentShader(std::string_view iFragmentShader) { fFragmentShader = iFragmentShader; }
   std::string const &getFragmentShader() const { return fFragmentShader; }

@@ -22,6 +22,7 @@
 #include "gpu/ImGuiWindow.h"
 #include "Model.h"
 #include "Preferences.h"
+#include "FragmentShaderWindow.h"
 #include <optional>
 #include <string>
 #include <map>
@@ -38,7 +39,7 @@ public:
 public:
   struct Args
   {
-    std::shared_ptr<Model> model;
+    Window::Args fragmentShaderWindow;
     std::shared_ptr<Preferences> preferences;
   };
 
@@ -46,6 +47,9 @@ public:
   MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs);
 
   ~MainWindow() override;
+
+  void beforeFrame() override;
+  void render() override;
 
   void doHandleFrameBufferSizeChange(Size const &iSize) override;
   void onNewFragmentShader(char const *iFilename, char const *iContent);
@@ -57,8 +61,13 @@ private:
   void deleteFragmentShader(std::string const &iName);
 
 private:
-  std::shared_ptr<Model> fModel;
+  Renderable::Size fDefaultSize;
   std::shared_ptr<Preferences> fPreferences;
+  std::shared_ptr<Model> fModel;
+  FragmentShaderWindow fFragmentShaderWindow;
+
+  std::optional<AspectRatio> fAspectRatioRequest{};
+
   std::optional<std::string> fFragmentShaderFilename{};
   std::map<std::string, std::string> fFragmentShaders{};
   std::vector<std::string> fFragmentShaderTabs{};

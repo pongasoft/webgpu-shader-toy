@@ -21,8 +21,7 @@
 
 #include "Renderable.h"
 #include <optional>
-
-struct GLFWwindow;
+#include <GLFW/glfw3.h>
 
 namespace pongasoft::gpu {
 
@@ -39,6 +38,13 @@ public:
       char const *handleSelector{};
     } canvas{};
   };
+
+  struct AspectRatio
+  {
+    int numerator{GLFW_DONT_CARE};
+    int denominator{GLFW_DONT_CARE};
+  };
+
 public:
   Window(std::shared_ptr<GPU> iGPU, Args const &iArgs);
   ~Window() override;
@@ -56,6 +62,7 @@ public:
   void stop();
 
   void resize(Size const &iSize);
+  void setAspectRatio(AspectRatio const &iAspectRatio);
 
 protected:
   wgpu::TextureView getTextureView() const override;

@@ -64,6 +64,9 @@ FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Windo
   fModel{iMainWindowArgs.model},
   fPreferences{iMainWindowArgs.preferences}
 {
+  // adjust size according to preferences
+  resize(fPreferences->loadSize(kPreferencesSizeKey, iWindowArgs.size));
+
   glfwSetCursorPosCallback(fWindow, callbacks::onCursorPosChange);
 }
 
@@ -215,13 +218,6 @@ void FragmentShaderWindow::createRenderPipeline()
 //------------------------------------------------------------------------
 void FragmentShaderWindow::beforeFrame()
 {
-  if(fModel->fAspectRatioRequest)
-  {
-    auto aspectRatio = *fModel->fAspectRatioRequest;
-    fModel->fAspectRatioRequest = std::nullopt;
-    glfwSetWindowAspectRatio(fWindow, aspectRatio.numerator, aspectRatio.denominator);
-  }
-
   Window::beforeFrame();
 
   if(fCurrentFragmentShader != fModel->getFragmentShader())

@@ -29,32 +29,15 @@ int main(int, char **)
   std::shared_ptr<shader_toy::Preferences> preferences =
     std::make_unique<shader_toy::Preferences>(std::make_unique<utils::JSStorage>());
 
-  double width, height;
-  emscripten_get_element_css_size("#canvas2", &width, &height);
+  double width2, height2;
+  emscripten_get_element_css_size("#canvas2", &width2, &height2);
 
-  kApplication
-    ->registerRenderable<shader_toy::FragmentShaderWindow>(Window::Args{
-                                                             .size = preferences->loadSize(shader_toy::FragmentShaderWindow::kPreferencesSizeKey,
-                                                                                           {static_cast<int>(width), static_cast<int>(height)}),
-                                                             .title = "WebGPU Shader Toy | fragment shader",
-                                                             .canvas = {
-                                                               .selector = "#canvas2",
-                                                               .resizeSelector = "#canvas2-container",
-                                                               .handleSelector = "#canvas2-handle"
-                                                             }
-                                                           },
-                                                           shader_toy::FragmentShaderWindow::Args {
-                                                             .model = model,
-                                                             .preferences = preferences
-                                                           })
-    ->show();
-
-  emscripten_get_element_css_size("#canvas1", &width, &height);
+  double width1, height1;
+  emscripten_get_element_css_size("#canvas1", &width1, &height1);
 
   kApplication
     ->registerRenderable<shader_toy::MainWindow>(Window::Args{
-                                                   .size = preferences->loadSize(shader_toy::MainWindow::kPreferencesSizeKey,
-                                                                                 {static_cast<int>(width), static_cast<int>(height)}),
+                                                   .size = {static_cast<int>(width1), static_cast<int>(height1)},
                                                    .title = "WebGPU Shader Toy",
                                                    .canvas = {
                                                      .selector = "#canvas1",
@@ -63,7 +46,15 @@ int main(int, char **)
                                                    }
                                                  },
                                                  shader_toy::MainWindow::Args {
-                                                   .model = model,
+                                                   .fragmentShaderWindow = {
+                                                     .size = {static_cast<int>(width2), static_cast<int>(height2)},
+                                                     .title = "WebGPU Shader Toy | fragment shader",
+                                                     .canvas = {
+                                                       .selector = "#canvas2",
+                                                       .resizeSelector = "#canvas2-container",
+                                                       .handleSelector = "#canvas2-handle"
+                                                     }
+                                                   },
                                                    .preferences = preferences
                                                  })
     ->show();

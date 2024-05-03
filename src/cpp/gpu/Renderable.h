@@ -38,12 +38,11 @@ public:
   explicit Renderable(std::shared_ptr<GPU> iGPU) : fGPU{std::move(iGPU)} {}
   virtual ~Renderable() = default;
 
-  virtual void init() {}
   virtual void beforeFrame() {}
   virtual void afterFrame() {}
   virtual bool running() const { return true; }
 
-  void render() {
+  virtual void render() {
     fGPU->renderPass(fClearColor, [this](wgpu::RenderPassEncoder &renderPass) {
       doRender(renderPass);
     }, getTextureView());

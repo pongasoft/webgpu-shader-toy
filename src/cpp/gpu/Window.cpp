@@ -159,4 +159,12 @@ void Window::resize(Renderable::Size const &iSize)
   glfwSetWindowSize(fWindow, iSize.width, iSize.height);
 }
 
+//------------------------------------------------------------------------
+// Window::setAspectRatio
+//------------------------------------------------------------------------
+void Window::setAspectRatio(AspectRatio const &iAspectRatio)
+{
+  glfwSetWindowAspectRatio(fWindow, iAspectRatio.numerator, iAspectRatio.denominator);
+}
+
 }
