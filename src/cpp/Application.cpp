@@ -66,30 +66,32 @@ shader_toy::Application::~Application()
 //------------------------------------------------------------------------
 void Application::mainLoop()
 {
+  glfwPollEvents();
+
   try
   {
+    // beforeFrame
     for(auto &r: fRenderableList)
     {
-      r->beforeFrame();
-      ASSERT(!fGPU->hasError());
+      r->beforeFrame(); ASSERT(!fGPU->hasError());
     }
 
-    glfwPollEvents();
+    // GPU -> beginFrame
+    fGPU->beginFrame(); ASSERT(!fGPU->hasError());
 
-    fGPU->beginFrame();
-    ASSERT(!fGPU->hasError());
+    // render
     for(auto &r: fRenderableList)
     {
-      r->render();
-      ASSERT(!fGPU->hasError());
+      r->render(); ASSERT(!fGPU->hasError());
     }
-    fGPU->endFrame();
-    ASSERT(!fGPU->hasError());
 
+    // GPU -> endFrame
+    fGPU->endFrame(); ASSERT(!fGPU->hasError());
+
+    // afterFrame
     for(auto &r: fRenderableList)
     {
-      r->afterFrame();
-      ASSERT(!fGPU->hasError());
+      r->afterFrame(); ASSERT(!fGPU->hasError());
     }
 
     fRunning = true;
