@@ -193,4 +193,12 @@ void Window::toggleHiDPIAwareness()
   glfwSetWindowAttrib(fWindow, GLFW_SCALE_FRAMEBUFFER, isHiDPIAware() ? GLFW_FALSE : GLFW_TRUE);
 }
 
+//------------------------------------------------------------------------
+// Window::getCurrentTime
+//------------------------------------------------------------------------
+double Window::getCurrentTime()
+{
+  return glfwGetTime();
+}
+
 }

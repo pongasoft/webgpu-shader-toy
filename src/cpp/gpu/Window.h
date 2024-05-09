@@ -67,6 +67,8 @@ public:
   bool isHiDPIAware() const;
   void toggleHiDPIAwareness();
 
+  static double getCurrentTime();
+
 protected:
   wgpu::TextureView getTextureView() const override;
 

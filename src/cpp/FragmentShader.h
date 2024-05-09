@@ -86,6 +86,15 @@ public:
   inline std::string getCompilationError() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorMessage; }
   constexpr bool isCompiled() const { return std::holds_alternative<FragmentShader::State::Compiled>(fState); }
 
+  void setStartTime(double iTime) { fStartTime = iTime; fInputs.time = 0; fInputs.frame = 0; }
+  void toggleRunning(double iCurrentTime) {
+    if(fRunning)
+      fInputs.time = static_cast<gpu::f32>(iCurrentTime - fStartTime);
+    else
+      fStartTime = iCurrentTime - fInputs.time;
+    fRunning = ! fRunning;
+  }
+
   friend class FragmentShaderWindow;
 
 private:
@@ -101,6 +110,8 @@ private:
 
   state_t fState{State::NotCompiled{}};
   double fStartTime{};
+
+  bool fRunning{true};
 };
 
 }

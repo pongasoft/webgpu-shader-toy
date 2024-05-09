@@ -302,7 +302,7 @@ void FragmentShaderWindow::initCurrentFragmentShader()
 {
   if(fCurrentFragmentShader)
   {
-    fCurrentFragmentShader->fStartTime = glfwGetTime();
+    fCurrentFragmentShader->fStartTime = getCurrentTime();
     fCurrentFragmentShader->fInputs.size = {static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height)};
     fCurrentFragmentShader->fInputs.frame = 0;
   }
@@ -317,8 +317,11 @@ void FragmentShaderWindow::beforeFrame()
 
   if(fCurrentFragmentShader && fCurrentFragmentShader->isCompiled())
   {
-    fCurrentFragmentShader->fInputs.frame++;
-    fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(glfwGetTime() - fCurrentFragmentShader->fStartTime);
+    if(fCurrentFragmentShader->fRunning)
+    {
+      fCurrentFragmentShader->fInputs.frame++;
+      fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(getCurrentTime() - fCurrentFragmentShader->fStartTime);
+    }
   }
 }
 

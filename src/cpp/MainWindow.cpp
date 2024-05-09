@@ -200,7 +200,15 @@ void MainWindow::doRender()
       ImGui::EndTabBar();
     }
 
-    ImGui::SeparatorText("Shader");
+    if(ImGui::Button("Reset Time"))
+    {
+      fCurrentFragmentShader->setStartTime(getCurrentTime());
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Pause/Resume"))
+    {
+      fCurrentFragmentShader->toggleRunning(getCurrentTime());
+    }
 
     if(fCurrentFragmentShader)
     {
