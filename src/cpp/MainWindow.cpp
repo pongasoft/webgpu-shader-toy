@@ -241,17 +241,16 @@ void MainWindow::doRender()
           if(ImGui::BeginTabItem("Errors", nullptr, flags))
           {
             ImGui::Text("%s", fCurrentFragmentShader->getCompilationError().c_str());
-            ImGui::Separator();
-            if(ImGui::TreeNode("Annotated Code"))
+            ImGui::EndTabItem();
+          }
+          if(ImGui::BeginTabItem("Full Code"))
+          {
+            std::istringstream fullCode(FragmentShader::kHeader + fCurrentFragmentShader->getCode());
+            std::string line;
+            int lineNumber = 1;
+            while(std::getline(fullCode, line))
             {
-              std::istringstream fullCode(FragmentShader::kHeader + fCurrentFragmentShader->getCode());
-              std::string line;
-              int lineNumber = 1;
-              while(std::getline(fullCode, line))
-              {
-                ImGui::Text("[%d] %s", lineNumber++, line.c_str());
-              }
-              ImGui::TreePop();
+              ImGui::Text("[%d] %s", lineNumber++, line.c_str());
             }
             ImGui::EndTabItem();
           }
