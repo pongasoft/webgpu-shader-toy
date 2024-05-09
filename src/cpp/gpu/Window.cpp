@@ -177,4 +177,20 @@ void Window::setAspectRatio(AspectRatio const &iAspectRatio)
   glfwSetWindowAspectRatio(fWindow, iAspectRatio.numerator, iAspectRatio.denominator);
 }
 
+//------------------------------------------------------------------------
+// Window::isHiDPIAware
+//------------------------------------------------------------------------
+bool Window::isHiDPIAware() const
+{
+  return glfwGetWindowAttrib(fWindow, GLFW_SCALE_FRAMEBUFFER) == GLFW_TRUE;
+}
+
+//------------------------------------------------------------------------
+// Window::toggleHiDPIAwareness
+//------------------------------------------------------------------------
+void Window::toggleHiDPIAwareness()
+{
+  glfwSetWindowAttrib(fWindow, GLFW_SCALE_FRAMEBUFFER, isHiDPIAware() ? GLFW_FALSE : GLFW_TRUE);
+}
+
 }

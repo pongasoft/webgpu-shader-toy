@@ -75,7 +75,9 @@ private:
   std::map<std::string, std::shared_ptr<FragmentShader>> fFragmentShaders{};
   std::vector<std::string> fFragmentShaderTabs{};
   std::shared_ptr<FragmentShader>fCurrentFragmentShader{};
+
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
+  bool fCurrentFragmentShaderErrorRequest{};
 };
 
 }

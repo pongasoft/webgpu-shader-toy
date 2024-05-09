@@ -64,6 +64,8 @@ public:
   void resize(Size const &iSize);
   Size getFrameBufferSize() const;
   void setAspectRatio(AspectRatio const &iAspectRatio);
+  bool isHiDPIAware() const;
+  void toggleHiDPIAwareness();
 
 protected:
   wgpu::TextureView getTextureView() const override;

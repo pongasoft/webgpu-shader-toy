@@ -134,6 +134,10 @@ void MainWindow::doRender()
     }
     if(ImGui::BeginMenu("Window"))
     {
+      if(ImGui::MenuItem("Hi DPI", nullptr, fFragmentShaderWindow->isHiDPIAware()))
+      {
+        fFragmentShaderWindow->toggleHiDPIAwareness();
+      }
       if(ImGui::BeginMenu("Aspect Ratio"))
       {
         for(auto &[name, aspectRatio]: kAspectRatios)
@@ -200,42 +204,51 @@ void MainWindow::doRender()
 
     if(fCurrentFragmentShader)
     {
-      ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-      if(ImGui::TreeNode("Inputs"))
+      if(ImGui::BeginTabBar(fCurrentFragmentShader->getName().c_str()))
       {
-        auto &inputs = fCurrentFragmentShader->getInputs();
-        ImGui::Text(FragmentShader::kHeaderTemplate,
-                    static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), // size: vec2f
-                    inputs.time, // time: f32
-                    inputs.frame, // frame: i32
-                    static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y) // mouse: vec2f
-                    );
-        ImGui::TreePop();
-      }
-      ImGui::Separator();
-      ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-      if(ImGui::TreeNode("Code"))
-      {
-        ImGui::Text("%s", fCurrentFragmentShader->getCode().c_str());
-        ImGui::TreePop();
-      }
-
-      if(fCurrentFragmentShader->hasCompilationError())
-      {
-        ImGui::SeparatorText("Compilation Errors");
-        ImGui::Text("%s", fCurrentFragmentShader->getCompilationError().c_str());
-        ImGui::Separator();
-        if(ImGui::TreeNode("Annotated Code"))
+        if(ImGui::BeginTabItem("Code"))
         {
-          std::istringstream fullCode(FragmentShader::kHeader + fCurrentFragmentShader->getCode());
-          std::string line;
-          int lineNumber = 1;
-          while(std::getline(fullCode, line))
-          {
-            ImGui::Text("[%d] %s", lineNumber++, line.c_str());
-          }
-          ImGui::TreePop();
+          ImGui::Text("%s", fCurrentFragmentShader->getCode().c_str());
+          ImGui::EndTabItem();
         }
+        if(ImGui::BeginTabItem("Inputs"))
+        {
+          auto &inputs = fCurrentFragmentShader->getInputs();
+          ImGui::Text(FragmentShader::kHeaderTemplate,
+                      static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), // size: vec2f
+                      inputs.time, // time: f32
+                      inputs.frame, // frame: i32
+                      static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y) // mouse: vec2f
+          );
+          ImGui::EndTabItem();
+        }
+        if(fCurrentFragmentShader->hasCompilationError())
+        {
+          auto flags = ImGuiTabItemFlags_None;
+          if(fCurrentFragmentShaderErrorRequest)
+          {
+            flags = ImGuiTabItemFlags_SetSelected;
+            fCurrentFragmentShaderErrorRequest = false;
+          }
+          if(ImGui::BeginTabItem("Errors", nullptr, flags))
+          {
+            ImGui::Text("%s", fCurrentFragmentShader->getCompilationError().c_str());
+            ImGui::Separator();
+            if(ImGui::TreeNode("Annotated Code"))
+            {
+              std::istringstream fullCode(FragmentShader::kHeader + fCurrentFragmentShader->getCode());
+              std::string line;
+              int lineNumber = 1;
+              while(std::getline(fullCode, line))
+              {
+                ImGui::Text("[%d] %s", lineNumber++, line.c_str());
+              }
+              ImGui::TreePop();
+            }
+            ImGui::EndTabItem();
+          }
+        }
+        ImGui::EndTabBar();
       }
     }
     else
@@ -270,6 +283,7 @@ void MainWindow::onNewFragmentShader(char const *iFilename, char const *iContent
   }
   fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
   fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();
+  fCurrentFragmentShaderErrorRequest = true;
 }
 
 //------------------------------------------------------------------------
