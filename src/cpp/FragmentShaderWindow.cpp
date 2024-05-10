@@ -332,7 +332,10 @@ void FragmentShaderWindow::doRender(wgpu::RenderPassEncoder &iRenderPass)
 {
   if(fCurrentFragmentShader && fCurrentFragmentShader->isCompiled())
   {
-    fGPU->getDevice().GetQueue().WriteBuffer(fShaderToyInputsBuffer, 0, &fCurrentFragmentShader->fInputs, sizeof(ShaderToyInputs));
+    fGPU->getDevice().GetQueue().WriteBuffer(fShaderToyInputsBuffer,
+                                             0,
+                                             &fCurrentFragmentShader->fInputs,
+                                             sizeof(FragmentShader::ShaderToyInputs));
     iRenderPass.SetPipeline(fCurrentFragmentShader->getRenderPipeline());
     iRenderPass.SetBindGroup(0, fGroup0BindGroup);
     iRenderPass.Draw(6);

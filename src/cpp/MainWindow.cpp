@@ -210,6 +210,9 @@ void MainWindow::doRender()
       fCurrentFragmentShader->toggleRunning(getCurrentTime());
     }
 
+    ImGui::DragFloat4("customFloat1", &fCurrentFragmentShader->getCustomFloat1().x, 0.005, 0.0, 1.0);
+    ImGui::ColorEdit4("customColor1", &fCurrentFragmentShader->getCustomColor1().x);
+
     if(fCurrentFragmentShader)
     {
       if(ImGui::BeginTabBar(fCurrentFragmentShader->getName().c_str()))
@@ -224,10 +227,26 @@ void MainWindow::doRender()
           auto &inputs = fCurrentFragmentShader->getInputs();
           ImGui::Text(FragmentShader::kHeaderTemplate,
                       static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), // size: vec2f
+                      static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y), // mouse: vec2f
+                      inputs.customFloat1.x, inputs.customFloat1.y, inputs.customFloat1.z, inputs.customFloat1.w, // customFloat1: vec4f
+                      inputs.customColor1.x, inputs.customColor1.y, inputs.customColor1.z, inputs.customColor1.w, // customColor1: vec4f
                       inputs.time, // time: f32
-                      inputs.frame, // frame: i32
-                      static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y) // mouse: vec2f
+                      inputs.frame // frame: i32
           );
+          ImGui::SeparatorText("customFloat1");
+          ImGui::PushID("customFloat1");
+          ImGui::SliderFloat("x", &fCurrentFragmentShader->getCustomFloat1().x, 0.0, 1.0, "%.4f");
+          ImGui::SliderFloat("y", &fCurrentFragmentShader->getCustomFloat1().y, 0.0, 1.0, "%.4f");
+          ImGui::SliderFloat("z", &fCurrentFragmentShader->getCustomFloat1().z, 0.0, 1.0, "%.4f");
+          ImGui::SliderFloat("w", &fCurrentFragmentShader->getCustomFloat1().w, 0.0, 1.0, "%.4f");
+          ImGui::PopID();
+          ImGui::SeparatorText("customColor1");
+          ImGui::PushID("customColor1");
+          ImGui::SliderFloat("r", &fCurrentFragmentShader->getCustomColor1().x, 0.0, 1.0, "%.4f");
+          ImGui::SliderFloat("g", &fCurrentFragmentShader->getCustomColor1().y, 0.0, 1.0, "%.4f");
+          ImGui::SliderFloat("b", &fCurrentFragmentShader->getCustomColor1().z, 0.0, 1.0, "%.4f");
+          ImGui::SliderFloat("a", &fCurrentFragmentShader->getCustomColor1().w, 0.0, 1.0, "%.4f");
+          ImGui::PopID();
           ImGui::EndTabItem();
         }
         if(fCurrentFragmentShader->hasCompilationError())

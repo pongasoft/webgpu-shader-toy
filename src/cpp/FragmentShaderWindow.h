@@ -70,15 +70,6 @@ private:
   void initCurrentFragmentShader();
 
 private:
-  struct ShaderToyInputs
-  {
-    gpu::vec2f size{};
-    gpu::f32 time{};
-    gpu::i32 frame{};
-    gpu::vec2f mouse{};
-  };
-
-private:
   std::shared_ptr<Preferences> fPreferences;
   Renderable::Size fFrameBufferSize;
 

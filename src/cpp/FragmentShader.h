@@ -26,6 +26,7 @@
 
 namespace pongasoft::gpu {
 using vec2f = ImVec2;
+using vec4f = ImVec4;
 using f32 = float;
 using i32 = int;
 }
@@ -39,10 +40,12 @@ class FragmentShader
 public:
   static constexpr char kHeader[] = R"(// Begin ShaderToy Header
 struct ShaderToyInputs {
-  size: vec2f,  // size of the viewport (in pixels)
-  time: f32,    // time in seconds (since start)
-  frame: i32,   // frame count (since start)
-  mouse: vec2f, // mouse position (in viewport coordinates [0 ... size.x, 0 ... size.y])
+  size:         vec2f, // size of the viewport (in pixels)
+  mouse:        vec2f, // mouse position (in viewport coordinates [0 ... size.x, 0 ... size.y])
+  customFloat1: vec4f, // custom float 1 ([0, 1] range)
+  customColor1: vec4f, // custom color 1 ([0, 1] range)
+  time:         f32,   // time in seconds (since start/reset)
+  frame:        i32,   // frame count (since start/reset)
 };
 
 @group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;
@@ -51,18 +54,22 @@ struct ShaderToyInputs {
 )";
 
   static constexpr char kHeaderTemplate[] = R"(struct ShaderToyInputs {
-  size: vec2f,  [%d, %d]
-  time: f32,    [%.2f]
-  frame: i32,   [%d]
-  mouse: vec2f, [%d, %d]
+  size: vec2f,         [%d, %d]
+  mouse: vec2f,        [%d, %d]
+  customFloat1: vec4f, [%.3f, %.3f, %.3f, %.3f]
+  customColor1: vec4f, [%.3f, %.3f, %.3f, %.3f]
+  time: f32,           [%.2f]
+  frame: i32,          [%d]
 };)";
 
   struct ShaderToyInputs
   {
     gpu::vec2f size{};
+    gpu::vec2f mouse{};
+    gpu::vec4f customFloat1{};
+    gpu::vec4f customColor1{0, 0, 0, 1.0f};
     gpu::f32 time{};
     gpu::i32 frame{};
-    gpu::vec2f mouse{};
   };
 
   struct State {
@@ -94,6 +101,10 @@ public:
       fStartTime = iCurrentTime - fInputs.time;
     fRunning = ! fRunning;
   }
+  constexpr bool isRunning() const { return fRunning; }
+
+  gpu::vec4f &getCustomFloat1() { return fInputs.customFloat1; };
+  gpu::vec4f &getCustomColor1() { return fInputs.customColor1; };
 
   friend class FragmentShaderWindow;
 
