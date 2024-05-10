@@ -205,7 +205,7 @@ void MainWindow::doRender()
       fCurrentFragmentShader->setStartTime(getCurrentTime());
     }
     ImGui::SameLine();
-    if(ImGui::Button("Pause/Resume"))
+    if(ImGui::Button(fCurrentFragmentShader->isRunning() ? "Pause" : "Play"))
     {
       fCurrentFragmentShader->toggleRunning(getCurrentTime());
     }
