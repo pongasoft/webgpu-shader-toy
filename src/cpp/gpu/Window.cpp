@@ -201,4 +201,12 @@ double Window::getCurrentTime()
   return glfwGetTime();
 }
 
+//------------------------------------------------------------------------
+// Window::requestFullscreen
+//------------------------------------------------------------------------
+void Window::requestFullscreen()
+{
+  emscripten_glfw_request_fullscreen(fWindow, GLFW_FALSE, GLFW_TRUE);
+}
+
 }

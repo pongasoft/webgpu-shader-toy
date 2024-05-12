@@ -66,6 +66,7 @@ public:
   void setAspectRatio(AspectRatio const &iAspectRatio);
   bool isHiDPIAware() const;
   void toggleHiDPIAwareness();
+  void requestFullscreen();
 
   static double getCurrentTime();
 

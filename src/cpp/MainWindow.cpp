@@ -200,21 +200,30 @@ void MainWindow::doRender()
       ImGui::EndTabBar();
     }
 
-    if(ImGui::Button("Reset Time"))
-    {
-      fCurrentFragmentShader->setStartTime(getCurrentTime());
-    }
-    ImGui::SameLine();
-    if(ImGui::Button(fCurrentFragmentShader->isRunning() ? "Pause" : "Play"))
-    {
-      fCurrentFragmentShader->toggleRunning(getCurrentTime());
-    }
-
-    ImGui::DragFloat4("customFloat1", &fCurrentFragmentShader->getCustomFloat1().x, 0.005, 0.0, 1.0);
-    ImGui::ColorEdit4("customColor1", &fCurrentFragmentShader->getCustomColor1().x);
-
     if(fCurrentFragmentShader)
     {
+      ImGui::SeparatorText("Controls");
+
+      if(ImGui::Button("Reset Time"))
+      {
+        fCurrentFragmentShader->setStartTime(getCurrentTime());
+      }
+      ImGui::SameLine();
+      if(ImGui::Button(fCurrentFragmentShader->isRunning() ? "Pause" : "Play"))
+      {
+        fCurrentFragmentShader->toggleRunning(getCurrentTime());
+      }
+      ImGui::SameLine();
+      if(ImGui::Button("Fullscreen"))
+      {
+        fFragmentShaderWindow->requestFullscreen();
+      }
+
+      ImGui::DragFloat4("customFloat1", &fCurrentFragmentShader->getCustomFloat1().x, 0.005, 0.0, 1.0);
+      ImGui::ColorEdit4("customColor1", &fCurrentFragmentShader->getCustomColor1().x);
+
+      ImGui::Separator();
+
       if(ImGui::BeginTabBar(fCurrentFragmentShader->getName().c_str()))
       {
         if(ImGui::BeginTabItem("Code"))
