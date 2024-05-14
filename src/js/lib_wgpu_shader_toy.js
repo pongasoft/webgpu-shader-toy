@@ -86,7 +86,13 @@ let wgpu_shader_toy = {
     message = message ? UTF8ToString(message): null;
     const error = new Error(message);
     console.log(error.stack);
-  }
+  },
+
+  // wgpu_shader_toy_copy_to_clipboard
+  wgpu_shader_toy_copy_to_clipboard: (content) => {
+    content = content ? UTF8ToString(content): '';
+    navigator.clipboard.writeText(content);
+  },
 }
 
 autoAddDeps(wgpu_shader_toy, '$WGPU_SHADER_TOY')

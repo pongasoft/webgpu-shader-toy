@@ -31,6 +31,7 @@ using OnNewFragmentShaderHandler = void (*)(MainWindow *iMainWindow, char const 
 void wgpu_shader_toy_install_new_fragment_shader_handler(OnNewFragmentShaderHandler iHandler, MainWindow *iMainWindow);
 void wgpu_shader_toy_uninstall_new_fragment_shader_handler();
 void wgpu_shader_toy_open_file_dialog();
+void wgpu_shader_toy_copy_to_clipboard(char const *iContent);
 }
 
 namespace callbacks {
@@ -229,6 +230,13 @@ void MainWindow::doRender()
         if(ImGui::BeginTabItem("Code"))
         {
           ImGui::Text("%s", fCurrentFragmentShader->getCode().c_str());
+          float spacing = ImGui::GetStyle().ItemSpacing.x;
+          float buttonWidth = ImGui::CalcTextSize("C").x;
+          ImGui::SameLine(ImGui::GetContentRegionAvail().x - buttonWidth - spacing);
+          if (ImGui::Button("C"))
+          {
+            wgpu_shader_toy_copy_to_clipboard(fCurrentFragmentShader->getCode().c_str());
+          }
           ImGui::EndTabItem();
         }
         if(ImGui::BeginTabItem("Inputs"))
