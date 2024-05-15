@@ -46,31 +46,8 @@ void OnNewFragmentShaderCallback(MainWindow *iMainWindow, char const *iFilename,
 
 }
 
-constexpr char kHelloWorldFragmentShaderCode[] = R"(@fragment
-fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-    return vec4f(pos.xy / inputs.size, 0, 1);
-}
-)";
-
-constexpr char kTutorialFragmentShaderCode[] = R"(
-fn isInCircle(center: vec2f, radius: f32, point: vec2f) -> bool {
-    let delta = point - center;
-    return (delta.x*delta.x + delta.y*delta.y) <= (radius*radius);
-}
-
-@fragment
-fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  let period = 5.0;
-  let half_period = period / 2.0;
-  let cycle_value = inputs.time % period;
-  let b = half_period - abs(cycle_value - half_period);
-  var color = vec4f(b / half_period, pos.xy / inputs.size, 1);
-  if(isInCircle(inputs.mouse, 50.0, pos.xy)) {
-    color.a = 0.8;
-  }
-  return color;
-}
-)";
+// Some shader examples
+extern std::vector<std::pair<std::string, std::string>> kFragmentShaderExamples;
 
 // kAspectRatios
 static std::vector<std::pair<std::string, Window::AspectRatio>> kAspectRatios{
@@ -107,7 +84,7 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
   io.FontGlobalScale = 1.0f / fontScale;
   wgpu_shader_toy_install_new_fragment_shader_handler(callbacks::OnNewFragmentShaderCallback, this);
-  onNewFragmentShader("Hello World", kHelloWorldFragmentShaderCode);
+  onNewFragmentShader(kFragmentShaderExamples[0].first.c_str(), kFragmentShaderExamples[0].second.c_str());
 }
 
 //------------------------------------------------------------------------
@@ -150,6 +127,17 @@ void MainWindow::doRender()
           }
         }
         ImGui::EndMenu();
+      }
+      ImGui::EndMenu();
+    }
+    if(ImGui::BeginMenu("Examples"))
+    {
+      for(auto &[name, code]: kFragmentShaderExamples)
+      {
+        if(ImGui::MenuItem(name.c_str()))
+        {
+          onNewFragmentShader(name.c_str(), code.c_str());
+        }
       }
       ImGui::EndMenu();
     }
@@ -388,7 +376,7 @@ void MainWindow::reset()
   fFragmentShaders.clear();
   fFragmentShaderTabs.clear();
   fCurrentFragmentShader = nullptr;
-  onNewFragmentShader("Hello World", kHelloWorldFragmentShaderCode);
+  onNewFragmentShader(kFragmentShaderExamples[0].first.c_str(), kFragmentShaderExamples[0].second.c_str());
 }
 
 }
