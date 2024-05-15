@@ -276,8 +276,7 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
   ASSERT(pipeline != nullptr, "Cannot create render pipeline");
 
   iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
-  if(fCurrentFragmentShader == iFragmentShader)
-    initCurrentFragmentShader();
+  initFragmentShader(iFragmentShader);
 }
 
 //------------------------------------------------------------------------
@@ -288,23 +287,18 @@ void FragmentShaderWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShad
   fCurrentFragmentShader = std::move(iFragmentShader);
   if(fCurrentFragmentShader->isNotCompiled())
     compile(fCurrentFragmentShader);
-  else
-  {
-    if(fCurrentFragmentShader->isCompiled())
-      initCurrentFragmentShader();
-  }
 }
 
+
 //------------------------------------------------------------------------
-// FragmentShaderWindow::initCurrentFragmentShader
+// FragmentShaderWindow::initFragmentShader
 //------------------------------------------------------------------------
-void FragmentShaderWindow::initCurrentFragmentShader()
+void FragmentShaderWindow::initFragmentShader(std::shared_ptr<FragmentShader> const &iFragmentShader) const
 {
-  if(fCurrentFragmentShader)
+  if(iFragmentShader)
   {
-    fCurrentFragmentShader->fStartTime = getCurrentTime();
-    fCurrentFragmentShader->fInputs.size = {static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height)};
-    fCurrentFragmentShader->fInputs.frame = 0;
+    iFragmentShader->fStartTime = getCurrentTime();
+    iFragmentShader->fInputs.frame = 0;
   }
 }
 
@@ -322,6 +316,7 @@ void FragmentShaderWindow::beforeFrame()
       fCurrentFragmentShader->fInputs.frame++;
       fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(getCurrentTime() - fCurrentFragmentShader->fStartTime);
     }
+    fCurrentFragmentShader->fInputs.size = {static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height)};
   }
 }
 

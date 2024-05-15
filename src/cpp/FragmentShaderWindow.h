@@ -67,7 +67,7 @@ public: // should be private (but used in callback...)
 
 private:
   void initGPU();
-  void initCurrentFragmentShader();
+  void initFragmentShader(std::shared_ptr<FragmentShader> const &iFragmentShader) const;
 
 private:
   std::shared_ptr<Preferences> fPreferences;
