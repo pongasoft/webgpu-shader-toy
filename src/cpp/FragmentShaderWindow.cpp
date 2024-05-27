@@ -61,6 +61,17 @@ void onCursorPosChange(GLFWwindow *window, double xpos, double ypos)
 }
 
 //------------------------------------------------------------------------
+// callbacks::onContentScaleChange
+//------------------------------------------------------------------------
+void onContentScaleChange(GLFWwindow *window, float xScale, float yScale)
+{
+  printf("onContentScaleChange %f%f\n", xScale, yScale);
+  auto w = reinterpret_cast<FragmentShaderWindow *>(glfwGetWindowUserPointer(window));
+  w->onContentScaleChange({xScale, yScale});
+
+}
+
+//------------------------------------------------------------------------
 // callbacks::onShaderCompilationResult
 // implementation note: API is using webgpu.h style, not wegpu_cpp.h
 //------------------------------------------------------------------------
@@ -91,6 +102,8 @@ FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Windo
   resize(fPreferences->loadSize(kPreferencesSizeKey, iWindowArgs.size));
   fFrameBufferSize = getFrameBufferSize();
   glfwSetCursorPosCallback(fWindow, callbacks::onCursorPosChange);
+  glfwGetWindowContentScale(fWindow, &fContentScale.x, &fContentScale.y);
+  glfwSetWindowContentScaleCallback(fWindow, callbacks::onContentScaleChange);
   initGPU();
 }
 
@@ -309,14 +322,35 @@ void FragmentShaderWindow::beforeFrame()
 {
   Window::beforeFrame();
 
+  if(glfwGetMouseButton(fWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+  {
+    if(fMouseClick.x == -1)
+    {
+      double x,y;
+      glfwGetCursorPos(fWindow, &x, &y);
+      fMouseClick = adjustSize({static_cast<float>(x), static_cast<float>(y)});
+    }
+  }
+  else
+    fMouseClick = {-1, -1};
+
+
   if(fCurrentFragmentShader && fCurrentFragmentShader->isCompiled())
   {
+    // TODO HIGH YP: fix content scale callback not working when dynamically switching
+    glfwGetWindowContentScale(fWindow, &fContentScale.x, &fContentScale.y);
+
     if(fCurrentFragmentShader->fRunning)
     {
       fCurrentFragmentShader->fInputs.frame++;
       fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(getCurrentTime() - fCurrentFragmentShader->fStartTime);
     }
-    fCurrentFragmentShader->fInputs.size = {static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height)};
+    fCurrentFragmentShader->fInputs.size = {
+      static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height),
+      fContentScale.x, fContentScale.y
+      };
+    fCurrentFragmentShader->fInputs.mouse.z = fMouseClick.x;
+    fCurrentFragmentShader->fInputs.mouse.w = fMouseClick.y;
   }
 }
 
@@ -345,7 +379,10 @@ void FragmentShaderWindow::doHandleFrameBufferSizeChange(Renderable::Size const 
   Window::doHandleFrameBufferSizeChange(iSize);
   fFrameBufferSize = iSize;
   if(fCurrentFragmentShader)
-    fCurrentFragmentShader->fInputs.size = {static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height)};
+  {
+    fCurrentFragmentShader->fInputs.size.x = static_cast<float>(fFrameBufferSize.width);
+    fCurrentFragmentShader->fInputs.size.y = static_cast<float>(fFrameBufferSize.height);
+  }
   int w, h;
   glfwGetWindowSize(fWindow, &w, &h);
   fPreferences->storeSize(kPreferencesSizeKey, {w, h});
@@ -356,10 +393,12 @@ void FragmentShaderWindow::doHandleFrameBufferSizeChange(Renderable::Size const 
 //------------------------------------------------------------------------
 void FragmentShaderWindow::onMousePosChange(double xpos, double ypos)
 {
-  float xScale, yScale;
-  glfwGetWindowContentScale(fWindow, &xScale, &yScale);
   if(fCurrentFragmentShader)
-    fCurrentFragmentShader->fInputs.mouse = {static_cast<float>(xpos * xScale), static_cast<float>(ypos * yScale)};
+  {
+    auto pos = adjustSize({static_cast<float>(xpos), static_cast<float>(ypos)});
+    fCurrentFragmentShader->fInputs.mouse.x = pos.x;
+    fCurrentFragmentShader->fInputs.mouse.y = pos.y;
+  }
 }
 
 

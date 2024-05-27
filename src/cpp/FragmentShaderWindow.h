@@ -60,6 +60,7 @@ protected:
 public: // should be private (but used in callback...)
   void doHandleFrameBufferSizeChange(Size const &iSize) override;
   void onMousePosChange(double xpos, double ypos);
+  inline void onContentScaleChange(ImVec2 const &iScale) { fContentScale = iScale; }
   void onShaderCompilationResult(std::shared_ptr<FragmentShader> const &iFragmentShader,
                                  wgpu::ShaderModule iShaderModule,
                                  wgpu::CompilationInfoRequestStatus iStatus,
@@ -68,6 +69,7 @@ public: // should be private (but used in callback...)
 private:
   void initGPU();
   void initFragmentShader(std::shared_ptr<FragmentShader> const &iFragmentShader) const;
+  inline ImVec2 adjustSize(ImVec2 const &iPos) const { return {iPos.x * fContentScale.x, iPos.y * fContentScale.y}; }
 
 private:
   std::shared_ptr<Preferences> fPreferences;
@@ -80,6 +82,9 @@ private:
   wgpu::ShaderModule fVertexShaderModule{};
 
   std::shared_ptr<FragmentShader> fCurrentFragmentShader{};
+
+  ImVec2 fContentScale{1.0, 1.0};
+  ImVec2 fMouseClick{-1, -1};
 };
 
 }

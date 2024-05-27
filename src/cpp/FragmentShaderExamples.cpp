@@ -26,7 +26,7 @@ std::vector<std::pair<std::string, std::string>> kFragmentShaderExamples{
   // Hello World
   {"Hello World", R"(@fragment
 fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-    return vec4f(pos.xy / inputs.size, 0, 1);
+    return vec4f(pos.xy / inputs.size.xy, 0, 1);
 }
 )"},
 
@@ -37,8 +37,8 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   let half_period = period / 2.0;
   let cycle_value = inputs.time % period;
   let b = half_period - abs(cycle_value - half_period);
-  var color = vec4f(b / half_period, pos.xy / inputs.size, 1);
-  if(length(pos.xy - inputs.mouse) <= 50.0) {
+  var color = vec4f(b / half_period, pos.xy / inputs.size.xy, 1);
+  if(inputs.mouse.z > -1 && length(pos.xy - inputs.mouse.xy) <= 25.0 * inputs.size.z) {
     color.a = 0.8;
   }
   return color;
@@ -56,7 +56,7 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 
 @fragment
 fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  var uv = (pos.xy * 2.0 - inputs.size) / inputs.size.y;
+  var uv = (pos.xy * 2.0 - inputs.size.xy) / inputs.size.y;
   let uv0 = uv;
   var finalColor = vec3f(0.0);
 

@@ -231,8 +231,8 @@ void MainWindow::doRender()
         {
           auto &inputs = fCurrentFragmentShader->getInputs();
           ImGui::Text(FragmentShader::kHeaderTemplate,
-                      static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), // size: vec2f
-                      static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y), // mouse: vec2f
+                      static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), static_cast<int>(inputs.size.z), static_cast<int>(inputs.size.w), // size: vec4f
+                      static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y), static_cast<int>(inputs.mouse.z), static_cast<int>(inputs.mouse.w), // mouse: vec4f
                       inputs.customFloat1.x, inputs.customFloat1.y, inputs.customFloat1.z, inputs.customFloat1.w, // customFloat1: vec4f
                       inputs.customColor1.x, inputs.customColor1.y, inputs.customColor1.z, inputs.customColor1.w, // customColor1: vec4f
                       inputs.time, // time: f32

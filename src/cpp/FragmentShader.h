@@ -40,8 +40,8 @@ class FragmentShader
 public:
   static constexpr char kHeader[] = R"(// Begin ShaderToy Header
 struct ShaderToyInputs {
-  size:         vec2f, // size of the viewport (in pixels)
-  mouse:        vec2f, // mouse position (in viewport coordinates [0 ... size.x, 0 ... size.y])
+  size:         vec4f, // size of the viewport (in pixels); zw scale
+  mouse:        vec4f, // mouse position (in viewport coordinates [0 ... size.x, 0 ... size.y])
   customFloat1: vec4f, // custom float 1 ([0, 1] range)
   customColor1: vec4f, // custom color 1 ([0, 1] range)
   time:         f32,   // time in seconds (since start/reset)
@@ -54,8 +54,8 @@ struct ShaderToyInputs {
 )";
 
   static constexpr char kHeaderTemplate[] = R"(struct ShaderToyInputs {
-  size:         vec2f, [%d, %d]
-  mouse:        vec2f, [%d, %d]
+  size:         vec4f, [%d, %d, %d, %d]
+  mouse:        vec4f, [%d, %d, %d, %d]
   customFloat1: vec4f, [%.3f, %.3f, %.3f, %.3f]
   customColor1: vec4f, [%.3f, %.3f, %.3f, %.3f]
   time:         f32,   [%.2f]
@@ -64,8 +64,8 @@ struct ShaderToyInputs {
 
   struct ShaderToyInputs
   {
-    gpu::vec2f size{};
-    gpu::vec2f mouse{};
+    gpu::vec4f size{};
+    gpu::vec4f mouse{};
     gpu::vec4f customFloat1{};
     gpu::vec4f customColor1{0, 0, 0, 1.0f};
     gpu::f32 time{};
