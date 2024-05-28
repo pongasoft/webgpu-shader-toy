@@ -31,7 +31,6 @@ using OnNewFragmentShaderHandler = void (*)(MainWindow *iMainWindow, char const 
 void wgpu_shader_toy_install_new_fragment_shader_handler(OnNewFragmentShaderHandler iHandler, MainWindow *iMainWindow);
 void wgpu_shader_toy_uninstall_new_fragment_shader_handler();
 void wgpu_shader_toy_open_file_dialog();
-void wgpu_shader_toy_copy_to_clipboard(char const *iContent);
 }
 
 namespace callbacks {
@@ -223,7 +222,7 @@ void MainWindow::doRender()
           ImGui::SameLine(ImGui::GetContentRegionAvail().x - buttonWidth - spacing);
           if (ImGui::Button("C"))
           {
-            wgpu_shader_toy_copy_to_clipboard(fCurrentFragmentShader->getCode().c_str());
+            glfwSetClipboardString(fWindow, fCurrentFragmentShader->getCode().c_str());
           }
           ImGui::EndTabItem();
         }
