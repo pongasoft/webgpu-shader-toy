@@ -94,17 +94,57 @@ MainWindow::~MainWindow()
   wgpu_shader_toy_uninstall_new_fragment_shader_handler();
 }
 
+enum class Style
+{
+  kDark,
+  kLight,
+  kClassic
+};
+
 //------------------------------------------------------------------------
 // MainWindow::doRender
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
+  static Style kStyle{Style::kDark};
+
   if(ImGui::BeginMainMenuBar())
   {
     if(ImGui::BeginMenu("WebGPU Shader Toy"))
     {
       if(ImGui::MenuItem("Reset"))
         fResetRequest = true;
+      if(ImGui::BeginMenu("Style"))
+      {
+        std::optional<Style> newStyle{};
+        if(ImGui::MenuItem("Dark", nullptr, kStyle == Style::kDark))
+          newStyle = Style::kDark;
+        if(ImGui::MenuItem("Light", nullptr, kStyle == Style::kLight))
+          newStyle = Style::kLight;
+        if(ImGui::MenuItem("Classic", nullptr, kStyle == Style::kClassic))
+          newStyle = Style::kClassic;
+        if(newStyle)
+        {
+          kStyle = *newStyle;
+          auto style = ImGui::GetStyle();
+          switch(kStyle)
+          {
+            case Style::kLight:
+              ImGui::StyleColorsLight(&style);
+              break;
+
+            case Style::kClassic:
+              ImGui::StyleColorsClassic(&style);
+              break;
+
+            default:
+              ImGui::StyleColorsDark(&style);
+              break;
+          }
+          ImGui::GetStyle() = style;
+        }
+        ImGui::EndMenu();
+      }
       if(ImGui::MenuItem("Quit"))
         stop();
       ImGui::EndMenu();
@@ -210,7 +250,7 @@ void MainWindow::doRender()
       ImGui::DragFloat4("customFloat1", &fCurrentFragmentShader->getCustomFloat1().x, 0.005, 0.0, 1.0);
       ImGui::ColorEdit4("customColor1", &fCurrentFragmentShader->getCustomColor1().x);
 
-      ImGui::Separator();
+      ImGui::SeparatorText("Shader");
 
       if(ImGui::BeginTabBar(fCurrentFragmentShader->getName().c_str()))
       {

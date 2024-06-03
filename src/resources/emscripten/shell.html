@@ -50,8 +50,8 @@
     }
 
     #canvas1 {
-      width: 520px;
-      height: 600px;
+      width: calc(50vw - 20px);
+      height: calc(min(50vw - 20px, 80vh));
     }
 
     #canvas1-container {
@@ -59,8 +59,8 @@
     }
 
     #canvas2 {
-      width: 380px;
-      height: 380px;
+      width: calc(50vw - 20px);
+      height: calc(min(50vw - 20px, 80vh));
     }
 
     #canvases #drop-zone {
@@ -94,7 +94,6 @@
   </style>
 </head>
 <body>
-<h4>Welcome to WebGPU Shader Toy</h4>
 <div id="canvases">
   <div id="canvas1-container" class="canvas-container">
     <div id="canvas1-handle" class="canvas-handle"></div>
