@@ -45,15 +45,6 @@ struct State
   std::string fAspectRatio{"Free"};
   std::vector<Shader> fShaders{};
   std::optional<std::string> fCurrentShader{};
-  std::optional<Shader> findCurrentShader() const {
-    if(fCurrentShader)
-    {
-      auto iter = std::find_if(fShaders.begin(), fShaders.end(), [name = *fCurrentShader](auto const &shader) { return shader.fName == name; });
-      if(iter != fShaders.end())
-        return *iter;
-    }
-    return std::nullopt;
-  }
 };
 
 }

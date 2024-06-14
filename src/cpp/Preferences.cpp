@@ -59,6 +59,7 @@ State Preferences::loadState(std::string_view iKey, State const &iDefaultState)
     auto shaders = data.value("fShaders", json::array_t{});
     if(!shaders.empty())
     {
+      state.fShaders.clear();
       for(auto &shader: shaders)
       {
         if(shader.is_object())
@@ -82,6 +83,14 @@ State Preferences::loadState(std::string_view iKey, State const &iDefaultState)
 // Preferences::storeState
 //------------------------------------------------------------------------
 void Preferences::storeState(std::string_view iKey, State const &iState)
+{
+  fStorage->setItem(iKey, serialize(iState));
+}
+
+//------------------------------------------------------------------------
+// Preferences::serialize
+//------------------------------------------------------------------------
+std::string Preferences::serialize(State const &iState)
 {
   auto shaders = json::array();
 
@@ -108,9 +117,7 @@ void Preferences::storeState(std::string_view iKey, State const &iState)
   if(iState.fCurrentShader)
     data["fCurrentShader"] = *iState.fCurrentShader;
 
-  printf("State is %s\n", data.dump().c_str());
-
-  fStorage->setItem(iKey, data.dump());
+  return data.dump();
 }
 
 }

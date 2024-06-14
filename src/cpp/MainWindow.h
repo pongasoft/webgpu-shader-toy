@@ -52,7 +52,10 @@ public:
   void beforeFrame() override;
   void render() override;
 
+  void afterFrame() override;
+
   void onNewFragmentShader(Shader const &iShader);
+  void saveState();
 
 protected:
   void doRender() override;
@@ -67,7 +70,8 @@ private:
 private:
   std::shared_ptr<Preferences> fPreferences;
   State fDefaultState;
-  State fLastComputedState;
+  std::string fLastComputedState;
+  double fLastComputedStateTime;
   bool fDarkStyle{true};
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;

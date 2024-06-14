@@ -28,8 +28,9 @@ namespace shader_toy {
 
 extern "C" {
 using OnNewFragmentShaderHandler = void (*)(MainWindow *iMainWindow, char const *iFilename, char const *iContent);
-void wgpu_shader_toy_install_new_fragment_shader_handler(OnNewFragmentShaderHandler iHandler, MainWindow *iMainWindow);
-void wgpu_shader_toy_uninstall_new_fragment_shader_handler();
+using OnBeforeUnloadHandler = void (*)(MainWindow *iMainWindow);
+void wgpu_shader_toy_install_handlers(OnNewFragmentShaderHandler iOnNewFragmentShaderHandler, OnBeforeUnloadHandler iOnBeforeUnloadHandler, MainWindow *iMainWindow);
+void wgpu_shader_toy_uninstall_handlers();
 void wgpu_shader_toy_open_file_dialog();
 }
 
@@ -41,6 +42,14 @@ namespace callbacks {
 void OnNewFragmentShaderCallback(MainWindow *iMainWindow, char const *iFilename, char const *iContent)
 {
   iMainWindow->onNewFragmentShader({iFilename, iContent});
+}
+
+//------------------------------------------------------------------------
+// callbacks::OnBeforeUnload
+//------------------------------------------------------------------------
+void OnBeforeUnload(MainWindow *iMainWindow)
+{
+  iMainWindow->saveState();
 }
 
 }
@@ -65,7 +74,8 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   ImGuiWindow(std::move(iGPU), iWindowArgs),
   fPreferences{iMainWindowArgs.preferences},
   fDefaultState{iMainWindowArgs.defaultState},
-  fLastComputedState{iMainWindowArgs.state},
+  fLastComputedState{Preferences::serialize(iMainWindowArgs.state)},
+  fLastComputedStateTime{glfwGetTime()},
   fFragmentShaderWindow{std::make_unique<FragmentShaderWindow>(fGPU,
                                                                iMainWindowArgs.fragmentShaderWindow)}
 {
@@ -79,7 +89,7 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
   io.FontGlobalScale = 1.0f / fontScale;
-  wgpu_shader_toy_install_new_fragment_shader_handler(callbacks::OnNewFragmentShaderCallback, this);
+  wgpu_shader_toy_install_handlers(callbacks::OnNewFragmentShaderCallback, callbacks::OnBeforeUnload, this);
 }
 
 //------------------------------------------------------------------------
@@ -87,7 +97,7 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
 //------------------------------------------------------------------------
 MainWindow::~MainWindow()
 {
-  wgpu_shader_toy_uninstall_new_fragment_shader_handler();
+  wgpu_shader_toy_uninstall_handlers();
 }
 
 //------------------------------------------------------------------------
@@ -113,7 +123,7 @@ void MainWindow::doRender()
         ImGui::EndMenu();
       }
       if(ImGui::MenuItem("Save"))
-        fPreferences->storeState(Preferences::kStateKey, computeState());
+        saveState();
       if(ImGui::MenuItem("Quit"))
         stop();
       ImGui::EndMenu();
@@ -336,6 +346,29 @@ void MainWindow::beforeFrame()
 }
 
 //------------------------------------------------------------------------
+// MainWindow::afterFrame
+//------------------------------------------------------------------------
+void MainWindow::afterFrame()
+{
+  Renderable::afterFrame();
+  auto time = glfwGetTime();
+  // check every 10s
+  if(fLastComputedStateTime + 10.0 < time)
+  {
+    printf("Checking... [%f], [%f]\n", fLastComputedStateTime, time);
+    auto state = computeState();
+    auto serializedState = Preferences::serialize(state);
+    if(serializedState != fLastComputedState)
+    {
+      printf("Different... \n[%s] \n!=\n [%s]\n", fLastComputedState.c_str(), serializedState.c_str());
+      fLastComputedState = serializedState;
+      fPreferences->storeState(Preferences::kStateKey, state);
+    }
+    fLastComputedStateTime = time;
+  }
+}
+
+//------------------------------------------------------------------------
 // MainWindow::render
 //------------------------------------------------------------------------
 void MainWindow::render()
@@ -350,6 +383,14 @@ void MainWindow::render()
 void MainWindow::reset()
 {
   initFromState(fDefaultState);
+}
+
+//------------------------------------------------------------------------
+// MainWindow::saveState
+//------------------------------------------------------------------------
+void MainWindow::saveState()
+{
+  fPreferences->storeState(Preferences::kStateKey, computeState());
 }
 
 //------------------------------------------------------------------------

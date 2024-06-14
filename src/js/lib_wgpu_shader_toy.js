@@ -57,18 +57,28 @@ let wgpu_shader_toy = {
     }
   },
 
-  // wgpu_shader_toy_install_new_fragment_shader_handler
-  wgpu_shader_toy_install_new_fragment_shader_handler: (handler, user_data) => {
+  // wgpu_shader_toy_install_handlers
+  wgpu_shader_toy_install_handlers: (new_fragment_shader_handler, before_unload_handler, user_data) => {
     WGPU_SHADER_TOY.fNewFragmentShaderHandler = {
-      handler: handler,
+      handler: new_fragment_shader_handler,
       userData: user_data
-    }
+    };
+    WGPU_SHADER_TOY.fBeforeUnloadHandler = {
+      handler: before_unload_handler,
+      userData: user_data
+    };
+    window.addEventListener('beforeunload', function (event) {
+      if(WGPU_SHADER_TOY.fBeforeUnloadHandler) {
+        {{{ makeDynCall('vp', 'WGPU_SHADER_TOY.fBeforeUnloadHandler.handler') }}}(WGPU_SHADER_TOY.fBeforeUnloadHandler.userData);
+      }
+    });
     WGPU_SHADER_TOY.createFragmentShaderFileDialog();
   },
 
-  // wgpu_shader_toy_uninstall_new_fragment_shader_handler
-  wgpu_shader_toy_uninstall_new_fragment_shader_handler: () => {
+  // wgpu_shader_toy_uninstall_handlers
+  wgpu_shader_toy_uninstall_handlers: () => {
     delete WGPU_SHADER_TOY.fFragmentShaderFileDialog;
+    delete WGPU_SHADER_TOY.fBeforeUnloadHandler;
     delete WGPU_SHADER_TOY.fNewFragmentShaderHandler;
   },
 

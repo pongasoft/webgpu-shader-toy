@@ -37,6 +37,8 @@ public:
   State loadState(std::string_view iKey, State const &iDefaultState);
   void storeState(std::string_view iKey, State const &iState);
 
+  static std::string serialize(State const &iState);
+
 private:
   std::unique_ptr<utils::Storage> fStorage;
 };
