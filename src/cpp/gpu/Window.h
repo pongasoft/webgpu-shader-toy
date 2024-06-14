@@ -63,6 +63,7 @@ public:
 
   void resize(Size const &iSize);
   Size getFrameBufferSize() const;
+  Size getSize() const;
   void setAspectRatio(AspectRatio const &iAspectRatio);
   bool isHiDPIAware() const;
   void toggleHiDPIAwareness();

@@ -39,6 +39,8 @@ public:
   struct Args
   {
     Window::Args fragmentShaderWindow;
+    State defaultState;
+    State state;
     std::shared_ptr<Preferences> preferences;
   };
 
@@ -50,8 +52,7 @@ public:
   void beforeFrame() override;
   void render() override;
 
-  void doHandleFrameBufferSizeChange(Size const &iSize) override;
-  void onNewFragmentShader(char const *iFilename, char const *iContent);
+  void onNewFragmentShader(Shader const &iShader);
 
 protected:
   void doRender() override;
@@ -59,13 +60,17 @@ protected:
 private:
   void deleteFragmentShader(std::string const &iName);
   void reset();
+  void initFromState(State const &iState);
+  void setStyle(bool iDarkStyle);
+  State computeState() const;
 
 private:
-  Renderable::Size fDefaultSize;
   std::shared_ptr<Preferences> fPreferences;
+  State fDefaultState;
+  State fLastComputedState;
+  bool fDarkStyle{true};
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
-  Renderable::Size fDefaultFragmentShaderWindowSize;
 
   std::string fCurrentAspectRatio{"Free"};
 

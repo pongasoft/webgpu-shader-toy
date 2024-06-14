@@ -16,13 +16,13 @@
  * @author Yan Pujante
  */
 
-#include <string>
-#include <utility>
 #include <vector>
+#include "State.h"
+
 
 namespace shader_toy {
 
-std::vector<std::pair<std::string, std::string>> kFragmentShaderExamples{
+std::vector<Shader> kFragmentShaderExamples{
   // Hello World
   {"Hello World", R"(@fragment
 fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {

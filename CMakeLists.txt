@@ -25,6 +25,7 @@ set(wgpu_shader_toy_sources
     src/cpp/MainWindow.cpp
     src/cpp/Preferences.h
     src/cpp/Preferences.cpp
+    src/cpp/State.h
     src/cpp/fmt.h
 
     src/cpp/main.cpp

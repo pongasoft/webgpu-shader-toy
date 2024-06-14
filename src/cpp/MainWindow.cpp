@@ -40,13 +40,13 @@ namespace callbacks {
 //------------------------------------------------------------------------
 void OnNewFragmentShaderCallback(MainWindow *iMainWindow, char const *iFilename, char const *iContent)
 {
-  iMainWindow->onNewFragmentShader(iFilename, iContent);
+  iMainWindow->onNewFragmentShader({iFilename, iContent});
 }
 
 }
 
 // Some shader examples
-extern std::vector<std::pair<std::string, std::string>> kFragmentShaderExamples;
+extern std::vector<Shader> kFragmentShaderExamples;
 
 // kAspectRatios
 static std::vector<std::pair<std::string, Window::AspectRatio>> kAspectRatios{
@@ -63,16 +63,13 @@ static std::vector<std::pair<std::string, Window::AspectRatio>> kAspectRatios{
 //------------------------------------------------------------------------
 MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs) :
   ImGuiWindow(std::move(iGPU), iWindowArgs),
-  fDefaultSize{iWindowArgs.size},
   fPreferences{iMainWindowArgs.preferences},
+  fDefaultState{iMainWindowArgs.defaultState},
+  fLastComputedState{iMainWindowArgs.state},
   fFragmentShaderWindow{std::make_unique<FragmentShaderWindow>(fGPU,
-                                                               iMainWindowArgs.fragmentShaderWindow,
-                                                               FragmentShaderWindow::Args{
-                                                                 .preferences = fPreferences})},
-  fDefaultFragmentShaderWindowSize{iMainWindowArgs.fragmentShaderWindow.size}
+                                                               iMainWindowArgs.fragmentShaderWindow)}
 {
-  // adjust size according to preferences
-  resize(fPreferences->loadSize(kPreferencesSizeKey, iWindowArgs.size));
+  initFromState(iMainWindowArgs.state);
 
   auto &io = ImGui::GetIO();
   io.Fonts->Clear();
@@ -83,7 +80,6 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
   io.FontGlobalScale = 1.0f / fontScale;
   wgpu_shader_toy_install_new_fragment_shader_handler(callbacks::OnNewFragmentShaderCallback, this);
-  onNewFragmentShader(kFragmentShaderExamples[0].first.c_str(), kFragmentShaderExamples[0].second.c_str());
 }
 
 //------------------------------------------------------------------------
@@ -94,20 +90,11 @@ MainWindow::~MainWindow()
   wgpu_shader_toy_uninstall_new_fragment_shader_handler();
 }
 
-enum class Style
-{
-  kDark,
-  kLight,
-  kClassic
-};
-
 //------------------------------------------------------------------------
 // MainWindow::doRender
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
-  static Style kStyle{Style::kDark};
-
   if(ImGui::BeginMainMenuBar())
   {
     if(ImGui::BeginMenu("WebGPU Shader Toy"))
@@ -116,35 +103,17 @@ void MainWindow::doRender()
         fResetRequest = true;
       if(ImGui::BeginMenu("Style"))
       {
-        std::optional<Style> newStyle{};
-        if(ImGui::MenuItem("Dark", nullptr, kStyle == Style::kDark))
-          newStyle = Style::kDark;
-        if(ImGui::MenuItem("Light", nullptr, kStyle == Style::kLight))
-          newStyle = Style::kLight;
-        if(ImGui::MenuItem("Classic", nullptr, kStyle == Style::kClassic))
-          newStyle = Style::kClassic;
-        if(newStyle)
-        {
-          kStyle = *newStyle;
-          auto style = ImGui::GetStyle();
-          switch(kStyle)
-          {
-            case Style::kLight:
-              ImGui::StyleColorsLight(&style);
-              break;
-
-            case Style::kClassic:
-              ImGui::StyleColorsClassic(&style);
-              break;
-
-            default:
-              ImGui::StyleColorsDark(&style);
-              break;
-          }
-          ImGui::GetStyle() = style;
-        }
+        std::optional<bool> newDarkStyle{};
+        if(ImGui::MenuItem("Dark", nullptr, fDarkStyle))
+          newDarkStyle = true;
+        if(ImGui::MenuItem("Light", nullptr, !fDarkStyle))
+          newDarkStyle = false;
+        if(newDarkStyle)
+          setStyle(*newDarkStyle);
         ImGui::EndMenu();
       }
+      if(ImGui::MenuItem("Save"))
+        fPreferences->storeState(Preferences::kStateKey, computeState());
       if(ImGui::MenuItem("Quit"))
         stop();
       ImGui::EndMenu();
@@ -171,11 +140,11 @@ void MainWindow::doRender()
     }
     if(ImGui::BeginMenu("Examples"))
     {
-      for(auto &[name, code]: kFragmentShaderExamples)
+      for(auto &shader: kFragmentShaderExamples)
       {
-        if(ImGui::MenuItem(name.c_str()))
+        if(ImGui::MenuItem(shader.fName.c_str()))
         {
-          onNewFragmentShader(name.c_str(), code.c_str());
+          onNewFragmentShader(shader);
         }
       }
       ImGui::EndMenu();
@@ -247,9 +216,6 @@ void MainWindow::doRender()
         fFragmentShaderWindow->requestFullscreen();
       }
 
-      ImGui::DragFloat4("customFloat1", &fCurrentFragmentShader->getCustomFloat1().x, 0.005, 0.0, 1.0);
-      ImGui::ColorEdit4("customColor1", &fCurrentFragmentShader->getCustomColor1().x);
-
       ImGui::SeparatorText("Shader");
 
       if(ImGui::BeginTabBar(fCurrentFragmentShader->getName().c_str()))
@@ -272,25 +238,9 @@ void MainWindow::doRender()
           ImGui::Text(FragmentShader::kHeaderTemplate,
                       static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), static_cast<int>(inputs.size.z), static_cast<int>(inputs.size.w), // size: vec4f
                       static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y), static_cast<int>(inputs.mouse.z), static_cast<int>(inputs.mouse.w), // mouse: vec4f
-                      inputs.customFloat1.x, inputs.customFloat1.y, inputs.customFloat1.z, inputs.customFloat1.w, // customFloat1: vec4f
-                      inputs.customColor1.x, inputs.customColor1.y, inputs.customColor1.z, inputs.customColor1.w, // customColor1: vec4f
                       inputs.time, // time: f32
                       inputs.frame // frame: i32
           );
-          ImGui::SeparatorText("customFloat1");
-          ImGui::PushID("customFloat1");
-          ImGui::SliderFloat("x", &fCurrentFragmentShader->getCustomFloat1().x, 0.0, 1.0, "%.4f");
-          ImGui::SliderFloat("y", &fCurrentFragmentShader->getCustomFloat1().y, 0.0, 1.0, "%.4f");
-          ImGui::SliderFloat("z", &fCurrentFragmentShader->getCustomFloat1().z, 0.0, 1.0, "%.4f");
-          ImGui::SliderFloat("w", &fCurrentFragmentShader->getCustomFloat1().w, 0.0, 1.0, "%.4f");
-          ImGui::PopID();
-          ImGui::SeparatorText("customColor1");
-          ImGui::PushID("customColor1");
-          ImGui::SliderFloat("r", &fCurrentFragmentShader->getCustomColor1().x, 0.0, 1.0, "%.4f");
-          ImGui::SliderFloat("g", &fCurrentFragmentShader->getCustomColor1().y, 0.0, 1.0, "%.4f");
-          ImGui::SliderFloat("b", &fCurrentFragmentShader->getCustomColor1().z, 0.0, 1.0, "%.4f");
-          ImGui::SliderFloat("a", &fCurrentFragmentShader->getCustomColor1().w, 0.0, 1.0, "%.4f");
-          ImGui::PopID();
           ImGui::EndTabItem();
         }
         if(fCurrentFragmentShader->hasCompilationError())
@@ -330,22 +280,11 @@ void MainWindow::doRender()
 }
 
 //------------------------------------------------------------------------
-// MainWindow::doHandleFrameBufferSizeChange
-//------------------------------------------------------------------------
-void MainWindow::doHandleFrameBufferSizeChange(Renderable::Size const &iSize)
-{
-  ImGuiWindow::doHandleFrameBufferSizeChange(iSize);
-  int w, h;
-  glfwGetWindowSize(fWindow, &w, &h);
-  fPreferences->storeSize(kPreferencesSizeKey, {w, h});
-}
-
-//------------------------------------------------------------------------
 // MainWindow::onNewFragmentShader
 //------------------------------------------------------------------------
-void MainWindow::onNewFragmentShader(char const *iFilename, char const *iContent)
+void MainWindow::onNewFragmentShader(Shader const &iShader)
 {
-  fCurrentFragmentShader = std::make_shared<FragmentShader>(iFilename, iContent);
+  fCurrentFragmentShader = std::make_shared<FragmentShader>(iShader);
   fFragmentShaders[fCurrentFragmentShader->getName()] = fCurrentFragmentShader;
   if(std::ranges::find(fFragmentShaderTabs, fCurrentFragmentShader->getName()) == fFragmentShaderTabs.end())
   {
@@ -410,12 +349,87 @@ void MainWindow::render()
 //------------------------------------------------------------------------
 void MainWindow::reset()
 {
-  resize(fDefaultSize);
-  fFragmentShaderWindow->resize(fDefaultFragmentShaderWindowSize);
+  initFromState(fDefaultState);
+}
+
+//------------------------------------------------------------------------
+// MainWindow::computeState
+//------------------------------------------------------------------------
+State MainWindow::computeState() const
+{
+  State state{
+    .fMainWindowSize = getSize(),
+    .fFragmentShaderWindowSize = fFragmentShaderWindow->getSize(),
+    .fDarkStyle = fDarkStyle,
+    .fHiDPIAware = fFragmentShaderWindow->isHiDPIAware(),
+    .fAspectRatio = fCurrentAspectRatio,
+    .fCurrentShader = fCurrentFragmentShader ? std::optional<std::string>(fCurrentFragmentShader->getName()) : std::nullopt
+  };
+
+  for(auto &shaderName: fFragmentShaderTabs)
+  {
+    state.fShaders.emplace_back(Shader{.fName = shaderName, .fCode = fFragmentShaders.at(shaderName)->getCode()});
+  }
+
+  return state;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::initFromState
+//------------------------------------------------------------------------
+void MainWindow::initFromState(State const &iState)
+{
+  setStyle(iState.fDarkStyle);
+  resize(iState.fMainWindowSize);
+  if(fFragmentShaderWindow->isHiDPIAware() != iState.fHiDPIAware)
+    fFragmentShaderWindow->toggleHiDPIAwareness();
+  if(fCurrentAspectRatio != iState.fAspectRatio)
+  {
+    auto iter = std::find_if(kAspectRatios.begin(), kAspectRatios.end(),
+                             [ar = iState.fAspectRatio](auto const &p) { return p.first == ar; });
+    if(iter != kAspectRatios.end())
+    {
+      fCurrentAspectRatio = iState.fAspectRatio;
+      fAspectRatioRequest = iter->second;
+    }
+  }
+  fFragmentShaderWindow->resize(iState.fFragmentShaderWindowSize);
   fFragmentShaders.clear();
   fFragmentShaderTabs.clear();
   fCurrentFragmentShader = nullptr;
-  onNewFragmentShader(kFragmentShaderExamples[0].first.c_str(), kFragmentShaderExamples[0].second.c_str());
+
+  for(auto &shader: iState.fShaders)
+  {
+    auto fragmentShader = std::make_shared<FragmentShader>(shader);
+    if(!fFragmentShaders.contains(shader.fName))
+    {
+      fFragmentShaders[shader.fName] = fragmentShader;
+      fFragmentShaderTabs.emplace_back(shader.fName);
+      if(iState.fCurrentShader && iState.fCurrentShader.value() == shader.fName)
+      {
+        printf("Detected current fragment shader: %s\n", shader.fName.c_str());
+        fCurrentFragmentShader = fragmentShader;
+        fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+        fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();
+        fCurrentFragmentShaderErrorRequest = true;
+      }
+    }
+  }
 }
+
+//------------------------------------------------------------------------
+// MainWindow::setStyle
+//------------------------------------------------------------------------
+void MainWindow::setStyle(bool iDarkStyle)
+{
+  fDarkStyle = iDarkStyle;
+  auto style = ImGui::GetStyle();
+  if(fDarkStyle)
+    ImGui::StyleColorsDark(&style);
+  else
+    ImGui::StyleColorsLight(&style);
+  ImGui::GetStyle() = style;
+}
+
 
 }

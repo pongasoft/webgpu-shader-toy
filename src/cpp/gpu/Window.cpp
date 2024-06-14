@@ -88,6 +88,16 @@ Renderable::Size Window::getFrameBufferSize() const
 }
 
 //------------------------------------------------------------------------
+// Window::getSize
+//------------------------------------------------------------------------
+Renderable::Size Window::getSize() const
+{
+  Renderable::Size size;
+  glfwGetWindowSize(fWindow, &size.width, &size.height);
+  return size;
+}
+
+//------------------------------------------------------------------------
 // Window::beforeFrame
 //------------------------------------------------------------------------
 void Window::beforeFrame()

@@ -23,29 +23,93 @@ using json = nlohmann::json;
 namespace shader_toy {
 
 
-//------------------------------------------------------------------------
-// Preferences::loadSize
-//------------------------------------------------------------------------
-gpu::Renderable::Size Preferences::loadSize(std::string_view iKey, gpu::Renderable::Size const &iDefaultSize)
+namespace impl {
+
+gpu::Renderable::Size value(json const &iObject, std::string const &iKey, gpu::Renderable::Size const &iDefaultValue)
 {
-  auto sizeItem = fStorage->getItem(iKey);
-  if(!sizeItem)
-    return iDefaultSize;
-  else
+  auto res = iDefaultValue;
+  auto i = iObject.find(iKey);
+  if(i != iObject.end() && i->is_object())
   {
-    auto data = json::parse(*sizeItem);
-    return {data["width"].template get<int>(), data["height"].template get<int>()};
+    res.width = i->value("width", res.width);
+    res.height = i->value("height", res.width);
   }
+  return res;
+}
+
 }
 
 //------------------------------------------------------------------------
-// Preferences::storeSize
+// Preferences::loadState
 //------------------------------------------------------------------------
-void Preferences::storeSize(std::string_view iKey, gpu::Renderable::Size iSize)
+State Preferences::loadState(std::string_view iKey, State const &iDefaultState)
 {
-  json data{};
-  data["width"] = iSize.width;
-  data["height"] = iSize.height;
+  auto stateItem = fStorage->getItem(iKey);
+  if(!stateItem)
+    return iDefaultState;
+  auto state = iDefaultState; // we initialize with the default state in case some values are missing
+  auto data = json::parse(*stateItem);
+  if(data.is_object())
+  {
+    state.fDarkStyle = data.value("fDarkStyle", state.fDarkStyle);
+    state.fHiDPIAware = data.value("fHiDPIAware", state.fHiDPIAware);
+    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
+    state.fMainWindowSize = impl::value(data, "fMainWindowSize", state.fMainWindowSize);
+    state.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", state.fFragmentShaderWindowSize);
+    auto shaders = data.value("fShaders", json::array_t{});
+    if(!shaders.empty())
+    {
+      for(auto &shader: shaders)
+      {
+        if(shader.is_object())
+        {
+          Shader s{};
+          // TODO: this will throw exception if format is not right...
+          s.fName = shader.at("fName");
+          s.fCode = shader.at("fCode");
+          state.fShaders.emplace_back(s);
+        }
+      }
+    }
+    auto currentShader = data.value("fCurrentShader", "");
+    if(!currentShader.empty())
+      state.fCurrentShader = currentShader;
+  }
+  return state;
+}
+
+//------------------------------------------------------------------------
+// Preferences::storeState
+//------------------------------------------------------------------------
+void Preferences::storeState(std::string_view iKey, State const &iState)
+{
+  auto shaders = json::array();
+
+  for(auto const &shader: iState.fShaders)
+  {
+    json s{
+      {"fName", shader.fName},
+      {"fCode", shader.fCode},
+    };
+    shaders.emplace_back(s);
+  }
+
+  json data{
+    {"fFormatVersion", iState.fFormatVersion},
+    {"fMainWindowSize", { {"width", iState.fMainWindowSize.width}, {"height", iState.fMainWindowSize.height} } },
+    {"fFragmentShaderWindowSize", { {"width", iState.fFragmentShaderWindowSize.width}, {"height", iState.fFragmentShaderWindowSize.height} } },
+    {"fDarkStyle", iState.fDarkStyle},
+    {"fHiDPIAware", iState.fHiDPIAware},
+    {"fAspectRatio", iState.fAspectRatio},
+    {"fShaders", shaders}
+  };
+
+
+  if(iState.fCurrentShader)
+    data["fCurrentShader"] = *iState.fCurrentShader;
+
+  printf("State is %s\n", data.dump().c_str());
+
   fStorage->setItem(iKey, data.dump());
 }
 

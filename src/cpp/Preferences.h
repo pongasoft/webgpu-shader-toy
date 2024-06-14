@@ -20,7 +20,7 @@
 #define WGPU_SHADER_TOY_PREFERENCES_H
 
 #include "utils/Storage.h"
-#include "gpu/Renderable.h"
+#include "State.h"
 
 namespace shader_toy {
 
@@ -29,10 +29,13 @@ using namespace pongasoft;
 class Preferences
 {
 public:
+  static constexpr auto kStateKey = "shader_toy::State";
+
+public:
   explicit Preferences(std::unique_ptr<utils::Storage> iStorage) : fStorage{std::move(iStorage)} {}
 
-  gpu::Renderable::Size loadSize(std::string_view iKey, gpu::Renderable::Size const &iDefaultSize);
-  void storeSize(std::string_view iKey, gpu::Renderable::Size iSize);
+  State loadState(std::string_view iKey, State const &iDefaultState);
+  void storeState(std::string_view iKey, State const &iState);
 
 private:
   std::unique_ptr<utils::Storage> fStorage;

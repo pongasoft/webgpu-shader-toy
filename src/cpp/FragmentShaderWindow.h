@@ -40,13 +40,7 @@ public:
   static constexpr auto kPreferencesSizeKey = "shader_toy::FragmentShaderWindow::Size";
 
 public:
-  struct Args
-  {
-    std::shared_ptr<Preferences> preferences;
-  };
-
-public:
-  FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Window::Args const &iWindowArgs, Args const &iMainWindowArgs);
+  FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Window::Args const &iWindowArgs);
   ~FragmentShaderWindow() override;
 
   void beforeFrame() override;
@@ -72,7 +66,6 @@ private:
   inline ImVec2 adjustSize(ImVec2 const &iPos) const { return {iPos.x * fContentScale.x, iPos.y * fContentScale.y}; }
 
 private:
-  std::shared_ptr<Preferences> fPreferences;
   Renderable::Size fFrameBufferSize;
 
   // Common gpu part

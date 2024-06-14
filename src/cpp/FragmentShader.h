@@ -42,8 +42,6 @@ public:
 struct ShaderToyInputs {
   size:         vec4f, // size of the viewport (in pixels); zw scale
   mouse:        vec4f, // mouse position (in viewport coordinates [0 ... size.x, 0 ... size.y])
-  customFloat1: vec4f, // custom float 1 ([0, 1] range)
-  customColor1: vec4f, // custom color 1 ([0, 1] range)
   time:         f32,   // time in seconds (since start/reset)
   frame:        i32,   // frame count (since start/reset)
 };
@@ -56,8 +54,6 @@ struct ShaderToyInputs {
   static constexpr char kHeaderTemplate[] = R"(struct ShaderToyInputs {
   size:         vec4f, [%d, %d, %d, %d]
   mouse:        vec4f, [%d, %d, %d, %d]
-  customFloat1: vec4f, [%.3f, %.3f, %.3f, %.3f]
-  customColor1: vec4f, [%.3f, %.3f, %.3f, %.3f]
   time:         f32,   [%.2f]
   frame:        i32,   [%d]
 };)";
@@ -66,8 +62,6 @@ struct ShaderToyInputs {
   {
     gpu::vec4f size{};
     gpu::vec4f mouse{};
-    gpu::vec4f customFloat1{};
-    gpu::vec4f customColor1{0, 0, 0, 1.0f};
     gpu::f32 time{};
     gpu::i32 frame{};
   };
@@ -82,7 +76,7 @@ struct ShaderToyInputs {
   using state_t = std::variant<State::NotCompiled, State::Compiling, State::CompiledInError, State::Compiled>;
 
 public:
-  FragmentShader(std::string_view iName, std::string_view iCode) : fName{iName}, fCode{iCode} {}
+  explicit FragmentShader(Shader const &iShader) : fName{iShader.fName}, fCode{iShader.fCode} {}
 
   inline ShaderToyInputs const &getInputs() const { return fInputs; }
 
@@ -102,9 +96,6 @@ public:
     fRunning = ! fRunning;
   }
   constexpr bool isRunning() const { return fRunning; }
-
-  gpu::vec4f &getCustomFloat1() { return fInputs.customFloat1; };
-  gpu::vec4f &getCustomColor1() { return fInputs.customColor1; };
 
   friend class FragmentShaderWindow;
 
