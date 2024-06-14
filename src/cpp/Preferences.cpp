@@ -56,19 +56,22 @@ State Preferences::loadState(std::string_view iKey, State const &iDefaultState)
     state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
     state.fMainWindowSize = impl::value(data, "fMainWindowSize", state.fMainWindowSize);
     state.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", state.fFragmentShaderWindowSize);
-    auto shaders = data.value("fShaders", json::array_t{});
-    if(!shaders.empty())
+    if(data.find("fShaders") != data.end())
     {
       state.fShaders.clear();
-      for(auto &shader: shaders)
+      auto shaders = data.value("fShaders", json::array_t{});
+      if(!shaders.empty())
       {
-        if(shader.is_object())
+        for(auto &shader: shaders)
         {
-          Shader s{};
-          // TODO: this will throw exception if format is not right...
-          s.fName = shader.at("fName");
-          s.fCode = shader.at("fCode");
-          state.fShaders.emplace_back(s);
+          if(shader.is_object())
+          {
+            Shader s{};
+            // TODO: this will throw exception if format is not right...
+            s.fName = shader.at("fName");
+            s.fCode = shader.at("fCode");
+            state.fShaders.emplace_back(s);
+          }
         }
       }
     }
