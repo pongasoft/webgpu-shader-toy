@@ -242,6 +242,28 @@ void MainWindow::doRender()
           }
           ImGui::EndTabItem();
         }
+        if(ImGui::BeginTabItem("Edit"))
+        {
+          auto &editor = fCurrentFragmentShader->edit();
+          editor.SetPalette(fDarkStyle ? TextEditor::PaletteId::Dark : TextEditor::PaletteId::Light);
+          int lineCount, columnCount;
+          editor.GetCursorPosition(lineCount, columnCount);
+          ImGui::Text("%6d/%-6d %6d lines  | %s | %s", lineCount + 1, columnCount + 1, editor.GetLineCount(),
+                      editor.IsOverwriteEnabled() ? "Ovr" : "Ins",
+                      editor.CanUndo() ? "*" : " ");
+          ImGui::SameLine();
+          if(ImGui::Button("A"))
+          {
+            auto newCode = editor.GetText();
+            if(newCode != fCurrentFragmentShader->getCode())
+            {
+              fCurrentFragmentShader->updateCode(newCode);
+              fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+            }
+          }
+          editor.Render(fCurrentFragmentShader->getName().c_str());
+          ImGui::EndTabItem();
+        }
         if(ImGui::BeginTabItem("Inputs"))
         {
           auto &inputs = fCurrentFragmentShader->getInputs();
@@ -355,12 +377,12 @@ void MainWindow::afterFrame()
   // check every 10s
   if(fLastComputedStateTime + 10.0 < time)
   {
-    printf("Checking... [%f], [%f]\n", fLastComputedStateTime, time);
+//    printf("Checking... [%f], [%f]\n", fLastComputedStateTime, time);
     auto state = computeState();
     auto serializedState = Preferences::serialize(state);
     if(serializedState != fLastComputedState)
     {
-      printf("Different... \n[%s] \n!=\n [%s]\n", fLastComputedState.c_str(), serializedState.c_str());
+//      printf("Different... \n[%s] \n!=\n [%s]\n", fLastComputedState.c_str(), serializedState.c_str());
       fLastComputedState = serializedState;
       fPreferences->storeState(Preferences::kStateKey, state);
     }

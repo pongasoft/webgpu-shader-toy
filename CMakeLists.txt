@@ -40,6 +40,8 @@ set(wgpu_shader_toy_sources
 
     src/cpp/utils/Storage.h
     src/cpp/utils/JSStorage.cpp
+
+    external/santaclose/ImGuiColorTextEdit/TextEditor.cpp
 )
 
 add_executable(wgpu_shader_toy "${wgpu_shader_toy_sources}")
@@ -48,6 +50,7 @@ set_target_properties(wgpu_shader_toy PROPERTIES OUTPUT_NAME "index")
 set_target_properties(wgpu_shader_toy PROPERTIES SUFFIX ".html")
 target_include_directories(wgpu_shader_toy PUBLIC
     "external/nlohmann/json/single_include"
+    "external/santaclose/ImGuiColorTextEdit"
     "external/fonts/src"
 )
 

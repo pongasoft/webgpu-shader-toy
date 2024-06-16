@@ -1,0 +1,3 @@
+Master from https://github.com/santaclose/ImGuiColorTextEdit 2024/06/16 (ae0e7c5fe8e405991a5384db36f40a98caff5b39)
+
+Modified to suit my needs / fix issues

@@ -22,7 +22,9 @@
 #include <imgui.h>
 #include <string>
 #include <variant>
+#include <optional>
 #include <webgpu/webgpu_cpp.h>
+#include "TextEditor.h"
 
 namespace pongasoft::gpu {
 using vec2f = ImVec2;
@@ -97,6 +99,22 @@ public:
   }
   constexpr bool isRunning() const { return fRunning; }
 
+  TextEditor &edit() {
+    if(!fTextEditor)
+    {
+      fTextEditor = TextEditor{};
+      fTextEditor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::None);
+      fTextEditor->SetText(fCode);
+    }
+    return fTextEditor.value();
+  }
+
+  void updateCode(std::string iCode)
+  {
+    fCode = std::move(iCode);
+    fState = State::NotCompiled{};
+  }
+
   friend class FragmentShaderWindow;
 
 private:
@@ -112,6 +130,8 @@ private:
 
   state_t fState{State::NotCompiled{}};
   double fStartTime{};
+
+  std::optional<TextEditor> fTextEditor{};
 
   bool fRunning{true};
 };
