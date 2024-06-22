@@ -26,7 +26,7 @@ std::vector<Shader> kFragmentShaderExamples{
   // Hello World
   {"Hello World", R"(@fragment
 fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-    return vec4f(pos.xy / inputs.size.xy, 0, 1);
+    return vec4f(pos.xy / inputs.size.xy, 0.5, 1);
 }
 )"},
 

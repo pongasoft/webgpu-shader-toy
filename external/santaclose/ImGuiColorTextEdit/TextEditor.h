@@ -94,7 +94,7 @@ public:
 	void SetTextLines(const std::vector<std::string>& aLines);
 	std::vector<std::string> GetTextLines() const;
 
-	bool Render(const char* aTitle, bool aParentIsFocused = false, const ImVec2& aSize = ImVec2(), bool aBorder = false);
+	bool Render(const char* aTitle, bool aParentIsFocused = false, const ImVec2& aSize = ImVec2(), ImGuiChildFlags child_flags = 0, ImGuiWindowFlags window_flags = 0);
 
 	void ImGuiDebugPanel(const std::string& panelName = "Debug");
 	void UnitTests();

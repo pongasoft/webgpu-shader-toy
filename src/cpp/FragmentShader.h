@@ -71,7 +71,7 @@ struct ShaderToyInputs {
   struct State {
     enum class NotCompiled {};
     enum class Compiling{};
-    struct CompiledInError { std::string fErrorMessage; };
+    struct CompiledInError { std::string fErrorMessage; int fErrorLine{-1}; int fErrorColumn{}; };
     struct Compiled { wgpu::RenderPipeline fRenderPipeline; };
   };
 

@@ -199,6 +199,41 @@ void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> const &iFragm
   shaderModule.GetCompilationInfo(callbacks::onShaderCompilationResult, key);
 }
 
+namespace impl {
+//------------------------------------------------------------------------
+// impl::computeState
+//------------------------------------------------------------------------
+FragmentShader::State::CompiledInError computeState(gpu::GPU::Error const &iError)
+{
+  static std::regex kLineAndColumnRegex("(.+:)([0-9]+):([0-9]+)((.|\\n)*)");
+  static auto kHeaderLineCount = std::count(std::begin(FragmentShader::kHeader), std::end(FragmentShader::kHeader), '\n') + 1;
+
+  std::smatch match;
+  if(std::regex_search(iError.fMessage, match, kLineAndColumnRegex))
+  {
+    int lineNumber = std::stoi(match[2]) - kHeaderLineCount;
+    if(lineNumber < 0)
+      lineNumber = -1;
+    int columnNumber = std::stoi(match[3]);
+    auto message = fmt::printf("%s%d:%d%s",
+                               match.str(1).c_str(),
+                               lineNumber,
+                               columnNumber,
+                               match.str(4).c_str());
+    return FragmentShader::State::CompiledInError{
+      .fErrorMessage = fmt::printf("[%s]: %s", gpu::GPU::errorTypeAsString(iError.fType), message),
+      .fErrorLine = lineNumber,
+      .fErrorColumn = columnNumber
+    };
+  }
+  else
+  {
+    return FragmentShader::State::CompiledInError{.fErrorMessage = fmt::printf("[%s]: %s", gpu::GPU::errorTypeAsString(iError.fType), iError.fMessage) };
+  }
+}
+
+}
+
 //------------------------------------------------------------------------
 // FragmentShaderWindow::onShaderCompilationResult
 //------------------------------------------------------------------------
@@ -229,11 +264,7 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
   // compilation resulted in error
   if(fGPU->hasError())
   {
-    auto error = fGPU->consumeError();
-    printf("onShaderCompilationResult (%s) GPU in error => %s\n",
-           iFragmentShader->getName().c_str(),
-           gpu::GPU::errorTypeAsString(error->fType));
-    iFragmentShader->fState = FragmentShader::State::CompiledInError{.fErrorMessage = fmt::printf("[%s]: %s", gpu::GPU::errorTypeAsString(error->fType), error->fMessage) };
+    iFragmentShader->fState = impl::computeState(fGPU->consumeError().value());
     return;
   }
 

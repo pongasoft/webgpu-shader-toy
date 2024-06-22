@@ -87,7 +87,6 @@ private:
   TextEditor fTextEditor{};
 
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
-  bool fCurrentFragmentShaderErrorRequest{};
 };
 
 }

@@ -412,7 +412,7 @@ std::vector<std::string> TextEditor::GetTextLines() const
 	return result;
 }
 
-bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2& aSize, bool aBorder)
+bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2& aSize, ImGuiChildFlags child_flags, ImGuiWindowFlags window_flags)
 {
 	if (mCursorPositionChanged)
 		OnCursorPositionChanged();
@@ -421,12 +421,12 @@ bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2&
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(mPalette[(int)PaletteIndex::Background]));
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
-	ImGui::BeginChild(aTitle, aSize, aBorder, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs);
+	ImGui::BeginChild(aTitle, aSize, child_flags, window_flags);
 
 	bool isFocused = ImGui::IsWindowFocused();
 	HandleKeyboardInputs(aParentIsFocused);
 	HandleMouseInputs();
-	ColorizeInternal();
+	//ColorizeInternal();
 	Render(aParentIsFocused);
 
 	ImGui::EndChild();
