@@ -20,6 +20,7 @@
 #include <GLFW/glfw3.h>
 #include "MainWindow.h"
 #include "JetBrainsMono-Regular.cpp"
+#include "Errors.h"
 #include <ranges>
 #include <iostream>
 #include <sstream>
@@ -103,10 +104,21 @@ MainWindow::~MainWindow()
   wgpu_shader_toy_uninstall_handlers();
 }
 
+namespace impl {
+
 //------------------------------------------------------------------------
-// MainWindow::doRender
+// impl::lineCount
 //------------------------------------------------------------------------
-void MainWindow::doRender()
+inline long lineCount(std::string const &s)
+{
+  return std::count(s.begin(), s.end(), '\n');
+}
+
+}
+//------------------------------------------------------------------------
+// MainWindow::doRenderMainMenuBar
+//------------------------------------------------------------------------
+void MainWindow::doRenderMainMenuBar()
 {
   if(ImGui::BeginMainMenuBar())
   {
@@ -164,13 +176,137 @@ void MainWindow::doRender()
     }
     ImGui::EndMainMenuBar();
   }
+}
 
+//------------------------------------------------------------------------
+// MainWindow::doRenderControlsSection
+//------------------------------------------------------------------------
+void MainWindow::doRenderControlsSection()
+{
+  // [Section] Controls
+  ImGui::SeparatorText("Controls");
+
+  if(ImGui::Button("Reset Time"))
+  {
+    fCurrentFragmentShader->setStartTime(getCurrentTime());
+  }
+  ImGui::SameLine();
+  if(ImGui::Button(fCurrentFragmentShader->isRunning() ? "Pause" : "Play"))
+  {
+    fCurrentFragmentShader->toggleRunning(getCurrentTime());
+  }
+  ImGui::SameLine();
+  if(ImGui::Button("Fullscreen"))
+  {
+    fFragmentShaderWindow->requestFullscreen();
+  }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::doRenderShaderSection
+//------------------------------------------------------------------------
+void MainWindow::doRenderShaderSection()
+{
+  // [Section] Shader
+  ImGui::SeparatorText("Shader");
+
+  if(ImGui::BeginTabBar(fCurrentFragmentShader->getName().c_str()))
+  {
+    // [TabItem] Code
+    if(ImGui::BeginTabItem("Code"))
+    {
+      auto &editor = fCurrentFragmentShader->edit();
+      editor.SetPalette(fDarkStyle ? TextEditor::PaletteId::Dark : TextEditor::PaletteId::Light);
+
+      // [Child] Menu / toolbar for text editor
+      bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
+      long lines = hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationError()) + 1 : 1;
+      ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
+      ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1),
+                                          ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * static_cast<float>(lines)));
+      if(ImGui::BeginChild("Menu Bar", {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_HorizontalScrollbar))
+      {
+        if(ImGui::BeginMenuBar())
+        {
+          auto newCode = editor.GetText();
+          auto edited = newCode != fCurrentFragmentShader->getCode();
+          if(ImGui::BeginMenu("M"))
+          {
+            if(ImGui::MenuItem("Apply Changes", nullptr, false, edited))
+            {
+              fCurrentFragmentShader->updateCode(newCode);
+              fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+            }
+            if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
+            {
+              editor.SetText(fCurrentFragmentShader->getCode());
+            }
+            if(ImGui::MenuItem("Show White Space", nullptr, editor.IsShowWhitespacesEnabled()))
+            {
+              editor.SetShowWhitespacesEnabled(!editor.IsShowWhitespacesEnabled());
+            }
+            ImGui::EndMenu();
+          }
+          int lineCount, columnCount;
+          editor.GetCursorPosition(lineCount, columnCount);
+          ImGui::Text("%d/%d | %d lines", lineCount + 1, columnCount + 1, editor.GetLineCount());
+          if(ImGui::Button("C"))
+          {
+            glfwSetClipboardString(fWindow, fCurrentFragmentShader->getCode().c_str());
+          }
+          if(edited)
+          {
+            if(ImGui::Button("A"))
+            {
+              fCurrentFragmentShader->updateCode(newCode);
+              fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+            }
+          }
+          ImGui::EndMenuBar();
+        }
+        if(fCurrentFragmentShader->hasCompilationError())
+        {
+          ImGui::Text("%s", fCurrentFragmentShader->getCompilationError().c_str());
+        }
+        ImGui::EndChild();
+      }
+      ImGui::PopStyleColor();
+
+      editor.Render("Code", true, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar);
+
+      ImGui::EndTabItem();
+    }
+
+    // [TabItem] Inputs
+    if(ImGui::BeginTabItem("Inputs"))
+    {
+      auto &inputs = fCurrentFragmentShader->getInputs();
+      ImGui::Text(FragmentShader::kHeaderTemplate,
+                  static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), static_cast<int>(inputs.size.z), static_cast<int>(inputs.size.w), // size: vec4f
+                  static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y), static_cast<int>(inputs.mouse.z), static_cast<int>(inputs.mouse.w), // mouse: vec4f
+                  inputs.time, // time: f32
+                  inputs.frame // frame: i32
+      );
+      ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
+  }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::doRender
+//------------------------------------------------------------------------
+void MainWindow::doRender()
+{
+  doRenderMainMenuBar();
+
+  // The main window occupies the full available space
   ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
   ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
   if(ImGui::Begin("WebGPU Shader Toy", nullptr,
-                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
-                  ImGuiWindowFlags_HorizontalScrollbar))
+                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_HorizontalScrollbar))
   {
+    // [TabBar] One tab per shader
     if(ImGui::BeginTabBar("Fragment Shaders"))
     {
       if(!fFragmentShaderTabs.empty())
@@ -198,6 +334,7 @@ void MainWindow::doRender()
           deleteFragmentShader(*fragmentShaderToDelete);
         else
         {
+          ASSERT(fCurrentFragmentShader != nullptr);
           if(fCurrentFragmentShader->getName() != selectedFragmentShader)
           {
             fCurrentFragmentShader = fFragmentShaders[selectedFragmentShader];
@@ -205,6 +342,7 @@ void MainWindow::doRender()
           }
         }
       }
+      // + to add a new shader (from file)
       if(ImGui::TabItemButton("+"))
       {
         wgpu_shader_toy_open_file_dialog();
@@ -214,93 +352,8 @@ void MainWindow::doRender()
 
     if(fCurrentFragmentShader)
     {
-      ImGui::SeparatorText("Controls");
-
-      if(ImGui::Button("Reset Time"))
-      {
-        fCurrentFragmentShader->setStartTime(getCurrentTime());
-      }
-      ImGui::SameLine();
-      if(ImGui::Button(fCurrentFragmentShader->isRunning() ? "Pause" : "Play"))
-      {
-        fCurrentFragmentShader->toggleRunning(getCurrentTime());
-      }
-      ImGui::SameLine();
-      if(ImGui::Button("Fullscreen"))
-      {
-        fFragmentShaderWindow->requestFullscreen();
-      }
-
-      ImGui::SeparatorText("Shader");
-
-      if(ImGui::BeginTabBar(fCurrentFragmentShader->getName().c_str()))
-      {
-        if(ImGui::BeginTabItem("Code"))
-        {
-          auto &editor = fCurrentFragmentShader->edit();
-          editor.SetPalette(fDarkStyle ? TextEditor::PaletteId::Dark : TextEditor::PaletteId::Light);
-          bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
-          if(ImGui::BeginChild("Menu Bar",
-                               hasCompilationError ? ImVec2{0, 0} : ImVec2{0, 1},
-                               hasCompilationError ? ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY : 0,
-                               ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_MenuBar))
-          {
-            if(ImGui::BeginMenuBar())
-            {
-              auto newCode = editor.GetText();
-              auto edited = newCode != fCurrentFragmentShader->getCode();
-              if(ImGui::BeginMenu("M"))
-              {
-                if(ImGui::MenuItem("Apply Changes", nullptr, false, edited))
-                {
-                  fCurrentFragmentShader->updateCode(newCode);
-                  fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
-                }
-                if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
-                {
-                  editor.SetText(fCurrentFragmentShader->getCode());
-                }
-                ImGui::EndMenu();
-              }
-              int lineCount, columnCount;
-              editor.GetCursorPosition(lineCount, columnCount);
-              ImGui::Text("%d/%d | %d lines", lineCount + 1, columnCount + 1, editor.GetLineCount());
-              if(ImGui::Button("C"))
-              {
-                glfwSetClipboardString(fWindow, fCurrentFragmentShader->getCode().c_str());
-              }
-              if(edited)
-              {
-                if(ImGui::Button("A"))
-                {
-                  fCurrentFragmentShader->updateCode(newCode);
-                  fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
-                }
-              }
-              ImGui::EndMenuBar();
-            }
-            if(fCurrentFragmentShader->hasCompilationError())
-            {
-              ImGui::Text("%s", fCurrentFragmentShader->getCompilationError().c_str());
-            }
-            ImGui::EndChild();
-          }
-          editor.Render("Code", false, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs);
-          ImGui::EndTabItem();
-        }
-        if(ImGui::BeginTabItem("Inputs"))
-        {
-          auto &inputs = fCurrentFragmentShader->getInputs();
-          ImGui::Text(FragmentShader::kHeaderTemplate,
-                      static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), static_cast<int>(inputs.size.z), static_cast<int>(inputs.size.w), // size: vec4f
-                      static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y), static_cast<int>(inputs.mouse.z), static_cast<int>(inputs.mouse.w), // mouse: vec4f
-                      inputs.time, // time: f32
-                      inputs.frame // frame: i32
-          );
-          ImGui::EndTabItem();
-        }
-        ImGui::EndTabBar();
-      }
+      doRenderControlsSection();
+      doRenderShaderSection();
     }
     else
     {

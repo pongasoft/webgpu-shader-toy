@@ -66,6 +66,9 @@ private:
   void initFromState(State const &iState);
   void setStyle(bool iDarkStyle);
   State computeState() const;
+  void doRenderMainMenuBar();
+  void doRenderControlsSection();
+  void doRenderShaderSection();
 
 private:
   std::shared_ptr<Preferences> fPreferences;

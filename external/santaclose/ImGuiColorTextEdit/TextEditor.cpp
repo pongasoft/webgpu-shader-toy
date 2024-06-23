@@ -418,8 +418,9 @@ bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2&
 		OnCursorPositionChanged();
 	mCursorPositionChanged = false;
 
-	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(mPalette[(int)PaletteIndex::Background]));
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(mPalette[(int)PaletteIndex::Background]));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImGui::ColorConvertU32ToFloat4(mPalette[(int)PaletteIndex::Background]));
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
 	ImGui::BeginChild(aTitle, aSize, child_flags, window_flags);
 
@@ -432,7 +433,7 @@ bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2&
 	ImGui::EndChild();
 
 	ImGui::PopStyleVar();
-	ImGui::PopStyleColor();
+	ImGui::PopStyleColor(2);
 
 	return isFocused;
 }

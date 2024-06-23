@@ -105,6 +105,7 @@ public:
       fTextEditor = TextEditor{};
       fTextEditor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::None);
       fTextEditor->SetText(fCode);
+      fTextEditor->SetShowWhitespacesEnabled(false);
     }
     return fTextEditor.value();
   }
