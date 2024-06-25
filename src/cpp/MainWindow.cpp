@@ -115,6 +115,10 @@ inline long lineCount(std::string const &s)
 }
 
 }
+
+static bool kShowDemoWindow = false;
+
+
 //------------------------------------------------------------------------
 // MainWindow::doRenderMainMenuBar
 //------------------------------------------------------------------------
@@ -141,6 +145,7 @@ void MainWindow::doRenderMainMenuBar()
         saveState();
       if(ImGui::MenuItem("Quit"))
         stop();
+      ImGui::MenuItem("Demo", nullptr, &kShowDemoWindow);
       ImGui::EndMenu();
     }
     if(ImGui::BeginMenu("Window"))
@@ -361,6 +366,9 @@ void MainWindow::doRender()
     }
   }
   ImGui::End();
+
+  if(kShowDemoWindow)
+    ImGui::ShowDemoWindow(&kShowDemoWindow);
 }
 
 //------------------------------------------------------------------------

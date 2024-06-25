@@ -64,6 +64,8 @@ opts: Dict[str, Union[Optional[str], bool]] = {
 
 deps = []
 
+build_deps = {}
+
 
 def get_tag():
     return TAG if opts['branch'] == 'master' else f'{TAG}-{opts["branch"]}'
@@ -105,7 +107,7 @@ def get(ports, settings, shared):
         srcs.append(os.path.join('backends', f'imgui_impl_{opts["backend"]}.cpp'))
         srcs.append(os.path.join('backends', f'imgui_impl_{opts["renderer"]}.cpp'))
 
-        flags = [f'--use-port={dep}' for dep in deps]
+        flags = [f'--use-port={build_deps[dep]}' for dep in deps]
         flags.append('-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3')
 
         ports.build_port(source_path, final, name, srcs=srcs, flags=flags)
@@ -168,7 +170,10 @@ def handle_options(options, error_handler):
         error_handler(f'backend [{opts["backend"]}] does not support [{opts["renderer"]}] renderer')
 
     if opts['backend'] == 'glfw':
-        deps.append('contrib.glfw3')
+        deps.append('emscripten-glfw3')
+        patch_src_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+        build_deps['emscripten-glfw3'] = os.path.join(patch_src_directory, 'emscripten-glfw3.py')
     else:
         deps.append('sdl2')
+        build_deps['sdl2'] = 'sdl2'
 

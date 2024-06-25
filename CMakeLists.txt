@@ -54,7 +54,7 @@ target_include_directories(wgpu_shader_toy PUBLIC
     "external/fonts/src"
 )
 
-set(wgpu_shader_toy_options "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:branch=docking")
+set(wgpu_shader_toy_options "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/emscripten-glfw3.py" "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:branch=docking")
 
 target_compile_options(wgpu_shader_toy PUBLIC
     "${wgpu_shader_toy_options}"
