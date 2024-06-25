@@ -438,8 +438,6 @@ private:
 	bool mCursorPositionChanged = false;
 	bool mCursorOnBracket = false;
 	Coordinates mMatchingBracketCoords;
-  // TODO YP: fix when new version of glfw available in emscripten
-  std::optional<std::string> mClipboardText{};
 
 	int mColorRangeMin = 0;
 	int mColorRangeMax = 0;

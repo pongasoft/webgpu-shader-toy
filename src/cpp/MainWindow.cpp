@@ -116,8 +116,9 @@ inline long lineCount(std::string const &s)
 
 }
 
+#ifndef NDEBUG
 static bool kShowDemoWindow = false;
-
+#endif
 
 //------------------------------------------------------------------------
 // MainWindow::doRenderMainMenuBar
@@ -145,7 +146,6 @@ void MainWindow::doRenderMainMenuBar()
         saveState();
       if(ImGui::MenuItem("Quit"))
         stop();
-      ImGui::MenuItem("Demo", nullptr, &kShowDemoWindow);
       ImGui::EndMenu();
     }
     if(ImGui::BeginMenu("Window"))
@@ -179,6 +179,14 @@ void MainWindow::doRenderMainMenuBar()
       }
       ImGui::EndMenu();
     }
+#ifndef NDEBUG
+    if(ImGui::BeginMenu("Dev"))
+    {
+      ImGui::MenuItem("Demo", nullptr, &kShowDemoWindow);
+      ImGui::EndMenu();
+    }
+#endif
+
     ImGui::EndMainMenuBar();
   }
 }
@@ -367,8 +375,10 @@ void MainWindow::doRender()
   }
   ImGui::End();
 
+#ifndef NDEBUG
   if(kShowDemoWindow)
     ImGui::ShowDemoWindow(&kShowDemoWindow);
+#endif
 }
 
 //------------------------------------------------------------------------
