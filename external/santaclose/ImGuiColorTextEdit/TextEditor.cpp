@@ -95,8 +95,6 @@ void TextEditor::SetLanguageDefinition(LanguageDefinitionId aValue)
   mRegexList.clear();
   for(const auto &r: mLanguageDefinition->mTokenRegexStrings)
     mRegexList.push_back(std::make_pair(std::regex(r.first, std::regex_constants::optimize), r.second));
-
-  Colorize();
 }
 
 const char *TextEditor::GetLanguageDefinitionName() const
@@ -352,8 +350,6 @@ void TextEditor::SetText(const std::string &aText)
 
   mUndoBuffer.clear();
   mUndoIndex = 0;
-
-  Colorize();
 }
 
 std::string TextEditor::GetText() const
@@ -389,8 +385,6 @@ void TextEditor::SetTextLines(const std::vector<std::string> &aLines)
 
   mUndoBuffer.clear();
   mUndoIndex = 0;
-
-  Colorize();
 }
 
 std::vector<std::string> TextEditor::GetTextLines() const
@@ -430,7 +424,6 @@ bool TextEditor::Render(const char *aTitle, bool aParentIsFocused, const ImVec2 
   bool isFocused = ImGui::IsWindowFocused();
   HandleKeyboardInputs(aParentIsFocused);
   HandleMouseInputs();
-  //ColorizeInternal();
   Render(aParentIsFocused);
 
   ImGui::EndChild();
@@ -565,13 +558,11 @@ void TextEditor::UndoRecord::Undo(TextEditor *aEditor)
         {
           auto start = operation.mStart;
           aEditor->InsertTextAt(start, operation.mText.c_str());
-          aEditor->Colorize(operation.mStart.mLine - 1, operation.mEnd.mLine - operation.mStart.mLine + 2);
           break;
         }
         case UndoOperationType::Add:
         {
           aEditor->DeleteRange(operation.mStart, operation.mEnd);
-          aEditor->Colorize(operation.mStart.mLine - 1, operation.mEnd.mLine - operation.mStart.mLine + 2);
           break;
         }
       }
@@ -594,14 +585,12 @@ void TextEditor::UndoRecord::Redo(TextEditor *aEditor)
         case UndoOperationType::Delete:
         {
           aEditor->DeleteRange(operation.mStart, operation.mEnd);
-          aEditor->Colorize(operation.mStart.mLine - 1, operation.mEnd.mLine - operation.mStart.mLine + 1);
           break;
         }
         case UndoOperationType::Add:
         {
           auto start = operation.mStart;
           aEditor->InsertTextAt(start, operation.mText.c_str());
-          aEditor->Colorize(operation.mStart.mLine - 1, operation.mEnd.mLine - operation.mStart.mLine + 1);
           break;
         }
       }
@@ -752,7 +741,6 @@ void TextEditor::InsertTextAtCursor(const char *aValue, int aCursor)
   totalLines += InsertTextAt(pos, aValue);
 
   SetCursorPosition(pos, aCursor);
-  Colorize(start.mLine - 1, totalLines + 2);
 }
 
 bool TextEditor::Move(int &aLine, int &aCharIndex, bool aLeft, bool aLockLine) const
@@ -1058,8 +1046,6 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
   u.mAfter = mState;
   AddUndo(u);
 
-  for(const auto &coord: coords)
-    Colorize(coord.mLine - 1, 3);
   EnsureCursorVisible();
 }
 
@@ -1338,7 +1324,6 @@ void TextEditor::ChangeCurrentLinesIndentation(bool aIncrease)
           Coordinates insertionEnd = lineStart;
           InsertTextAt(insertionEnd, "\t"); // sets insertion end
           u.mOperations.push_back({"\t", lineStart, insertionEnd, UndoOperationType::Add});
-          Colorize(lineStart.mLine, 1);
         }
       } else
       {
@@ -1353,7 +1338,6 @@ void TextEditor::ChangeCurrentLinesIndentation(bool aIncrease)
         {
           u.mOperations.push_back({GetText(start, end), start, end, UndoOperationType::Delete});
           DeleteRange(start, end);
-          Colorize(currentLine, 1);
         }
       }
     }
@@ -1499,7 +1483,6 @@ void TextEditor::ToggleLineComment()
       Coordinates insertionEnd = lineStart;
       InsertTextAt(insertionEnd, (commentString + ' ').c_str()); // sets insertion end
       u.mOperations.push_back({(commentString + ' '), lineStart, insertionEnd, UndoOperationType::Add});
-      Colorize(lineStart.mLine, 1);
     }
   } else
   {
@@ -1524,7 +1507,6 @@ void TextEditor::ToggleLineComment()
       Coordinates end = {currentLine, GetCharacterColumn(currentLine, currentIndex + i)};
       u.mOperations.push_back({GetText(start, end), start, end, UndoOperationType::Delete});
       DeleteRange(start, end);
-      Colorize(currentLine, 1);
     }
   }
 
@@ -1928,7 +1910,6 @@ void TextEditor::DeleteSelection(int aCursor)
 
   DeleteRange(mState.mCursors[aCursor].GetSelectionStart(), mState.mCursors[aCursor].GetSelectionEnd());
   SetCursorPosition(mState.mCursors[aCursor].GetSelectionStart(), aCursor);
-  Colorize(mState.mCursors[aCursor].GetSelectionStart().mLine, 1);
 }
 
 void TextEditor::RemoveGlyphsFromLine(int aLine, int aStartChar, int aEndChar)
@@ -2580,282 +2561,6 @@ void TextEditor::AddUndo(UndoRecord &aValue)
   mUndoBuffer.resize((size_t) (mUndoIndex + 1));
   mUndoBuffer.back() = aValue;
   ++mUndoIndex;
-}
-
-// TODO
-// - multiline comments vs single-line: latter is blocking start of a ML
-void TextEditor::Colorize(int aFromLine, int aLines)
-{
-  int toLine = aLines == -1 ? (int) mLines.size() : std::min((int) mLines.size(), aFromLine + aLines);
-  mColorRangeMin = std::min(mColorRangeMin, aFromLine);
-  mColorRangeMax = std::max(mColorRangeMax, toLine);
-  mColorRangeMin = std::max(0, mColorRangeMin);
-  mColorRangeMax = std::max(mColorRangeMin, mColorRangeMax);
-  mCheckComments = true;
-}
-
-void TextEditor::ColorizeRange(int aFromLine, int aToLine)
-{
-  if(mLines.empty() || aFromLine >= aToLine || mLanguageDefinition == nullptr)
-    return;
-
-  std::string buffer;
-  std::cmatch results;
-  std::string id;
-
-  int endLine = std::max(0, std::min((int) mLines.size(), aToLine));
-  for(int i = aFromLine; i < endLine; ++i)
-  {
-    auto &line = mLines[i];
-
-    if(line.empty())
-      continue;
-
-    buffer.resize(line.size());
-    for(size_t j = 0; j < line.size(); ++j)
-    {
-      auto &col = line[j];
-      buffer[j] = col.mChar;
-      col.mColorIndex = PaletteIndex::Default;
-    }
-
-    const char *bufferBegin = &buffer.front();
-    const char *bufferEnd = bufferBegin + buffer.size();
-
-    auto last = bufferEnd;
-
-    for(auto first = bufferBegin; first != last;)
-    {
-      const char *token_begin = nullptr;
-      const char *token_end = nullptr;
-      PaletteIndex token_color = PaletteIndex::Default;
-
-      bool hasTokenizeResult = false;
-
-      if(mLanguageDefinition->mTokenize != nullptr)
-      {
-        if(mLanguageDefinition->mTokenize(first, last, token_begin, token_end, token_color))
-          hasTokenizeResult = true;
-      }
-
-      if(hasTokenizeResult == false)
-      {
-        // todo : remove
-        //printf("using regex for %.*s\n", first + 10 < last ? 10 : int(last - first), first);
-
-        for(const auto &p: mRegexList)
-        {
-          bool regexSearchResult = false;
-          try
-          {
-            regexSearchResult = std::regex_search(first, last, results, p.first,
-                                                  std::regex_constants::match_continuous);
-          }
-          catch(...)
-          {}
-          if(regexSearchResult)
-          {
-            hasTokenizeResult = true;
-
-            auto &v = *results.begin();
-            token_begin = v.first;
-            token_end = v.second;
-            token_color = p.second;
-            break;
-          }
-        }
-      }
-
-      if(hasTokenizeResult == false)
-      {
-        first++;
-      } else
-      {
-        const size_t token_length = token_end - token_begin;
-
-        if(token_color == PaletteIndex::Identifier)
-        {
-          id.assign(token_begin, token_end);
-
-          // todo : allmost all language definitions use lower case to specify keywords, so shouldn't this use ::tolower ?
-          if(!mLanguageDefinition->mCaseSensitive)
-            std::transform(id.begin(), id.end(), id.begin(), ::toupper);
-
-          if(!line[first - bufferBegin].mPreprocessor)
-          {
-            if(mLanguageDefinition->mKeywords.count(id) != 0)
-              token_color = PaletteIndex::Keyword;
-            else if(mLanguageDefinition->mIdentifiers.count(id) != 0)
-              token_color = PaletteIndex::KnownIdentifier;
-            else if(mLanguageDefinition->mPreprocIdentifiers.count(id) != 0)
-              token_color = PaletteIndex::PreprocIdentifier;
-          } else
-          {
-            if(mLanguageDefinition->mPreprocIdentifiers.count(id) != 0)
-              token_color = PaletteIndex::PreprocIdentifier;
-          }
-        }
-
-        for(size_t j = 0; j < token_length; ++j)
-          line[(token_begin - bufferBegin) + j].mColorIndex = token_color;
-
-        first = token_end;
-      }
-    }
-  }
-}
-
-template<class InputIt1, class InputIt2, class BinaryPredicate>
-bool ColorizerEquals(InputIt1 first1, InputIt1 last1,
-                     InputIt2 first2, InputIt2 last2, BinaryPredicate p)
-{
-  for(; first1 != last1 && first2 != last2; ++first1, ++first2)
-  {
-    if(!p(*first1, *first2))
-      return false;
-  }
-  return first1 == last1 && first2 == last2;
-}
-
-void TextEditor::ColorizeInternal()
-{
-  if(mLines.empty() || mLanguageDefinition == nullptr)
-    return;
-
-  if(mCheckComments)
-  {
-    auto endLine = mLines.size();
-    auto endIndex = 0;
-    auto commentStartLine = endLine;
-    auto commentStartIndex = endIndex;
-    auto withinString = false;
-    auto withinSingleLineComment = false;
-    auto withinPreproc = false;
-    auto firstChar = true;      // there is no other non-whitespace characters in the line before
-    auto concatenate = false;    // '\' on the very end of the line
-    auto currentLine = 0;
-    auto currentIndex = 0;
-    while(currentLine < endLine || currentIndex < endIndex)
-    {
-      auto &line = mLines[currentLine];
-
-      if(currentIndex == 0 && !concatenate)
-      {
-        withinSingleLineComment = false;
-        withinPreproc = false;
-        firstChar = true;
-      }
-
-      concatenate = false;
-
-      if(!line.empty())
-      {
-        auto &g = line[currentIndex];
-        auto c = g.mChar;
-
-        if(c != mLanguageDefinition->mPreprocChar && !isspace(c))
-          firstChar = false;
-
-        if(currentIndex == (int) line.size() - 1 && line[line.size() - 1].mChar == '\\')
-          concatenate = true;
-
-        bool inComment = (commentStartLine < currentLine ||
-                          (commentStartLine == currentLine && commentStartIndex <= currentIndex));
-
-        if(withinString)
-        {
-          line[currentIndex].mMultiLineComment = inComment;
-
-          if(c == '\"')
-          {
-            if(currentIndex + 1 < (int) line.size() && line[currentIndex + 1].mChar == '\"')
-            {
-              currentIndex += 1;
-              if(currentIndex < (int) line.size())
-                line[currentIndex].mMultiLineComment = inComment;
-            } else
-              withinString = false;
-          } else if(c == '\\')
-          {
-            currentIndex += 1;
-            if(currentIndex < (int) line.size())
-              line[currentIndex].mMultiLineComment = inComment;
-          }
-        } else
-        {
-          if(firstChar && c == mLanguageDefinition->mPreprocChar)
-            withinPreproc = true;
-
-          if(c == '\"')
-          {
-            withinString = true;
-            line[currentIndex].mMultiLineComment = inComment;
-          } else
-          {
-            auto pred = [](const char &a, const Glyph &b) { return a == b.mChar; };
-            auto from = line.begin() + currentIndex;
-            auto &startStr = mLanguageDefinition->mCommentStart;
-            auto &singleStartStr = mLanguageDefinition->mSingleLineComment;
-
-            if(!withinSingleLineComment && currentIndex + startStr.size() <= line.size() &&
-               ColorizerEquals(startStr.begin(), startStr.end(), from, from + startStr.size(), pred))
-            {
-              commentStartLine = currentLine;
-              commentStartIndex = currentIndex;
-            } else if(singleStartStr.size() > 0 &&
-                      currentIndex + singleStartStr.size() <= line.size() &&
-                      ColorizerEquals(singleStartStr.begin(), singleStartStr.end(), from, from + singleStartStr.size(),
-                                      pred))
-            {
-              withinSingleLineComment = true;
-            }
-
-            inComment = (commentStartLine < currentLine ||
-                         (commentStartLine == currentLine && commentStartIndex <= currentIndex));
-
-            line[currentIndex].mMultiLineComment = inComment;
-            line[currentIndex].mComment = withinSingleLineComment;
-
-            auto &endStr = mLanguageDefinition->mCommentEnd;
-            if(currentIndex + 1 >= (int) endStr.size() &&
-               ColorizerEquals(endStr.begin(), endStr.end(), from + 1 - endStr.size(), from + 1, pred))
-            {
-              commentStartIndex = endIndex;
-              commentStartLine = endLine;
-            }
-          }
-        }
-        if(currentIndex < (int) line.size())
-          line[currentIndex].mPreprocessor = withinPreproc;
-        currentIndex += UTF8CharLength(c);
-        if(currentIndex >= (int) line.size())
-        {
-          currentIndex = 0;
-          ++currentLine;
-        }
-      } else
-      {
-        currentIndex = 0;
-        ++currentLine;
-      }
-    }
-    mCheckComments = false;
-  }
-
-  if(mColorRangeMin < mColorRangeMax)
-  {
-    const int increment = (mLanguageDefinition->mTokenize == nullptr) ? 10 : 10000;
-    const int to = std::min(mColorRangeMin + increment, mColorRangeMax);
-    ColorizeRange(mColorRangeMin, to);
-    mColorRangeMin = to;
-
-    if(mColorRangeMax == mColorRangeMin)
-    {
-      mColorRangeMin = std::numeric_limits<int>::max();
-      mColorRangeMax = 0;
-    }
-    return;
-  }
 }
 
 const TextEditor::Palette &TextEditor::GetDarkPalette()
