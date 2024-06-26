@@ -86,7 +86,8 @@ public:
   std::string const &getCode() const { return fCode; }
 
   constexpr bool hasCompilationError() const { return std::holds_alternative<FragmentShader::State::CompiledInError>(fState); }
-  inline std::string getCompilationError() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorMessage; }
+  inline std::string getCompilationErrorMessage() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorMessage; }
+  inline int getCompilationErrorLine() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorLine; }
   constexpr bool isCompiled() const { return std::holds_alternative<FragmentShader::State::Compiled>(fState); }
 
   void setStartTime(double iTime) { fStartTime = iTime; fInputs.time = 0; fInputs.frame = 0; }

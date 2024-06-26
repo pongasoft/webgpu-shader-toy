@@ -211,7 +211,7 @@ FragmentShader::State::CompiledInError computeState(gpu::GPU::Error const &iErro
   std::smatch match;
   if(std::regex_search(iError.fMessage, match, kLineAndColumnRegex))
   {
-    int lineNumber = std::stoi(match[2]) - kHeaderLineCount;
+    int lineNumber = std::stoi(match[2]) - kHeaderLineCount + 1;
     if(lineNumber < 0)
       lineNumber = -1;
     int columnNumber = std::stoi(match[3]);

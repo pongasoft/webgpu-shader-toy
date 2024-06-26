@@ -91,10 +91,6 @@ void TextEditor::SetLanguageDefinition(LanguageDefinitionId aValue)
 //		mLanguageDefinition = &(LanguageDefinition::Hlsl());
 //		break;
   }
-
-  mRegexList.clear();
-  for(const auto &r: mLanguageDefinition->mTokenRegexStrings)
-    mRegexList.push_back(std::make_pair(std::regex(r.first, std::regex_constants::optimize), r.second));
 }
 
 const char *TextEditor::GetLanguageDefinitionName() const
@@ -2287,9 +2283,15 @@ void TextEditor::Render(bool aParentIsFocused)
       if(mShowLineNumbers)
       {
         snprintf(lineNumberBuffer, 16, "%d  ", lineNo + 1);
-        float lineNoWidth = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, lineNumberBuffer,
-                                                            nullptr, nullptr).x;
-        drawList->AddText(ImVec2(lineStartScreenPos.x + mTextStart - lineNoWidth, lineStartScreenPos.y),
+        auto lineNoSize = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, lineNumberBuffer,
+                                                            nullptr, nullptr);
+        if(mErrorMarkers.contains(lineNo + 1))
+        {
+          drawList->AddRectFilled(ImVec2(lineStartScreenPos.x + mTextStart - lineNoSize.x, lineStartScreenPos.y),
+                                  ImVec2(lineStartScreenPos.x + mTextStart, lineStartScreenPos.y + lineNoSize.y),
+                                  mPalette[(int) PaletteIndex::ErrorMarker]);
+        }
+        drawList->AddText(ImVec2(lineStartScreenPos.x + mTextStart - lineNoSize.x, lineStartScreenPos.y),
                           mPalette[(int) PaletteIndex::LineNumber], lineNumberBuffer);
       }
 

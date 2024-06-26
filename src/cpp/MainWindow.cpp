@@ -265,7 +265,7 @@ void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
 
       // [Child] Menu / toolbar for text editor
       bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
-      long lines = hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationError()) + 1 : 1;
+      long lines = hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationErrorMessage()) + 1 : 1;
       ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
       ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1),
                                           ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * static_cast<float>(lines)));
@@ -275,6 +275,10 @@ void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
         {
           auto newCode = editor.GetText();
           auto edited = newCode != fCurrentFragmentShader->getCode();
+          if(!edited && hasCompilationError)
+            editor.AddErrorMarker(fCurrentFragmentShader->getCompilationErrorLine());
+          else
+            editor.ClearErrorMarkers();
           if(ImGui::BeginMenu("M"))
           {
             if(ImGui::MenuItem("Compile", "CTRL + SPACE", false, edited))
@@ -294,12 +298,13 @@ void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
         }
         if(fCurrentFragmentShader->hasCompilationError())
         {
-          ImGui::Text("%s", fCurrentFragmentShader->getCompilationError().c_str());
+          ImGui::Text("%s", fCurrentFragmentShader->getCompilationErrorMessage().c_str());
         }
         ImGui::EndChild();
       }
       ImGui::PopStyleColor();
 
+      // [Editor] Render
       editor.Render("Code", iEditorHasFocus, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar);
 
       ImGui::EndTabItem();

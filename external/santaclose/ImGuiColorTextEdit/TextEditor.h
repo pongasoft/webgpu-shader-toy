@@ -78,6 +78,8 @@ public:
 	int GetFirstVisibleLine();
 	int GetLastVisibleLine();
 	void SetViewAtLine(int aLine, SetViewAtLineMode aMode);
+  void AddErrorMarker(int aLine) { mErrorMarkers.emplace(aLine); }
+  void ClearErrorMarkers() { mErrorMarkers.clear(); }
 
 	void Copy();
 	void Cut();
@@ -442,7 +444,7 @@ private:
 	Palette mPalette;
 	LanguageDefinitionId mLanguageDefinitionId;
 	const LanguageDefinition* mLanguageDefinition = nullptr;
-	RegexList mRegexList;
+  std::unordered_set<int> mErrorMarkers{};
 
 	inline bool IsHorizontalScrollbarVisible() const { return mCurrentSpaceWidth > mContentWidth; }
 	inline bool IsVerticalScrollbarVisible() const { return mCurrentSpaceHeight > mContentHeight; }
