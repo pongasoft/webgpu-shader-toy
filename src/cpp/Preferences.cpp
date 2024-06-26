@@ -53,6 +53,8 @@ State Preferences::loadState(std::string_view iKey, State const &iDefaultState)
   {
     state.fDarkStyle = data.value("fDarkStyle", state.fDarkStyle);
     state.fHiDPIAware = data.value("fHiDPIAware", state.fHiDPIAware);
+    state.fLineSpacing = data.value("fLineSpacing", state.fLineSpacing);
+    state.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", state.fCodeShowWhiteSpace);
     state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
     state.fMainWindowSize = impl::value(data, "fMainWindowSize", state.fMainWindowSize);
     state.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", state.fFragmentShaderWindowSize);
@@ -112,6 +114,8 @@ std::string Preferences::serialize(State const &iState)
     {"fFragmentShaderWindowSize", { {"width", iState.fFragmentShaderWindowSize.width}, {"height", iState.fFragmentShaderWindowSize.height} } },
     {"fDarkStyle", iState.fDarkStyle},
     {"fHiDPIAware", iState.fHiDPIAware},
+    {"fLineSpacing", iState.fLineSpacing},
+    {"fCodeShowWhiteSpace", iState.fCodeShowWhiteSpace},
     {"fAspectRatio", iState.fAspectRatio},
     {"fShaders", shaders}
   };

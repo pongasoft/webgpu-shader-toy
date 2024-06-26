@@ -2235,6 +2235,8 @@ void TextEditor::Render(bool aParentIsFocused)
   }
 
   ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
+  cursorScreenPos.y += ImGui::GetStyle().WindowPadding.y;
+  ImGui::SetCursorScreenPos(cursorScreenPos);
   mScrollX = ImGui::GetScrollX();
   mScrollY = ImGui::GetScrollY();
   UpdateViewVariables(mScrollX, mScrollY);

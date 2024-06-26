@@ -142,6 +142,16 @@ void MainWindow::doRenderMainMenuBar()
           setStyle(*newDarkStyle);
         ImGui::EndMenu();
       }
+      if(ImGui::BeginMenu("Code"))
+      {
+        if(ImGui::BeginMenu("Line Spacing"))
+        {
+          ImGui::SliderFloat("###line_spacing", &fLineSpacing, 1.0f, 2.0f);
+          ImGui::EndMenu();
+        }
+        ImGui::MenuItem("Show White Space", nullptr, &fCodeShowWhiteSpace);
+        ImGui::EndMenu();
+      }
       if(ImGui::MenuItem("Save"))
         saveState();
       if(ImGui::MenuItem("Quit"))
@@ -230,6 +240,8 @@ void MainWindow::doRenderShaderSection()
     {
       auto &editor = fCurrentFragmentShader->edit();
       editor.SetPalette(fDarkStyle ? TextEditor::PaletteId::Dark : TextEditor::PaletteId::Light);
+      editor.SetLineSpacing(fLineSpacing);
+      editor.SetShowWhitespacesEnabled(fCodeShowWhiteSpace);
 
       // [Child] Menu / toolbar for text editor
       bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
@@ -253,10 +265,6 @@ void MainWindow::doRenderShaderSection()
             if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
             {
               editor.SetText(fCurrentFragmentShader->getCode());
-            }
-            if(ImGui::MenuItem("Show White Space", nullptr, editor.IsShowWhitespacesEnabled()))
-            {
-              editor.SetShowWhitespacesEnabled(!editor.IsShowWhitespacesEnabled());
             }
             ImGui::EndMenu();
           }
@@ -494,6 +502,8 @@ State MainWindow::computeState() const
     .fFragmentShaderWindowSize = fFragmentShaderWindow->getSize(),
     .fDarkStyle = fDarkStyle,
     .fHiDPIAware = fFragmentShaderWindow->isHiDPIAware(),
+    .fLineSpacing = fLineSpacing,
+    .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
     .fAspectRatio = fCurrentAspectRatio,
     .fCurrentShader = fCurrentFragmentShader
                       ? std::optional<std::string>(fCurrentFragmentShader->getName())
@@ -517,6 +527,8 @@ void MainWindow::initFromState(State const &iState)
   resize(iState.fMainWindowSize);
   if(fFragmentShaderWindow->isHiDPIAware() != iState.fHiDPIAware)
     fFragmentShaderWindow->toggleHiDPIAwareness();
+  fLineSpacing = iState.fLineSpacing;
+  fCodeShowWhiteSpace = iState.fCodeShowWhiteSpace;
   if(fCurrentAspectRatio != iState.fAspectRatio)
   {
     auto iter = std::find_if(kAspectRatios.begin(), kAspectRatios.end(),

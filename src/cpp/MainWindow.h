@@ -76,6 +76,8 @@ private:
   std::string fLastComputedState;
   double fLastComputedStateTime;
   bool fDarkStyle{true};
+  float fLineSpacing{1.0f};
+  bool fCodeShowWhiteSpace{false};
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
 
