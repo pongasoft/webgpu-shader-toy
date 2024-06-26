@@ -69,6 +69,7 @@ private:
   void doRenderMainMenuBar();
   void doRenderControlsSection();
   void doRenderShaderSection(bool iEditorHasFocus);
+  void compile(std::string const &iNewCode);
 
 private:
   std::shared_ptr<Preferences> fPreferences;

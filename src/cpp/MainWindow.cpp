@@ -225,6 +225,17 @@ void MainWindow::doRenderControlsSection()
   }
 }
 
+
+//------------------------------------------------------------------------
+// MainWindow::compile
+//------------------------------------------------------------------------
+void MainWindow::compile(std::string const &iNewCode)
+{
+  ASSERT(fCurrentFragmentShader != nullptr);
+  fCurrentFragmentShader->updateCode(iNewCode);
+  fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+}
+
 //------------------------------------------------------------------------
 // MainWindow::doRenderShaderSection
 //------------------------------------------------------------------------
@@ -243,6 +254,15 @@ void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
       editor.SetLineSpacing(fLineSpacing);
       editor.SetShowWhitespacesEnabled(fCodeShowWhiteSpace);
 
+      // [Keyboard shortcut]
+      if(iEditorHasFocus && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Space))
+      {
+        auto newCode = editor.GetText();
+        auto edited = newCode != fCurrentFragmentShader->getCode();
+        if(edited)
+          compile(newCode);
+      }
+
       // [Child] Menu / toolbar for text editor
       bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
       long lines = hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationError()) + 1 : 1;
@@ -257,32 +277,19 @@ void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
           auto edited = newCode != fCurrentFragmentShader->getCode();
           if(ImGui::BeginMenu("M"))
           {
-            if(ImGui::MenuItem("Apply Changes", nullptr, false, edited))
-            {
-              fCurrentFragmentShader->updateCode(newCode);
-              fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
-            }
+            if(ImGui::MenuItem("Compile", "CTRL + SPACE", false, edited))
+              compile(newCode);
             if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
-            {
               editor.SetText(fCurrentFragmentShader->getCode());
-            }
             ImGui::EndMenu();
           }
           int lineCount, columnCount;
           editor.GetCursorPosition(lineCount, columnCount);
           ImGui::Text("%d/%d | %d lines", lineCount + 1, columnCount + 1, editor.GetLineCount());
-          if(ImGui::Button("C"))
-          {
-            glfwSetClipboardString(fWindow, fCurrentFragmentShader->getCode().c_str());
-          }
-          if(edited)
-          {
-            if(ImGui::Button("A"))
-            {
-              fCurrentFragmentShader->updateCode(newCode);
-              fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
-            }
-          }
+          ImGui::BeginDisabled(!edited);
+          if(ImGui::Button("Compile"))
+            compile(newCode);
+          ImGui::EndDisabled();
           ImGui::EndMenuBar();
         }
         if(fCurrentFragmentShader->hasCompilationError())
