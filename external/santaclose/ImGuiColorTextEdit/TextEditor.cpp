@@ -1963,7 +1963,7 @@ ImU32 TextEditor::GetGlyphColor(const Glyph &aGlyph) const
 
 void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 {
-  if((ImGui::IsWindowFocused() || aParentIsFocused) && !ImGui::IsAnyItemActive())
+  if(ImGui::IsWindowFocused() || aParentIsFocused)
   {
     if(ImGui::IsWindowHovered())
       ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);

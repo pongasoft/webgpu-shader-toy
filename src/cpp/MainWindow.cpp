@@ -228,7 +228,7 @@ void MainWindow::doRenderControlsSection()
 //------------------------------------------------------------------------
 // MainWindow::doRenderShaderSection
 //------------------------------------------------------------------------
-void MainWindow::doRenderShaderSection()
+void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
 {
   // [Section] Shader
   ImGui::SeparatorText("Shader");
@@ -293,7 +293,7 @@ void MainWindow::doRenderShaderSection()
       }
       ImGui::PopStyleColor();
 
-      editor.Render("Code", true, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar);
+      editor.Render("Code", iEditorHasFocus, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar);
 
       ImGui::EndTabItem();
     }
@@ -319,6 +319,8 @@ void MainWindow::doRenderShaderSection()
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
+  auto editorHasFocus = !ImGui::IsAnyItemActive();
+
   doRenderMainMenuBar();
 
   // The main window occupies the full available space
@@ -374,7 +376,7 @@ void MainWindow::doRender()
     if(fCurrentFragmentShader)
     {
       doRenderControlsSection();
-      doRenderShaderSection();
+      doRenderShaderSection(editorHasFocus);
     }
     else
     {

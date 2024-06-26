@@ -68,7 +68,7 @@ private:
   State computeState() const;
   void doRenderMainMenuBar();
   void doRenderControlsSection();
-  void doRenderShaderSection();
+  void doRenderShaderSection(bool iEditorHasFocus);
 
 private:
   std::shared_ptr<Preferences> fPreferences;
