@@ -421,6 +421,10 @@ bool TextEditor::Render(const char *aTitle, bool aParentIsFocused, const ImVec2 
 
   ImGui::BeginChild(aTitle, aSize, child_flags, window_flags);
 
+  ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
+  cursorScreenPos.y += ImGui::GetStyle().WindowPadding.y;
+  ImGui::SetCursorScreenPos(cursorScreenPos);
+
   bool isFocused = ImGui::IsWindowFocused();
   HandleKeyboardInputs(aParentIsFocused);
   HandleMouseInputs();
@@ -2235,8 +2239,6 @@ void TextEditor::Render(bool aParentIsFocused)
   }
 
   ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
-  cursorScreenPos.y += ImGui::GetStyle().WindowPadding.y;
-  ImGui::SetCursorScreenPos(cursorScreenPos);
   mScrollX = ImGui::GetScrollX();
   mScrollY = ImGui::GetScrollY();
   UpdateViewVariables(mScrollX, mScrollY);
