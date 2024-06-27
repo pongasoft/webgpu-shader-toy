@@ -68,10 +68,11 @@ private:
   void initFromState(State const &iState);
   void setStyle(bool iDarkStyle);
   State computeState() const;
-  void doRenderDialog();
-  void doRenderMainMenuBar();
-  void doRenderControlsSection();
-  void doRenderShaderSection(bool iEditorHasFocus);
+  void renderDialog();
+  void renderMainMenuBar();
+  void renderSettingsMenu();
+  void renderControlsSection();
+  void renderShaderSection(bool iEditorHasFocus);
   void compile(std::string const &iNewCode);
   void promptNewEmtpyShader();
   void promptRenameCurrentShader();

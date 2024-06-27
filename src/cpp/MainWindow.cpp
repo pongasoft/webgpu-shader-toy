@@ -127,10 +127,59 @@ inline long lineCount(std::string const &s)
 static bool kShowDemoWindow = false;
 #endif
 
+
 //------------------------------------------------------------------------
-// MainWindow::doRenderMainMenuBar
+// MainWindow::renderSettingsMenu
 //------------------------------------------------------------------------
-void MainWindow::doRenderMainMenuBar()
+void MainWindow::renderSettingsMenu()
+{
+  if(ImGui::BeginMenu("Style"))
+  {
+    std::optional<bool> newDarkStyle{};
+    if(ImGui::MenuItem("Dark", nullptr, fDarkStyle))
+      newDarkStyle = true;
+    if(ImGui::MenuItem("Light", nullptr, !fDarkStyle))
+      newDarkStyle = false;
+    if(newDarkStyle)
+      setStyle(*newDarkStyle);
+    ImGui::EndMenu();
+  }
+  if(ImGui::BeginMenu("Code"))
+  {
+    if(ImGui::BeginMenu("Line Spacing"))
+    {
+      ImGui::SliderFloat("###line_spacing", &fLineSpacing, 1.0f, 2.0f);
+      ImGui::EndMenu();
+    }
+    ImGui::MenuItem("Show White Space", nullptr, &fCodeShowWhiteSpace);
+    ImGui::EndMenu();
+  }
+  if(ImGui::BeginMenu("Window"))
+  {
+    if(ImGui::MenuItem("Hi DPI", nullptr, fFragmentShaderWindow->isHiDPIAware()))
+    {
+      fFragmentShaderWindow->toggleHiDPIAwareness();
+    }
+    if(ImGui::BeginMenu("Aspect Ratio"))
+    {
+      for(auto &[name, aspectRatio]: kAspectRatios)
+      {
+        if(ImGui::MenuItem(name.c_str(), nullptr, name == fCurrentAspectRatio))
+        {
+          fCurrentAspectRatio = name;
+          fAspectRatioRequest = aspectRatio;
+        }
+      }
+      ImGui::EndMenu();
+    }
+    ImGui::EndMenu();
+  }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::renderMainMenuBar
+//------------------------------------------------------------------------
+void MainWindow::renderMainMenuBar()
 {
   if(ImGui::BeginMainMenuBar())
   {
@@ -138,45 +187,9 @@ void MainWindow::doRenderMainMenuBar()
     {
       if(ImGui::MenuItem("Reset"))
         fResetRequest = true;
-      if(ImGui::BeginMenu("Style"))
+      if(ImGui::BeginMenu("Settings"))
       {
-        std::optional<bool> newDarkStyle{};
-        if(ImGui::MenuItem("Dark", nullptr, fDarkStyle))
-          newDarkStyle = true;
-        if(ImGui::MenuItem("Light", nullptr, !fDarkStyle))
-          newDarkStyle = false;
-        if(newDarkStyle)
-          setStyle(*newDarkStyle);
-        ImGui::EndMenu();
-      }
-      if(ImGui::BeginMenu("Code"))
-      {
-        if(ImGui::BeginMenu("Line Spacing"))
-        {
-          ImGui::SliderFloat("###line_spacing", &fLineSpacing, 1.0f, 2.0f);
-          ImGui::EndMenu();
-        }
-        ImGui::MenuItem("Show White Space", nullptr, &fCodeShowWhiteSpace);
-        ImGui::EndMenu();
-      }
-      if(ImGui::BeginMenu("Window"))
-      {
-        if(ImGui::MenuItem("Hi DPI", nullptr, fFragmentShaderWindow->isHiDPIAware()))
-        {
-          fFragmentShaderWindow->toggleHiDPIAwareness();
-        }
-        if(ImGui::BeginMenu("Aspect Ratio"))
-        {
-          for(auto &[name, aspectRatio]: kAspectRatios)
-          {
-            if(ImGui::MenuItem(name.c_str(), nullptr, name == fCurrentAspectRatio))
-            {
-              fCurrentAspectRatio = name;
-              fAspectRatioRequest = aspectRatio;
-            }
-          }
-          ImGui::EndMenu();
-        }
+        renderSettingsMenu();
         ImGui::EndMenu();
       }
       if(ImGui::MenuItem("Save"))
@@ -221,9 +234,9 @@ void MainWindow::doRenderMainMenuBar()
 }
 
 //------------------------------------------------------------------------
-// MainWindow::doRenderControlsSection
+// MainWindow::renderControlsSection
 //------------------------------------------------------------------------
-void MainWindow::doRenderControlsSection()
+void MainWindow::renderControlsSection()
 {
   // [Section] Controls
   ImGui::SeparatorText("Controls");
@@ -314,9 +327,9 @@ void MainWindow::renameShader(std::string const &iOldName, std::string const &iN
 }
 
 //------------------------------------------------------------------------
-// MainWindow::doRenderShaderSection
+// MainWindow::renderShaderSection
 //------------------------------------------------------------------------
-void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
+void MainWindow::renderShaderSection(bool iEditorHasFocus)
 {
   // [Section] Shader
   ImGui::SeparatorText("Shader");
@@ -410,9 +423,9 @@ void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
 }
 
 //------------------------------------------------------------------------
-// MainWindow::doRenderDialog
+// MainWindow::renderDialog
 //------------------------------------------------------------------------
-void MainWindow::doRenderDialog()
+void MainWindow::renderDialog()
 {
   if(!fCurrentDialog)
   {
@@ -434,10 +447,10 @@ void MainWindow::doRender()
 {
   auto editorHasFocus = !ImGui::IsAnyItemActive() && !hasDialog();
 
-  doRenderMainMenuBar();
+  renderMainMenuBar();
 
   if(hasDialog())
-    doRenderDialog();
+    renderDialog();
 
   // The main window occupies the full available space
   ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
@@ -510,8 +523,8 @@ void MainWindow::doRender()
 
     if(fCurrentFragmentShader)
     {
-      doRenderControlsSection();
-      doRenderShaderSection(editorHasFocus);
+      renderControlsSection();
+      renderShaderSection(editorHasFocus);
     }
     else
     {
