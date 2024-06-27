@@ -70,6 +70,7 @@ private:
   void doRenderControlsSection();
   void doRenderShaderSection(bool iEditorHasFocus);
   void compile(std::string const &iNewCode);
+  Shader newEmtpyShader() const;
 
 private:
   std::shared_ptr<Preferences> fPreferences;

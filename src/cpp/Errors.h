@@ -41,7 +41,7 @@ struct Exception : public std::logic_error {
   }
 };
 
-#define ASSERT(test, ...) (test) == true ? (void)0 : pongasoft::Exception::throwException("CHECK FAILED: [" #test "]", __FILE__, __LINE__, ##__VA_ARGS__)
+#define WST_INTERNAL_ASSERT(test, ...) (test) == true ? (void)0 : pongasoft::Exception::throwException("CHECK FAILED: [" #test "]", __FILE__, __LINE__, ##__VA_ARGS__)
 
 
 }

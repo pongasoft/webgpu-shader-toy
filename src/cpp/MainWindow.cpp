@@ -59,6 +59,13 @@ void OnBeforeUnload(MainWindow *iMainWindow)
 // Some shader examples
 extern std::vector<Shader> kFragmentShaderExamples;
 
+// Empty shader
+auto constexpr kEmptyShader = R"(@fragment
+fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    return vec4f(0.5, 0.5, 0.5, 1);
+}
+)";
+
 // kAspectRatios
 static std::vector<std::pair<std::string, Window::AspectRatio>> kAspectRatios{
   {"Free", Window::AspectRatio{GLFW_DONT_CARE, GLFW_DONT_CARE}},
@@ -152,32 +159,35 @@ void MainWindow::doRenderMainMenuBar()
         ImGui::MenuItem("Show White Space", nullptr, &fCodeShowWhiteSpace);
         ImGui::EndMenu();
       }
+      if(ImGui::BeginMenu("Window"))
+      {
+        if(ImGui::MenuItem("Hi DPI", nullptr, fFragmentShaderWindow->isHiDPIAware()))
+        {
+          fFragmentShaderWindow->toggleHiDPIAwareness();
+        }
+        if(ImGui::BeginMenu("Aspect Ratio"))
+        {
+          for(auto &[name, aspectRatio]: kAspectRatios)
+          {
+            if(ImGui::MenuItem(name.c_str(), nullptr, name == fCurrentAspectRatio))
+            {
+              fCurrentAspectRatio = name;
+              fAspectRatioRequest = aspectRatio;
+            }
+          }
+          ImGui::EndMenu();
+        }
+        ImGui::EndMenu();
+      }
       if(ImGui::MenuItem("Save"))
         saveState();
       if(ImGui::MenuItem("Quit"))
         stop();
       ImGui::EndMenu();
     }
-    if(ImGui::BeginMenu("Window"))
-    {
-      if(ImGui::MenuItem("Hi DPI", nullptr, fFragmentShaderWindow->isHiDPIAware()))
-      {
-        fFragmentShaderWindow->toggleHiDPIAwareness();
-      }
-      if(ImGui::BeginMenu("Aspect Ratio"))
-      {
-        for(auto &[name, aspectRatio]: kAspectRatios)
-        {
-          if(ImGui::MenuItem(name.c_str(), nullptr, name == fCurrentAspectRatio))
-          {
-            fCurrentAspectRatio = name;
-            fAspectRatioRequest = aspectRatio;
-          }
-        }
-        ImGui::EndMenu();
-      }
-      ImGui::EndMenu();
-    }
+
+    ImGui::Text("|");
+
     if(ImGui::BeginMenu("Examples"))
     {
       for(auto &shader: kFragmentShaderExamples)
@@ -231,9 +241,20 @@ void MainWindow::doRenderControlsSection()
 //------------------------------------------------------------------------
 void MainWindow::compile(std::string const &iNewCode)
 {
-  ASSERT(fCurrentFragmentShader != nullptr);
+  WST_INTERNAL_ASSERT(fCurrentFragmentShader != nullptr);
   fCurrentFragmentShader->updateCode(iNewCode);
   fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+}
+
+//------------------------------------------------------------------------
+// MainWindow::newEmtpyShader
+//------------------------------------------------------------------------
+Shader MainWindow::newEmtpyShader() const
+{
+  std::string name = "Untitled";
+  while(fFragmentShaders.contains(name))
+    name += "(1)";
+  return {name, kEmptyShader};
 }
 
 //------------------------------------------------------------------------
@@ -369,7 +390,7 @@ void MainWindow::doRender()
           deleteFragmentShader(*fragmentShaderToDelete);
         else
         {
-          ASSERT(fCurrentFragmentShader != nullptr);
+          WST_INTERNAL_ASSERT(fCurrentFragmentShader != nullptr);
           if(fCurrentFragmentShader->getName() != selectedFragmentShader)
           {
             fCurrentFragmentShader = fFragmentShaders[selectedFragmentShader];
@@ -379,9 +400,28 @@ void MainWindow::doRender()
       }
       // + to add a new shader (from file)
       if(ImGui::TabItemButton("+"))
+        ImGui::OpenPopup("Add Shader");
+
+      if(ImGui::BeginPopup("Add Shader"))
       {
-        wgpu_shader_toy_open_file_dialog();
+        if(ImGui::MenuItem("New"))
+          onNewFragmentShader(newEmtpyShader());
+        if(ImGui::MenuItem("Load"))
+          wgpu_shader_toy_open_file_dialog();
+        if(ImGui::BeginMenu("Examples"))
+        {
+          for(auto &shader: kFragmentShaderExamples)
+          {
+            if(ImGui::MenuItem(shader.fName.c_str()))
+            {
+              onNewFragmentShader(shader);
+            }
+          }
+          ImGui::EndMenu();
+        }
+        ImGui::EndPopup();
       }
+
       ImGui::EndTabBar();
     }
 

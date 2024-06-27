@@ -38,7 +38,7 @@ static void wgpuErrorCallback(WGPUErrorType iErrorType, const char *iMessage, vo
 std::unique_ptr<GPU> GPU::create()
 {
   wgpu::Device device = emscripten_webgpu_get_device();
-  ASSERT(device != nullptr, "Device not initialized");
+  WST_INTERNAL_ASSERT(device != nullptr, "Device not initialized");
   return std::unique_ptr<GPU>(new GPU(std::move(device)));
 }
 
@@ -65,7 +65,7 @@ void GPU::beginFrame()
 //------------------------------------------------------------------------
 void GPU::endFrame()
 {
-  ASSERT(fCommandEncoder != nullptr, "GPU::beginFrame has not been called");
+  WST_INTERNAL_ASSERT(fCommandEncoder != nullptr, "GPU::beginFrame has not been called");
   wgpu::CommandBuffer commands = fCommandEncoder.Finish();
   fDevice.GetQueue().Submit(1, &commands);
   fCommandEncoder = nullptr;
@@ -78,8 +78,8 @@ void GPU::renderPass(wgpu::Color const &iColor,
                      GPU::render_pass_fn_t const &iRenderPassFn,
                      wgpu::TextureView const &iTextureView)
 {
-  ASSERT(fCommandEncoder != nullptr, "GPU::beginFrame has not been called");
-  ASSERT(iTextureView != nullptr);
+  WST_INTERNAL_ASSERT(fCommandEncoder != nullptr, "GPU::beginFrame has not been called");
+  WST_INTERNAL_ASSERT(iTextureView != nullptr);
 
   wgpu::RenderPassColorAttachment attachment{
     .view = iTextureView,

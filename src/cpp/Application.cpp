@@ -42,7 +42,7 @@ Application::Application()
   printf("%s\n", glfwGetVersionString());
 
   // initialize the library
-  ASSERT(glfwInit() == GLFW_TRUE);
+  WST_INTERNAL_ASSERT(glfwInit() == GLFW_TRUE);
 
   // no OpenGL (use WebGPU)
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -73,25 +73,25 @@ void Application::mainLoop()
     // beforeFrame
     for(auto &r: fRenderableList)
     {
-      r->beforeFrame(); ASSERT(!fGPU->hasError());
+      r->beforeFrame(); WST_INTERNAL_ASSERT(!fGPU->hasError());
     }
 
     // GPU -> beginFrame
-    fGPU->beginFrame(); ASSERT(!fGPU->hasError());
+    fGPU->beginFrame(); WST_INTERNAL_ASSERT(!fGPU->hasError());
 
     // render
     for(auto &r: fRenderableList)
     {
-      r->render(); ASSERT(!fGPU->hasError());
+      r->render(); WST_INTERNAL_ASSERT(!fGPU->hasError());
     }
 
     // GPU -> endFrame
-    fGPU->endFrame(); ASSERT(!fGPU->hasError());
+    fGPU->endFrame(); WST_INTERNAL_ASSERT(!fGPU->hasError());
 
     // afterFrame
     for(auto &r: fRenderableList)
     {
-      r->afterFrame(); ASSERT(!fGPU->hasError());
+      r->afterFrame(); WST_INTERNAL_ASSERT(!fGPU->hasError());
     }
 
     fRunning = true;

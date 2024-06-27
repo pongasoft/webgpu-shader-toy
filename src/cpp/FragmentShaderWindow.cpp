@@ -245,7 +245,7 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
 //  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::onShaderCompilationResult");
 
   // sanity check
-  ASSERT(iFragmentShader->isCompiling());
+  WST_INTERNAL_ASSERT(iFragmentShader->isCompiling());
 
   // at this time, it always returns success even when failure...
 //  if(iStatus != wgpu::CompilationInfoRequestStatus::Success)
@@ -314,7 +314,7 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
   };
 
   auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
-  ASSERT(pipeline != nullptr, "Cannot create render pipeline");
+  WST_INTERNAL_ASSERT(pipeline != nullptr, "Cannot create render pipeline");
 
   iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
   initFragmentShader(iFragmentShader);

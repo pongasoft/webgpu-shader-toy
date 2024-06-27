@@ -33,11 +33,8 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   // Tutorial
   {"Tutorial", R"(@fragment
 fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  let period = 5.0;
-  let half_period = period / 2.0;
-  let cycle_value = inputs.time % period;
-  let b = half_period - abs(cycle_value - half_period);
-  var color = vec4f(b / half_period, pos.xy / inputs.size.xy, 1);
+  let red = (sin(inputs.time) + 1.0) / 2.0; // range [0, 1]
+  var color = vec4f(red, pos.xy / inputs.size.xy, 1);
   if(inputs.mouse.z > -1 && length(pos.xy - inputs.mouse.xy) <= 25.0 * inputs.size.z) {
     color.a = 0.8;
   }

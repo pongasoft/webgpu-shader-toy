@@ -44,7 +44,7 @@ Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) : Renderable(std::m
   emscripten_glfw_set_next_window_canvas_selector(iArgs.canvas.selector);
 
   fWindow = glfwCreateWindow(iArgs.size.width, iArgs.size.height, iArgs.title, nullptr, nullptr);
-  ASSERT(fWindow != nullptr, "Cannot create GLFW Window [%s]", iArgs.title);
+  WST_INTERNAL_ASSERT(fWindow != nullptr, "Cannot create GLFW Window [%s]", iArgs.title);
 
   emscripten_glfw_make_canvas_resizable(fWindow, iArgs.canvas.resizeSelector, iArgs.canvas.handleSelector);
 
@@ -58,7 +58,7 @@ Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) : Renderable(std::m
   wgpu::SurfaceDescriptor surface_desc = { .nextInChain = &html_surface_desc };
 
   fSurface = fGPU->getInstance().CreateSurface(&surface_desc);
-  ASSERT(fSurface != nullptr, "Cannot create surface for [%s]", iArgs.canvas.selector);
+  WST_INTERNAL_ASSERT(fSurface != nullptr, "Cannot create surface for [%s]", iArgs.canvas.selector);
   initPreferredFormat(fSurface.GetPreferredFormat(nullptr));
 
   // will initialize the swapchain on first frame
