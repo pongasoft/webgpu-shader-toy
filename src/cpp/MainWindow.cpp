@@ -17,13 +17,13 @@
  */
 
 #include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 #include <GLFW/glfw3.h>
 #include "MainWindow.h"
 #include "JetBrainsMono-Regular.cpp"
 #include "Errors.h"
-#include <ranges>
 #include <iostream>
-#include <sstream>
+
 
 namespace shader_toy {
 extern "C" {
@@ -188,6 +188,15 @@ void MainWindow::doRenderMainMenuBar()
 
     ImGui::Text("|");
 
+    if(fCurrentFragmentShader)
+    {
+      if(ImGui::BeginMenu("Shader"))
+      {
+        // defined later...
+        ImGui::EndMenu();
+      }
+    }
+
     if(ImGui::BeginMenu("Examples"))
     {
       for(auto &shader: kFragmentShaderExamples)
@@ -247,14 +256,61 @@ void MainWindow::compile(std::string const &iNewCode)
 }
 
 //------------------------------------------------------------------------
-// MainWindow::newEmtpyShader
+// MainWindow::promptNewEmtpyShader
 //------------------------------------------------------------------------
-Shader MainWindow::newEmtpyShader() const
+void MainWindow::promptNewEmtpyShader()
 {
-  std::string name = "Untitled";
-  while(fFragmentShaders.contains(name))
-    name += "(1)";
-  return {name, kEmptyShader};
+  static std::string kShaderName{};
+
+  kShaderName.clear();
+
+  newDialog("New Shader | Name")
+    .lambda([] {
+      ImGui::InputText("###name", &kShaderName);
+    })
+    .button("Create", [this] {
+      onNewFragmentShader({kShaderName, kEmptyShader});
+    }, true)
+    .buttonCancel()
+    ;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::promptRenameCurrentShader
+//------------------------------------------------------------------------
+void MainWindow::promptRenameCurrentShader()
+{
+  static std::string kNewShaderName{};
+
+  if(!fCurrentFragmentShader)
+    return;
+
+  auto const currentName = fCurrentFragmentShader->getName();
+
+  kNewShaderName = fCurrentFragmentShader->getName();
+
+  newDialog("Rename Shader")
+    .lambda([] {
+      ImGui::InputText("###name", &kNewShaderName);
+    })
+    .button("Rename", [currentName, this] {
+      renameShader(currentName, kNewShaderName);
+    }, true)
+    .buttonCancel()
+    ;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::renameShader
+//------------------------------------------------------------------------
+void MainWindow::renameShader(std::string const &iOldName, std::string const &iNewName)
+{
+  auto oldShader = deleteFragmentShader(iOldName);
+  if(oldShader)
+  {
+    oldShader->setName(iNewName);
+    onNewFragmentShader(std::move(oldShader));
+  }
 }
 
 //------------------------------------------------------------------------
@@ -292,22 +348,28 @@ void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
                                           ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * static_cast<float>(lines)));
       if(ImGui::BeginChild("Menu Bar", {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_HorizontalScrollbar))
       {
-        if(ImGui::BeginMenuBar())
+        auto newCode = editor.GetText();
+        auto edited = newCode != fCurrentFragmentShader->getCode();
+        if(ImGui::BeginMainMenuBar())
         {
-          auto newCode = editor.GetText();
-          auto edited = newCode != fCurrentFragmentShader->getCode();
-          if(!edited && hasCompilationError)
-            editor.AddErrorMarker(fCurrentFragmentShader->getCompilationErrorLine());
-          else
-            editor.ClearErrorMarkers();
-          if(ImGui::BeginMenu("M"))
+          if(ImGui::BeginMenu("Shader"))
           {
             if(ImGui::MenuItem("Compile", "CTRL + SPACE", false, edited))
               compile(newCode);
             if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
               editor.SetText(fCurrentFragmentShader->getCode());
+            if(ImGui::MenuItem("Rename"))
+              promptRenameCurrentShader();
             ImGui::EndMenu();
           }
+          ImGui::EndMainMenuBar();
+        }
+        if(ImGui::BeginMenuBar())
+        {
+          if(!edited && hasCompilationError)
+            editor.AddErrorMarker(fCurrentFragmentShader->getCompilationErrorLine());
+          else
+            editor.ClearErrorMarkers();
           int lineCount, columnCount;
           editor.GetCursorPosition(lineCount, columnCount);
           ImGui::Text("%d/%d | %d lines", lineCount + 1, columnCount + 1, editor.GetLineCount());
@@ -348,13 +410,34 @@ void MainWindow::doRenderShaderSection(bool iEditorHasFocus)
 }
 
 //------------------------------------------------------------------------
+// MainWindow::doRenderDialog
+//------------------------------------------------------------------------
+void MainWindow::doRenderDialog()
+{
+  if(!fCurrentDialog)
+  {
+    if(fDialogs.empty())
+      return;
+    fCurrentDialog = std::move(fDialogs[0]);
+    fDialogs.erase(fDialogs.begin());
+  }
+
+  fCurrentDialog->render();
+  if(!fCurrentDialog->isOpen())
+    fCurrentDialog = nullptr;
+}
+
+//------------------------------------------------------------------------
 // MainWindow::doRender
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
-  auto editorHasFocus = !ImGui::IsAnyItemActive();
+  auto editorHasFocus = !ImGui::IsAnyItemActive() && !hasDialog();
 
   doRenderMainMenuBar();
+
+  if(hasDialog())
+    doRenderDialog();
 
   // The main window occupies the full available space
   ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
@@ -405,7 +488,7 @@ void MainWindow::doRender()
       if(ImGui::BeginPopup("Add Shader"))
       {
         if(ImGui::MenuItem("New"))
-          onNewFragmentShader(newEmtpyShader());
+          promptNewEmtpyShader();
         if(ImGui::MenuItem("Load"))
           wgpu_shader_toy_open_file_dialog();
         if(ImGui::BeginMenu("Examples"))
@@ -446,9 +529,9 @@ void MainWindow::doRender()
 //------------------------------------------------------------------------
 // MainWindow::onNewFragmentShader
 //------------------------------------------------------------------------
-void MainWindow::onNewFragmentShader(Shader const &iShader)
+void MainWindow::onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
 {
-  fCurrentFragmentShader = std::make_shared<FragmentShader>(iShader);
+  fCurrentFragmentShader = std::move(iFragmentShader);
   fFragmentShaders[fCurrentFragmentShader->getName()] = fCurrentFragmentShader;
   if(std::ranges::find(fFragmentShaderTabs, fCurrentFragmentShader->getName()) == fFragmentShaderTabs.end())
   {
@@ -459,13 +542,27 @@ void MainWindow::onNewFragmentShader(Shader const &iShader)
 }
 
 //------------------------------------------------------------------------
+// MainWindow::onNewFragmentShader
+//------------------------------------------------------------------------
+void MainWindow::onNewFragmentShader(Shader const &iShader)
+{
+  onNewFragmentShader(std::make_shared<FragmentShader>(iShader));
+}
+
+//------------------------------------------------------------------------
 // MainWindow::deleteFragmentShader
 //------------------------------------------------------------------------
-void MainWindow::deleteFragmentShader(std::string const &iName)
+std::shared_ptr<FragmentShader> MainWindow::deleteFragmentShader(std::string const &iName)
 {
   fFragmentShaderTabs.erase(std::remove(fFragmentShaderTabs.begin(), fFragmentShaderTabs.end(), iName),
                             fFragmentShaderTabs.end());
-  fFragmentShaders.erase(iName);
+  std::shared_ptr<FragmentShader> oldShader{};
+  auto iter = fFragmentShaders.find(iName);
+  if(iter != fFragmentShaders.end())
+  {
+    oldShader = iter->second;
+    fFragmentShaders.erase(iter);
+  }
   if(!fFragmentShaders.empty())
   {
     if(!fCurrentFragmentShader || fCurrentFragmentShader->getName() != iName)
@@ -476,6 +573,8 @@ void MainWindow::deleteFragmentShader(std::string const &iName)
   }
   else
     fCurrentFragmentShader = nullptr;
+
+  return oldShader;
 }
 
 //------------------------------------------------------------------------
@@ -629,4 +728,23 @@ void MainWindow::setStyle(bool iDarkStyle)
     ImGui::StyleColorsLight(&style);
   ImGui::GetStyle() = style;
 }
+
+//------------------------------------------------------------------------
+// MainWindow::newDialog
+//------------------------------------------------------------------------
+gui::Dialog &MainWindow::newDialog(std::string iTitle, bool iHighPriority)
+{
+  auto dialog = std::make_unique<gui::Dialog>(std::move(iTitle));
+  if(iHighPriority)
+  {
+    fCurrentDialog = std::move(dialog);
+    return *fCurrentDialog;
+  }
+  else
+  {
+    fDialogs.emplace_back(std::move(dialog));
+    return *fDialogs[fDialogs.size() - 1];
+  }
+}
+
 }

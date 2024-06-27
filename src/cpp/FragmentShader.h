@@ -83,6 +83,7 @@ public:
   inline ShaderToyInputs const &getInputs() const { return fInputs; }
 
   std::string const &getName() const { return fName; }
+  void setName(std::string iName) { fName = std::move(iName); }
   std::string const &getCode() const { return fCode; }
 
   constexpr bool hasCompilationError() const { return std::holds_alternative<FragmentShader::State::CompiledInError>(fState); }

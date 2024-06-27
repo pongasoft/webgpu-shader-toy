@@ -20,6 +20,7 @@
 #define WGPU_SHADER_TOY_MAIN_WINDOW_H
 
 #include "gpu/ImGuiWindow.h"
+#include "gui/Dialog.h"
 #include "Preferences.h"
 #include "FragmentShaderWindow.h"
 #include <optional>
@@ -61,16 +62,22 @@ protected:
   void doRender() override;
 
 private:
-  void deleteFragmentShader(std::string const &iName);
+  void onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
+  std::shared_ptr<FragmentShader> deleteFragmentShader(std::string const &iName);
   void reset();
   void initFromState(State const &iState);
   void setStyle(bool iDarkStyle);
   State computeState() const;
+  void doRenderDialog();
   void doRenderMainMenuBar();
   void doRenderControlsSection();
   void doRenderShaderSection(bool iEditorHasFocus);
   void compile(std::string const &iNewCode);
-  Shader newEmtpyShader() const;
+  void promptNewEmtpyShader();
+  void promptRenameCurrentShader();
+  void renameShader(std::string const &iOldName, std::string const &iNewName);
+  inline bool hasDialog() const { return fCurrentDialog != nullptr || !fDialogs.empty(); }
+  gui::Dialog &newDialog(std::string iTitle, bool iHighPriority = false);
 
 private:
   std::shared_ptr<Preferences> fPreferences;
@@ -92,6 +99,9 @@ private:
   std::vector<std::string> fFragmentShaderTabs{};
   std::shared_ptr<FragmentShader>fCurrentFragmentShader{};
   TextEditor fTextEditor{};
+
+  std::vector<std::unique_ptr<gui::Dialog>> fDialogs{};
+  std::unique_ptr<gui::Dialog> fCurrentDialog{};
 
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
 };

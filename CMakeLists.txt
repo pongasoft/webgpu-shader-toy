@@ -30,6 +30,11 @@ set(wgpu_shader_toy_sources
 
     src/cpp/main.cpp
 
+    src/cpp/gui/Dialog.h
+    src/cpp/gui/Dialog.cpp
+    src/cpp/gui/WstGui.h
+    src/cpp/gui/WstGui.cpp
+
     src/cpp/gpu/GPU.h
     src/cpp/gpu/GPU.cpp
     src/cpp/gpu/ImGuiWindow.h

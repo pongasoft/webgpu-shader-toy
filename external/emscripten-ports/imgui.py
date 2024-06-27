@@ -51,7 +51,8 @@ OPTIONS = {
     'renderer': f'Which renderer to use: {VALID_OPTION_VALUES["renderer"]} (required)',
     'backend': f'Which backend to use: {VALID_OPTION_VALUES["backend"]} (required)',
     'branch': 'Which branch to use: master (default) or docking',
-    'disableDemo': 'A boolean to disable ImGui demo (enabled by default)'
+    'disableDemo': 'A boolean to disable ImGui demo (enabled by default)',
+    'disableImGuiStdLib': 'A boolean to disable misc/cpp/imgui_stdlib.cpp (enabled by default)',
 }
 
 # user options (from --use-port)
@@ -59,7 +60,8 @@ opts: Dict[str, Union[Optional[str], bool]] = {
     'renderer': None,
     'backend': None,
     'branch': 'master',
-    'disableDemo': False
+    'disableDemo': False,
+    'disableImGuiStdLib': False
 }
 
 deps = []
@@ -104,6 +106,8 @@ def get(ports, settings, shared):
         srcs = ['imgui.cpp', 'imgui_draw.cpp', 'imgui_tables.cpp', 'imgui_widgets.cpp']
         if not opts['disableDemo']:
             srcs.append('imgui_demo.cpp')
+        if not opts['disableImGuiStdLib']:
+            srcs.append('misc/cpp/imgui_stdlib.cpp')
         srcs.append(os.path.join('backends', f'imgui_impl_{opts["backend"]}.cpp'))
         srcs.append(os.path.join('backends', f'imgui_impl_{opts["renderer"]}.cpp'))
 
