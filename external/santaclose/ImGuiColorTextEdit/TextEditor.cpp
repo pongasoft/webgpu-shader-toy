@@ -2299,9 +2299,23 @@ void TextEditor::Render(bool aParentIsFocused)
                                                             nullptr, nullptr);
         if(mErrorMarkers.contains(lineNo + 1))
         {
-          drawList->AddRectFilled(ImVec2(lineStartScreenPos.x + mTextStart - lineNoSize.x, lineStartScreenPos.y),
-                                  ImVec2(lineStartScreenPos.x + mTextStart, lineStartScreenPos.y + lineNoSize.y),
-                                  mPalette[(int) PaletteIndex::ErrorMarker]);
+          auto const cp = ImGui::GetCursorScreenPos();
+          auto const topLeft = ImVec2(lineStartScreenPos.x + mTextStart - lineNoSize.x, lineStartScreenPos.y);
+          auto const bottomRight = ImVec2(lineStartScreenPos.x + mTextStart, lineStartScreenPos.y + lineNoSize.y);
+          drawList->AddRectFilled(topLeft, bottomRight, GetErrorMarkerColor());
+          ImGui::SetCursorScreenPos(topLeft);
+          ImGui::Dummy({bottomRight.x - topLeft.x, bottomRight.y - topLeft.y});
+          if(ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+          {
+            ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::ColorConvertU32ToFloat4(GetErrorMarkerColor()));
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextUnformatted(mErrorMarkers[lineNo + 1].c_str());
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+            ImGui::PopStyleColor();
+          }
+          ImGui::SetCursorScreenPos(cp);
         }
         drawList->AddText(ImVec2(lineStartScreenPos.x + mTextStart - lineNoSize.x, lineStartScreenPos.y),
                           mPalette[(int) PaletteIndex::LineNumber], lineNumberBuffer);

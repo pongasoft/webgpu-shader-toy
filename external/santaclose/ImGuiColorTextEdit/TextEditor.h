@@ -81,9 +81,10 @@ public:
   int GetFirstVisibleLine();
   int GetLastVisibleLine();
   void SetViewAtLine(int aLine, SetViewAtLineMode aMode);
-  void AddErrorMarker(int aLine) { mErrorMarkers.emplace(aLine); }
+  void AddErrorMarker(int aLine, std::string aErrorMessage) { mErrorMarkers[aLine] = std::move(aErrorMessage); }
   void ClearErrorMarkers() { mErrorMarkers.clear(); }
   void SetOnKeyboardPasteHandler(keyboard_action_handler_t iHandler) { mOnKeyboardPasteHandler = std::move(iHandler); }
+  ImU32 GetErrorMarkerColor() const { return mPalette[(int) PaletteIndex::ErrorMarker]; }
 
   void Copy();
   void Cut();
@@ -450,7 +451,7 @@ private:
   Palette mPalette;
   LanguageDefinitionId mLanguageDefinitionId;
   const LanguageDefinition* mLanguageDefinition = nullptr;
-  std::unordered_set<int> mErrorMarkers{};
+  std::unordered_map<int, std::string> mErrorMarkers{};
   keyboard_action_handler_t mOnKeyboardPasteHandler{[](TextEditor &aEditor) { aEditor.Paste(); }};
 
   inline bool IsHorizontalScrollbarVisible() const { return mCurrentSpaceWidth > mContentWidth; }

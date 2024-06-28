@@ -372,9 +372,11 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
       }
 
       // [Child] Menu / toolbar for text editor
-      bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
+      const bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
       long lines = hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationErrorMessage()) + 1 : 1;
       ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
+      if(hasCompilationError)
+        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImGui::ColorConvertU32ToFloat4(editor.GetErrorMarkerColor()));
       ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1),
                                           ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * static_cast<float>(lines)));
       if(ImGui::BeginChild("Menu Bar", {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_HorizontalScrollbar))
@@ -404,7 +406,7 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
         if(ImGui::BeginMenuBar())
         {
           if(!edited && hasCompilationError)
-            editor.AddErrorMarker(fCurrentFragmentShader->getCompilationErrorLine());
+            editor.AddErrorMarker(fCurrentFragmentShader->getCompilationErrorLine(), fCurrentFragmentShader->getCompilationErrorMessage());
           else
             editor.ClearErrorMarkers();
           int lineCount, columnCount;
@@ -422,7 +424,7 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
         }
         ImGui::EndChild();
       }
-      ImGui::PopStyleColor();
+      ImGui::PopStyleColor(hasCompilationError ? 2 : 1);
 
       // [Editor] Render
       editor.SetOnKeyboardPasteHandler([](TextEditor &iEditor) { wgpu_get_clipboard_string(&iEditor); });
