@@ -42,10 +42,10 @@ class FragmentShader
 public:
   static constexpr char kHeader[] = R"(// Begin ShaderToy Header
 struct ShaderToyInputs {
-  size:         vec4f, // size of the viewport (in pixels); zw scale
-  mouse:        vec4f, // mouse position (in viewport coordinates [0 ... size.x, 0 ... size.y])
-  time:         f32,   // time in seconds (since start/reset)
-  frame:        i32,   // frame count (since start/reset)
+  size:  vec4f,
+  mouse: vec4f,
+  time:  f32,
+  frame: i32,
 };
 
 @group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;
