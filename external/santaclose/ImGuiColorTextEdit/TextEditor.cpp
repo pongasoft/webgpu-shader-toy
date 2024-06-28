@@ -256,7 +256,19 @@ void TextEditor::Paste()
   auto clipboard = ImGui::GetClipboardText();
   if(!clipboard)
     return;
-  std::string clipText = clipboard;
+
+  Paste(ImGui::GetClipboardText());
+}
+
+void TextEditor::Paste(char const *aClipText)
+{
+  if(mReadOnly)
+    return;
+
+  if(!aClipText)
+    return;
+
+  std::string clipText{aClipText};
 
   // check if we should do multicursor paste
   bool canPasteToMultipleCursors = false;
@@ -2039,9 +2051,9 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
     else if(isShortcut && ImGui::IsKeyPressed(ImGuiKey_C))
       Copy();
     else if(!mReadOnly && isShiftOnly && ImGui::IsKeyPressed(ImGuiKey_Insert))
-      Paste();
+      OnKeyboardPaste();
     else if(!mReadOnly && isShortcut && ImGui::IsKeyPressed(ImGuiKey_V))
-      Paste();
+      OnKeyboardPaste();
     else if(isShortcut && ImGui::IsKeyPressed(ImGuiKey_X))
       Cut();
     else if(isShiftOnly && ImGui::IsKeyPressed(ImGuiKey_Delete))

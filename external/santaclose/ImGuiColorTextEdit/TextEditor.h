@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <optional>
+#include <functional>
 #include <vector>
 #include <array>
 #include <memory>
@@ -17,6 +18,8 @@ class IMGUI_API TextEditor
 {
 public:
 	// ------------- Exposed API ------------- //
+
+  using keyboard_action_handler_t = std::function<void(TextEditor &)>;
 
 	TextEditor();
 	~TextEditor();
@@ -80,10 +83,13 @@ public:
 	void SetViewAtLine(int aLine, SetViewAtLineMode aMode);
   void AddErrorMarker(int aLine) { mErrorMarkers.emplace(aLine); }
   void ClearErrorMarkers() { mErrorMarkers.clear(); }
+  void SetOnKeyboardPasteHandler(keyboard_action_handler_t iHandler) { mOnKeyboardPasteHandler = std::move(iHandler); }
 
 	void Copy();
 	void Cut();
+  inline void OnKeyboardPaste() { mOnKeyboardPasteHandler(*this); }
 	void Paste();
+  void Paste(char const *aClipText);
 	void Undo(int aSteps = 1);
 	void Redo(int aSteps = 1);
 	inline bool CanUndo() const { return !mReadOnly && mUndoIndex > 0; };
@@ -445,6 +451,7 @@ private:
 	LanguageDefinitionId mLanguageDefinitionId;
 	const LanguageDefinition* mLanguageDefinition = nullptr;
   std::unordered_set<int> mErrorMarkers{};
+  keyboard_action_handler_t mOnKeyboardPasteHandler{[](TextEditor &aEditor) { aEditor.Paste(); }};
 
 	inline bool IsHorizontalScrollbarVisible() const { return mCurrentSpaceWidth > mContentWidth; }
 	inline bool IsVerticalScrollbarVisible() const { return mCurrentSpaceHeight > mContentHeight; }

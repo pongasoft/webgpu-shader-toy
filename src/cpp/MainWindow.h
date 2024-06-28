@@ -57,6 +57,7 @@ public:
 
   void onNewFragmentShader(Shader const &iShader);
   void saveState();
+  void onClipboardString(void *iRequestUserData, char const *iClipboardString);
 
 protected:
   void doRender() override;

@@ -29,13 +29,19 @@ namespace shader_toy {
 extern "C" {
 using OnNewFragmentShaderHandler = void (*)(MainWindow *iMainWindow, char const *iFilename, char const *iContent);
 using OnBeforeUnloadHandler = void (*)(MainWindow *iMainWindow);
+using OnClipboardStringHandler = void (*)(MainWindow *iMainWindow, void *iRequestUserData, char const *iClipboardString);
 
 void wgpu_shader_toy_install_handlers(OnNewFragmentShaderHandler iOnNewFragmentShaderHandler,
-                                      OnBeforeUnloadHandler iOnBeforeUnloadHandler, MainWindow *iMainWindow);
+                                      OnBeforeUnloadHandler iOnBeforeUnloadHandler,
+                                      OnClipboardStringHandler iOnClipboardStringHandler,
+                                      MainWindow *iMainWindow);
 
 void wgpu_shader_toy_uninstall_handlers();
 
 void wgpu_shader_toy_open_file_dialog();
+
+void wgpu_get_clipboard_string(void *iUserData);
+
 }
 
 namespace callbacks {
@@ -54,6 +60,15 @@ void OnBeforeUnload(MainWindow *iMainWindow)
 {
   iMainWindow->saveState();
 }
+
+//------------------------------------------------------------------------
+// callbacks::OnClipboardStringCallback
+//------------------------------------------------------------------------
+void OnClipboardStringCallback(MainWindow *iMainWindow, void *iRequestUserData, char const *iClipboardString)
+{
+  iMainWindow->onClipboardString(iRequestUserData, iClipboardString);
+}
+
 }
 
 // Some shader examples
@@ -100,7 +115,10 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
   io.FontGlobalScale = 1.0f / fontScale;
-  wgpu_shader_toy_install_handlers(callbacks::OnNewFragmentShaderCallback, callbacks::OnBeforeUnload, this);
+  wgpu_shader_toy_install_handlers(callbacks::OnNewFragmentShaderCallback,
+                                   callbacks::OnBeforeUnload,
+                                   callbacks::OnClipboardStringCallback,
+                                   this);
 }
 
 //------------------------------------------------------------------------
@@ -369,6 +387,12 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
           {
             if(ImGui::MenuItem("Compile", "CTRL + SPACE", false, edited))
               compile(newCode);
+            if(ImGui::MenuItem("Copy", "CTRL + C"))
+              editor.Copy();
+            if(ImGui::MenuItem("Cut", "CTRL + X"))
+              editor.Cut();
+            if(ImGui::MenuItem("Paste", "CTRL + V"))
+              editor.OnKeyboardPaste();
             if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
               editor.SetText(fCurrentFragmentShader->getCode());
             if(ImGui::MenuItem("Rename"))
@@ -401,6 +425,7 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
       ImGui::PopStyleColor();
 
       // [Editor] Render
+      editor.SetOnKeyboardPasteHandler([](TextEditor &iEditor) { wgpu_get_clipboard_string(&iEditor); });
       editor.Render("Code", iEditorHasFocus, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar);
 
       ImGui::EndTabItem();
@@ -445,7 +470,7 @@ void MainWindow::renderDialog()
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
-  auto editorHasFocus = !ImGui::IsAnyItemActive() && !hasDialog();
+  auto const editorHasFocus = !ImGui::IsAnyItemActive() && !hasDialog();
 
   renderMainMenuBar();
 
@@ -757,6 +782,24 @@ gui::Dialog &MainWindow::newDialog(std::string iTitle, bool iHighPriority)
   {
     fDialogs.emplace_back(std::move(dialog));
     return *fDialogs[fDialogs.size() - 1];
+  }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::onClipboardString
+//------------------------------------------------------------------------
+void MainWindow::onClipboardString(void *iRequestUserData, char const *iClipboardString)
+{
+  if(fCurrentFragmentShader)
+  {
+    auto &editor = fCurrentFragmentShader->edit();
+    if(&editor == iRequestUserData)
+    {
+      if(iClipboardString)
+        editor.Paste(iClipboardString);
+      else
+        editor.Paste();
+    }
   }
 }
 
