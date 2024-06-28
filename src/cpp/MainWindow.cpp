@@ -744,7 +744,6 @@ void MainWindow::initFromState(State const &iState)
       fFragmentShaderTabs.emplace_back(shader.fName);
       if(iState.fCurrentShader && iState.fCurrentShader.value() == shader.fName)
       {
-        printf("Detected current fragment shader: %s\n", shader.fName.c_str());
         fCurrentFragmentShader = fragmentShader;
         fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
         fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();

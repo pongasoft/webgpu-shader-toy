@@ -65,7 +65,7 @@ void onCursorPosChange(GLFWwindow *window, double xpos, double ypos)
 //------------------------------------------------------------------------
 void onContentScaleChange(GLFWwindow *window, float xScale, float yScale)
 {
-  printf("onContentScaleChange %f%f\n", xScale, yScale);
+//  printf("onContentScaleChange %f%f\n", xScale, yScale);
   auto w = reinterpret_cast<FragmentShaderWindow *>(glfwGetWindowUserPointer(window));
   w->onContentScaleChange({xScale, yScale});
 
@@ -80,7 +80,7 @@ void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus, struct 
   if(kFragmentShaderCompilationRequests.find(iUserdata) != kFragmentShaderCompilationRequests.end())
   {
     auto request = kFragmentShaderCompilationRequests[iUserdata];
-    printf("onShaderCompilation [%s] %d\n", request->fFragmentShader->getName().c_str(), iStatus);
+//    printf("onShaderCompilation [%s] %d\n", request->fFragmentShader->getName().c_str(), iStatus);
     kFragmentShaderCompilationRequests.erase(iUserdata);
     request->fFragmentShaderWindow->onShaderCompilationResult(request->fFragmentShader,
                                                               request->fShaderModule,
