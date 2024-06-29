@@ -23,6 +23,7 @@
 #include "JetBrainsMono-Regular.cpp"
 #include "Errors.h"
 #include <iostream>
+#include <emscripten.h>
 
 
 namespace shader_toy {
@@ -831,6 +832,10 @@ void MainWindow::initFromState(State const &iState)
   }
 }
 
+EM_JS(void, JSSetStyle, (bool iDarkStyle), {
+  Module.wst_set_style(iDarkStyle);
+})
+
 //------------------------------------------------------------------------
 // MainWindow::setStyle
 //------------------------------------------------------------------------
@@ -843,6 +848,7 @@ void MainWindow::setStyle(bool iDarkStyle)
   else
     ImGui::StyleColorsLight(&style);
   ImGui::GetStyle() = style;
+  JSSetStyle(iDarkStyle);
 }
 
 //------------------------------------------------------------------------

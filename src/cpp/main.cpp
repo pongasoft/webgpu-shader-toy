@@ -42,44 +42,78 @@ shader_toy::State computeDefaultState()
   return state;
 }
 
+EM_JS(void, onLoaded, (), {
+  const element = document.getElementById("loading");
+  if(element !== undefined)
+  {
+    const status = document.querySelector("#loading .content .status");
+    if(status !== undefined)
+      status.parentNode.removeChild(status);
+    var opacity = 1;
+    var timer = setInterval(function()
+    {
+      if(opacity <= 0.1)
+      {
+        clearInterval(timer);
+        element.remove();
+      }
+      element.style.opacity = opacity;
+      opacity -= 0.1;
+    }, 25);
+  }
+})
+
 // Main code
 int main(int, char **)
 {
-  kApplication = std::make_unique<shader_toy::Application>();
+  try
+  {
+    onLoaded();
 
-  std::shared_ptr<shader_toy::Preferences> preferences =
-    std::make_unique<shader_toy::Preferences>(std::make_unique<utils::JSStorage>());
+    kApplication = std::make_unique<shader_toy::Application>();
 
-  auto defaultState = computeDefaultState();
-  auto state = preferences->loadState(shader_toy::Preferences::kStateKey, defaultState);
+    std::shared_ptr<shader_toy::Preferences> preferences =
+      std::make_unique<shader_toy::Preferences>(std::make_unique<utils::JSStorage>());
 
-  kApplication
-    ->registerRenderable<shader_toy::MainWindow>(Window::Args{
-                                                   .size = state.fMainWindowSize,
-                                                   .title = "WebGPU Shader Toy",
-                                                   .canvas = {
-                                                     .selector = "#canvas1",
-                                                     .resizeSelector = "#canvas1-container",
-                                                     .handleSelector = "#canvas1-handle"
-                                                   }
-                                                 },
-                                                 shader_toy::MainWindow::Args {
-                                                   .fragmentShaderWindow = {
-                                                     .size = state.fFragmentShaderWindowSize,
-                                                     .title = "WebGPU Shader Toy | fragment shader",
+    auto defaultState = computeDefaultState();
+    auto state = preferences->loadState(shader_toy::Preferences::kStateKey, defaultState);
+
+    kApplication
+      ->registerRenderable<shader_toy::MainWindow>(Window::Args{
+                                                     .size = state.fMainWindowSize,
+                                                     .title = "WebGPU Shader Toy",
                                                      .canvas = {
-                                                       .selector = "#canvas2",
-                                                       .resizeSelector = "#canvas2-container",
-                                                       .handleSelector = "#canvas2-handle"
+                                                       .selector = "#canvas1",
+                                                       .resizeSelector = "#canvas1-container",
+                                                       .handleSelector = "#canvas1-handle"
                                                      }
                                                    },
-                                                   .defaultState = defaultState,
-                                                   .state = state,
-                                                   .preferences = preferences
-                                                 })
-    ->show();
+                                                   shader_toy::MainWindow::Args {
+                                                     .fragmentShaderWindow = {
+                                                       .size = state.fFragmentShaderWindowSize,
+                                                       .title = "WebGPU Shader Toy | fragment shader",
+                                                       .canvas = {
+                                                         .selector = "#canvas2",
+                                                         .resizeSelector = "#canvas2-container",
+                                                         .handleSelector = "#canvas2-handle"
+                                                       }
+                                                     },
+                                                     .defaultState = defaultState,
+                                                     .state = state,
+                                                     .preferences = preferences
+                                                   })
+      ->show();
 
-  emscripten_set_main_loop(MainLoopForEmscripten, 0, true);
+    emscripten_set_main_loop(MainLoopForEmscripten, 0, true);
+  }
+  catch(std::exception &e)
+  {
+    printf("ABORT| Unrecoverable exception detected: %s", e.what());
+  }
+  catch(...)
+  {
+    printf("ABORT| Unrecoverable exception detected: Unknown exception");
+  }
 
   return 0;
 }

@@ -74,8 +74,10 @@ let wgpu_shader_toy = {
       userData: user_data
     };
     window.addEventListener('beforeunload', function (event) {
-      if(WGPU_SHADER_TOY.fBeforeUnloadHandler) {
-        {{{ makeDynCall('vp', 'WGPU_SHADER_TOY.fBeforeUnloadHandler.handler') }}}(WGPU_SHADER_TOY.fBeforeUnloadHandler.userData);
+      if(!Module.resetRequested) {
+        if(WGPU_SHADER_TOY.fBeforeUnloadHandler) {
+          {{{ makeDynCall('vp', 'WGPU_SHADER_TOY.fBeforeUnloadHandler.handler') }}}(WGPU_SHADER_TOY.fBeforeUnloadHandler.userData);
+        }
       }
     });
     WGPU_SHADER_TOY.createFileDialog();
