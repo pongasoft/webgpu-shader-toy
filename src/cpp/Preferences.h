@@ -37,6 +37,7 @@ public:
   State loadState(std::string_view iKey, State const &iDefaultState);
   void storeState(std::string_view iKey, State const &iState);
 
+  static State deserialize(std::string const &iState, State const &iDefaultState);
   static std::string serialize(State const &iState);
 
 private:

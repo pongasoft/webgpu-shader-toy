@@ -195,7 +195,7 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 
     t += d;
 
-	  if(d < 0.001 || t > 100.0) { break; }
+    if(d < 0.001 || t > 100.0) { break; }
   }
 
   // Coloring

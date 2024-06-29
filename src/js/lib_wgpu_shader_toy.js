@@ -19,50 +19,50 @@ let wgpu_shader_toy = {
   $WGPU_SHADER_TOY__deps: ['$stringToNewUTF8', 'free'],
   $WGPU_SHADER_TOY__postset: `
     // exports
-    Module["wgpuShaderToyLoadFragmentShader"] = WGPU_SHADER_TOY.loadFragmentShader;
+    Module["wgpuShaderToyLoadFile"] = WGPU_SHADER_TOY.loadFile;
     `,
   $WGPU_SHADER_TOY: {
-    fNewFragmentShaderHandler: null, // {handler: <fn(userData, filename, content)>, userData: <ptr>}
+    fNewFileHandler: null, // {handler: <fn(userData, filename, content)>, userData: <ptr>}
     fBeforeUnloadHandler: null, // // {handler: <fn(userData)>, userData: <ptr>}
     fClipboardStringHandler: null, // // {handler: <fn(userData, requestUserData, string)>, userData: <ptr>}
 
 
-    // onNewFragmentShader
-    onNewFragmentShader: (fragmentShaderFile, fragmentShaderContent) => {
-      if(WGPU_SHADER_TOY.fNewFragmentShaderHandler) {
+    // onNewFile
+    onNewFile: (fragmentShaderFile, fragmentShaderContent) => {
+      if(WGPU_SHADER_TOY.fNewFileHandler) {
         const filename = stringToNewUTF8(fragmentShaderFile.name);
         const content = stringToNewUTF8(fragmentShaderContent);
-        {{{ makeDynCall('vppp', 'WGPU_SHADER_TOY.fNewFragmentShaderHandler.handler') }}}(WGPU_SHADER_TOY.fNewFragmentShaderHandler.userData, filename, content);
+        {{{ makeDynCall('vppp', 'WGPU_SHADER_TOY.fNewFileHandler.handler') }}}(WGPU_SHADER_TOY.fNewFileHandler.userData, filename, content);
         _free(content);
         _free(filename);
       }
     },
 
-    // loadFragmentShader
-    loadFragmentShader: (file) => {
+    // loadFile
+    loadFile: (file) => {
       let reader = new FileReader();
       reader.onload = function(evt) {
-        WGPU_SHADER_TOY.onNewFragmentShader(file, evt.target.result);
+        WGPU_SHADER_TOY.onNewFile(file, evt.target.result);
       };
       reader.readAsText(file);
     },
 
-    // createFragmentShaderFileDialog
-    createFragmentShaderFileDialog: () => {
+    // createFileDialog
+    createFileDialog: () => {
       WGPU_SHADER_TOY.fFragmentShaderFileDialog = document.createElement("input");
       WGPU_SHADER_TOY.fFragmentShaderFileDialog.type = 'file';
       WGPU_SHADER_TOY.fFragmentShaderFileDialog.onchange = (e) => {
-        WGPU_SHADER_TOY.loadFragmentShader(e.target.files[0]);
+        WGPU_SHADER_TOY.loadFile(e.target.files[0]);
         // implementation note: loading the same file twice does not work unless I recreate the input...
-        WGPU_SHADER_TOY.createFragmentShaderFileDialog();
+        WGPU_SHADER_TOY.createFileDialog();
       }
     }
   },
 
   // wgpu_shader_toy_install_handlers
-  wgpu_shader_toy_install_handlers: (new_fragment_shader_handler, before_unload_handler, clipboard_string_handler, user_data) => {
-    WGPU_SHADER_TOY.fNewFragmentShaderHandler = {
-      handler: new_fragment_shader_handler,
+  wgpu_shader_toy_install_handlers: (new_file_handler, before_unload_handler, clipboard_string_handler, user_data) => {
+    WGPU_SHADER_TOY.fNewFileHandler = {
+      handler: new_file_handler,
       userData: user_data
     };
     WGPU_SHADER_TOY.fBeforeUnloadHandler = {
@@ -78,7 +78,7 @@ let wgpu_shader_toy = {
         {{{ makeDynCall('vp', 'WGPU_SHADER_TOY.fBeforeUnloadHandler.handler') }}}(WGPU_SHADER_TOY.fBeforeUnloadHandler.userData);
       }
     });
-    WGPU_SHADER_TOY.createFragmentShaderFileDialog();
+    WGPU_SHADER_TOY.createFileDialog();
   },
 
   // wgpu_shader_toy_uninstall_handlers
@@ -86,7 +86,7 @@ let wgpu_shader_toy = {
     delete WGPU_SHADER_TOY.fFragmentShaderFileDialog;
     delete WGPU_SHADER_TOY.fClipboardStringHandler;
     delete WGPU_SHADER_TOY.fBeforeUnloadHandler;
-    delete WGPU_SHADER_TOY.fNewFragmentShaderHandler;
+    delete WGPU_SHADER_TOY.fNewFileHandler;
   },
 
   // wgpu_shader_toy_open_file_dialog
@@ -121,6 +121,22 @@ let wgpu_shader_toy = {
           {{{ makeDynCall('vppp', 'WGPU_SHADER_TOY.fClipboardStringHandler.handler') }}}(WGPU_SHADER_TOY.fClipboardStringHandler.userData, user_data, null);
         }
       })
+  },
+
+  // wgpu_export_content
+  wgpu_export_content: (filename, content) => {
+    filename = filename ? UTF8ToString(filename): null;
+    content = content ? UTF8ToString(content): null;
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+
+    const downloadLink = document.createElement("a");
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = filename;
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
   },
 
 }

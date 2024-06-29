@@ -47,41 +47,8 @@ State Preferences::loadState(std::string_view iKey, State const &iDefaultState)
   auto stateItem = fStorage->getItem(iKey);
   if(!stateItem)
     return iDefaultState;
-  auto state = iDefaultState; // we initialize with the default state in case some values are missing
-  auto data = json::parse(*stateItem);
-  if(data.is_object())
-  {
-    state.fDarkStyle = data.value("fDarkStyle", state.fDarkStyle);
-    state.fHiDPIAware = data.value("fHiDPIAware", state.fHiDPIAware);
-    state.fLineSpacing = data.value("fLineSpacing", state.fLineSpacing);
-    state.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", state.fCodeShowWhiteSpace);
-    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
-    state.fMainWindowSize = impl::value(data, "fMainWindowSize", state.fMainWindowSize);
-    state.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", state.fFragmentShaderWindowSize);
-    if(data.find("fShaders") != data.end())
-    {
-      state.fShaders.clear();
-      auto shaders = data.value("fShaders", json::array_t{});
-      if(!shaders.empty())
-      {
-        for(auto &shader: shaders)
-        {
-          if(shader.is_object())
-          {
-            Shader s{};
-            // TODO: this will throw exception if format is not right...
-            s.fName = shader.at("fName");
-            s.fCode = shader.at("fCode");
-            state.fShaders.emplace_back(s);
-          }
-        }
-      }
-    }
-    auto currentShader = data.value("fCurrentShader", "");
-    if(!currentShader.empty())
-      state.fCurrentShader = currentShader;
-  }
-  return state;
+  else
+    return deserialize(*stateItem, iDefaultState);
 }
 
 //------------------------------------------------------------------------
@@ -125,6 +92,48 @@ std::string Preferences::serialize(State const &iState)
     data["fCurrentShader"] = *iState.fCurrentShader;
 
   return data.dump();
+}
+
+//------------------------------------------------------------------------
+// Preferences::deserialize
+//------------------------------------------------------------------------
+State Preferences::deserialize(std::string const &iState, State const &iDefaultState)
+{
+  auto state = iDefaultState; // we initialize with the default state in case some values are missing
+  auto data = json::parse(iState);
+  if(data.is_object())
+  {
+    state.fDarkStyle = data.value("fDarkStyle", state.fDarkStyle);
+    state.fHiDPIAware = data.value("fHiDPIAware", state.fHiDPIAware);
+    state.fLineSpacing = data.value("fLineSpacing", state.fLineSpacing);
+    state.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", state.fCodeShowWhiteSpace);
+    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
+    state.fMainWindowSize = impl::value(data, "fMainWindowSize", state.fMainWindowSize);
+    state.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", state.fFragmentShaderWindowSize);
+    if(data.find("fShaders") != data.end())
+    {
+      state.fShaders.clear();
+      auto shaders = data.value("fShaders", json::array_t{});
+      if(!shaders.empty())
+      {
+        for(auto &shader: shaders)
+        {
+          if(shader.is_object())
+          {
+            Shader s{};
+            // TODO: this will throw exception if format is not right...
+            s.fName = shader.at("fName");
+            s.fCode = shader.at("fCode");
+            state.fShaders.emplace_back(s);
+          }
+        }
+      }
+    }
+    auto currentShader = data.value("fCurrentShader", "");
+    if(!currentShader.empty())
+      state.fCurrentShader = currentShader;
+  }
+  return state;
 }
 
 }

@@ -27,30 +27,29 @@
 
 namespace shader_toy {
 extern "C" {
-using OnNewFragmentShaderHandler = void (*)(MainWindow *iMainWindow, char const *iFilename, char const *iContent);
+using OnNewFileHandler = void (*)(MainWindow *iMainWindow, char const *iFilename, char const *iContent);
 using OnBeforeUnloadHandler = void (*)(MainWindow *iMainWindow);
 using OnClipboardStringHandler = void (*)(MainWindow *iMainWindow, void *iRequestUserData, char const *iClipboardString);
 
-void wgpu_shader_toy_install_handlers(OnNewFragmentShaderHandler iOnNewFragmentShaderHandler,
+void wgpu_shader_toy_install_handlers(OnNewFileHandler iOnNewFileHandler,
                                       OnBeforeUnloadHandler iOnBeforeUnloadHandler,
                                       OnClipboardStringHandler iOnClipboardStringHandler,
                                       MainWindow *iMainWindow);
 
 void wgpu_shader_toy_uninstall_handlers();
-
 void wgpu_shader_toy_open_file_dialog();
-
 void wgpu_get_clipboard_string(void *iUserData);
+void wgpu_export_content(char const *iFilename, char const *iContent);
 
 }
 
 namespace callbacks {
 //------------------------------------------------------------------------
-// callbacks::OnNewFragmentShaderCallback
+// callbacks::OnNewFileCallback
 //------------------------------------------------------------------------
-void OnNewFragmentShaderCallback(MainWindow *iMainWindow, char const *iFilename, char const *iContent)
+void OnNewFileCallback(MainWindow *iMainWindow, char const *iFilename, char const *iContent)
 {
-  iMainWindow->onNewFragmentShader({iFilename, iContent});
+  iMainWindow->onNewFile(iFilename, iContent);
 }
 
 //------------------------------------------------------------------------
@@ -115,7 +114,7 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
   io.FontGlobalScale = 1.0f / fontScale;
-  wgpu_shader_toy_install_handlers(callbacks::OnNewFragmentShaderCallback,
+  wgpu_shader_toy_install_handlers(callbacks::OnNewFileCallback,
                                    callbacks::OnBeforeUnload,
                                    callbacks::OnClipboardStringCallback,
                                    this);
@@ -210,8 +209,16 @@ void MainWindow::renderMainMenuBar()
         renderSettingsMenu();
         ImGui::EndMenu();
       }
-      if(ImGui::MenuItem("Save"))
-        saveState();
+      if(ImGui::BeginMenu("Project"))
+      {
+        if(ImGui::MenuItem("Save (browser)"))
+          saveState();
+        if(ImGui::MenuItem("Export (disk)"))
+          promptExportProject();
+        if(ImGui::MenuItem("Import (disk)"))
+          wgpu_shader_toy_open_file_dialog();
+        ImGui::EndMenu();
+      }
       if(ImGui::MenuItem("Quit"))
         stop();
       ImGui::EndMenu();
@@ -273,6 +280,8 @@ void MainWindow::renderControlsSection()
   {
     fFragmentShaderWindow->requestFullscreen();
   }
+  ImGui::SameLine();
+  ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 }
 
 
@@ -331,6 +340,65 @@ void MainWindow::promptRenameCurrentShader()
     ;
 }
 
+
+namespace impl {
+
+//------------------------------------------------------------------------
+// impl::ends_with
+//------------------------------------------------------------------------
+inline bool ends_with(std::string const &s, std::string const &iSuffix)
+{
+  if(s.size() < iSuffix.size())
+    return false;
+  return s.substr(s.size() - iSuffix.size()) == iSuffix;
+}
+
+}
+
+//------------------------------------------------------------------------
+// MainWindow::promptExportShader
+//------------------------------------------------------------------------
+void MainWindow::promptExportShader(std::string const &iFilename, std::string const &iContent)
+{
+  static std::string kShaderFilename{};
+
+  kShaderFilename = impl::ends_with(iFilename, ".wgsl") ? iFilename : fmt::printf("%s.wgsl", iFilename);
+
+  newDialog("Export Shader")
+    .preContentMessage("Enter/Modify the filename")
+    .lambda([] {
+      ImGui::InputText("###name", &kShaderFilename);
+    })
+    .button("Export", [content = iContent] {
+      wgpu_export_content(kShaderFilename.c_str(), content.c_str());
+    }, true)
+    .buttonCancel()
+    ;
+}
+
+
+//------------------------------------------------------------------------
+// MainWindow::promptExportShader
+//------------------------------------------------------------------------
+void MainWindow::promptExportProject()
+{
+  static std::string kProjectName{};
+
+  kProjectName = "WebGPUShaderToy.json";
+
+  newDialog("Export Project")
+    .preContentMessage("Enter/Modify the filename")
+    .lambda([] {
+      ImGui::InputText("###name", &kProjectName);
+    })
+    .button("Export", [this] {
+      wgpu_export_content(kProjectName.c_str(), fPreferences->serialize(computeState()).c_str());
+    }, true)
+    .buttonCancel()
+    ;
+
+}
+
 //------------------------------------------------------------------------
 // MainWindow::renameShader
 //------------------------------------------------------------------------
@@ -387,18 +455,27 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
         {
           if(ImGui::BeginMenu("Shader"))
           {
+            ImGui::SeparatorText("Code");
             if(ImGui::MenuItem("Compile", "CTRL + SPACE", false, edited))
               compile(newCode);
+            ImGui::SeparatorText("Edit");
             if(ImGui::MenuItem("Copy", "CTRL + C"))
               editor.Copy();
             if(ImGui::MenuItem("Cut", "CTRL + X"))
               editor.Cut();
             if(ImGui::MenuItem("Paste", "CTRL + V"))
               editor.OnKeyboardPaste();
-            if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
-              editor.SetText(fCurrentFragmentShader->getCode());
+            if(ImGui::MenuItem("Undo", "CTRL + Z"))
+              editor.Undo();
+            if(ImGui::MenuItem("Redo", "SHIFT + CTRL + Z"))
+              editor.Redo();
+            ImGui::SeparatorText("File");
             if(ImGui::MenuItem("Rename"))
               promptRenameCurrentShader();
+            if(ImGui::MenuItem("Export"))
+              promptExportShader(fCurrentFragmentShader->getName(), newCode);
+//            if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
+//              editor.SetText(fCurrentFragmentShader->getCode());
             ImGui::EndMenu();
           }
           ImGui::EndMainMenuBar();
@@ -529,7 +606,7 @@ void MainWindow::doRender()
       {
         if(ImGui::MenuItem("New"))
           promptNewEmtpyShader();
-        if(ImGui::MenuItem("Load"))
+        if(ImGui::MenuItem("Import"))
           wgpu_shader_toy_open_file_dialog();
         if(ImGui::BeginMenu("Examples"))
         {
@@ -802,6 +879,21 @@ void MainWindow::onClipboardString(void *iRequestUserData, char const *iClipboar
         editor.Paste();
     }
   }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::onNewFile
+//------------------------------------------------------------------------
+void MainWindow::onNewFile(char const *iFilename, char const *iContent)
+{
+  if(iFilename == nullptr || iContent == nullptr)
+    return;
+
+  std::string filename = iFilename;
+  if(impl::ends_with(filename, ".json"))
+    initFromState(Preferences::deserialize(iContent, fDefaultState));
+  else
+    onNewFragmentShader({filename, iContent});
 }
 
 }

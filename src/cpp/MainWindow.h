@@ -55,6 +55,7 @@ public:
 
   void afterFrame() override;
 
+  void onNewFile(char const *iFilename, char const *iContent);
   void onNewFragmentShader(Shader const &iShader);
   void saveState();
   void onClipboardString(void *iRequestUserData, char const *iClipboardString);
@@ -77,6 +78,8 @@ private:
   void compile(std::string const &iNewCode);
   void promptNewEmtpyShader();
   void promptRenameCurrentShader();
+  void promptExportShader(std::string const &iFilename, std::string const &iContent);
+  void promptExportProject();
   void renameShader(std::string const &iOldName, std::string const &iNewName);
   inline bool hasDialog() const { return fCurrentDialog != nullptr || !fDialogs.empty(); }
   gui::Dialog &newDialog(std::string iTitle, bool iHighPriority = false);
