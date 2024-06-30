@@ -8,6 +8,8 @@
 
 std::unique_ptr<shader_toy::Application> kApplication;
 
+/**
+ * Main loop for emscripten */
 static void MainLoopForEmscripten()
 {
   if(kApplication && kApplication->running())
@@ -16,6 +18,24 @@ static void MainLoopForEmscripten()
   {
     emscripten_cancel_main_loop();
     kApplication = nullptr;
+  }
+}
+
+//! wstDoneWaiting()
+EM_JS(bool, wstDoneWaiting, (), { return Module.wst_done_waiting; })
+
+//! wstWaitForContinue()
+EM_JS(bool, wstWaitForContinue, (), { Module.wst_wait_for_continue(); })
+
+/**
+ * Wait loop: wait for the user to click continue to swap emscripten main loop
+ */
+static void WaitLoopForEmscripten()
+{
+  if(wstDoneWaiting())
+  {
+    emscripten_cancel_main_loop();
+    emscripten_set_main_loop(MainLoopForEmscripten, 0, true);
   }
 }
 
@@ -42,34 +62,11 @@ shader_toy::State computeDefaultState()
   return state;
 }
 
-EM_JS(void, onLoaded, (), {
-  const element = document.getElementById("loading");
-  if(element !== undefined)
-  {
-    const status = document.querySelector("#loading .content .status");
-    if(status !== undefined)
-      status.parentNode.removeChild(status);
-    var opacity = 1;
-    var timer = setInterval(function()
-    {
-      if(opacity <= 0.1)
-      {
-        clearInterval(timer);
-        element.remove();
-      }
-      element.style.opacity = opacity;
-      opacity -= 0.1;
-    }, 25);
-  }
-})
-
 // Main code
 int main(int, char **)
 {
   try
   {
-    onLoaded();
-
     kApplication = std::make_unique<shader_toy::Application>();
 
     std::shared_ptr<shader_toy::Preferences> preferences =
@@ -104,7 +101,9 @@ int main(int, char **)
                                                    })
       ->show();
 
-    emscripten_set_main_loop(MainLoopForEmscripten, 0, true);
+    wstWaitForContinue();
+
+    emscripten_set_main_loop(WaitLoopForEmscripten, 0, true);
   }
   catch(std::exception &e)
   {

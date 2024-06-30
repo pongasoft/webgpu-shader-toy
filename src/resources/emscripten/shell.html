@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
-  <title>Dear ImGui Emscripten example</title>
+  <title>WebGPU Shader Toy</title>
   <style>
 
     .canvas-container {
       position: relative;
-      border: solid 1px black;
+      border: solid 1px #888888;
     }
 
     .canvas-container canvas {
@@ -91,36 +91,53 @@
       display: block;
     }
 
-    #loading {
+    .hidden-initially {
+      display: none;
+    }
+
+    #intro {
       position: fixed;
       top: 0;
       left: 0;
+      background-color: black;
+      color: white;
+      font-family: monospace;
+      text-shadow: 2px 2px 4px black;
       width: 100%;
       height: 100%;
-      color: white;
-      text-shadow: 2px 2px 4px black;
-      background: url('/images/wgpu_shader_toy_bg.webp') black;
+      z-index: 10;
+    }
+
+    #intro .content {
+      margin-left: 10px;
+      margin-right: 10px;
+    }
+
+    #intro .centered {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    #intro .cover {
+      margin-left: 20%;
+      margin-right: 20%;
+      background: url('../images/wgpu_shader_toy_bg.webp') black;
       background-repeat: no-repeat;
       background-position: center center;
       background-size: contain;
       background-attachment: fixed;
-      z-index: 10;
+      height: 100%;
     }
 
-    #loading .content {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 75vh;
-      flex-direction: column;
-    }
-
-    #loading .loader {
-      border: 16px solid #f3f3f3; /* Light grey */
-      border-top: 16px solid #3498db; /* Blue */
+    #intro .loader {
+      display: inline-block;
+      border: 2px solid lightgray;
+      border-top: 2px solid teal;
       border-radius: 50%;
-      width: 2em;
-      height: 2em;
+      width: 1em;
+      height: 1em;
       animation: spin 2s linear infinite;
     }
 
@@ -129,11 +146,45 @@
       100% { transform: rotate(360deg); }
     }
 
-    #loading .error {
+    #intro .error {
       color: red;
     }
 
-    #info {
+    #intro a {
+      color: inherit;
+    }
+
+    #intro a:hover {
+      color: teal;
+    }
+
+    #intro .info {
+      background-color: rgba(0, 0, 0, 0.5);
+      padding-left: 1em;
+      padding-right: 1em;
+      border: solid 1px teal;
+      border-radius: 1em;
+    }
+
+    #continue {
+      display: none;
+      margin-top: 1em;
+      background-color: teal;
+      color: white;
+      font-family: monospace;
+      border: none;
+      border-radius: 0.5em;
+      padding: 0.5em;
+      transition-duration: 0.4s;
+      box-shadow: 8px 8px 16px 0 rgba(0,0,0,0.8);
+    }
+
+    #continue:hover {
+      background-color: white;
+      color: teal;
+    }
+
+    #footer {
       position: fixed;
       bottom: 5px;
       right: 5px;
@@ -143,12 +194,12 @@
       z-index: 20;
     }
 
-    #info a {
+    #footer a {
       text-decoration: none;
       color: inherit;
     }
 
-    #info a:hover {
+    #footer a:hover {
       text-decoration: underline;
       color: teal;
     }
@@ -156,16 +207,27 @@
   </style>
 </head>
 <body>
-<div id="loading">
-  <div class="content">
-    <h1>Welcome to WebGPU Shader Toy</h1>
-    <div class="status">
-      <div class="message">Loading...</div>
-      <div class="loader"></div>
+<div id="intro">
+  <div class="cover">
+    <div class="content">
+      <div class="centered">
+        <h1>Welcome to WebGPU Shader Toy</h1>
+        <div class="status hidden-initially">
+          <div>Loading... <span class="loader"></span></div>
+        </div>
+        <h3 class="error hidden-initially"></h3>
+        <div class="info">
+          <p>WebGPU Shader Toy is a free tool for the <a href="https://www.w3.org/TR/WGSL/">WebGPU Shading Language</a> (WGSL).</p>
+          <p>This tool is using <a href="https://emscripten.org/">emscripten</a> (web assembly) for the compiler and <a href="https://github.com/ocornut/imgui">ImGui</a> for the GUI with <a href="https://github.com/pongasoft/emscripten-glfw">emscripten-glfw</a> for the backend and WebGPU for the renderer.</p>
+          <p>This tool has no tracking, ads or server-side component: it is running 100% in your browser. It uses <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">localStorage</a> to store information across browser sessions. </p>
+          <p>It has been inspired by the popular project <a href="https://www.shadertoy.com/">Shadertoy</a>.</p>
+        </div>
+        <input id="continue" type="button" value="Continue">
+      </div>
     </div>
-    <div class="error"></div>
   </div>
 </div>
+
 <div id="canvases">
   <div id="canvas1-container" class="canvas-container">
     <div id="canvas1-handle" class="canvas-handle"></div>
@@ -180,7 +242,7 @@
     <p id="drop-zone-content">Drop Shader Here</p>
   </div>
 </div>
-<div id="info"><a href="https://pongasoft.com">pongasoft</a> | <a href="https://github.com/pongasoft">Info</a> | <a href="?reset">Reset</a></div>
+<div id="footer"><a href="https://pongasoft.com">pongasoft</a> | <a href="https://github.com/pongasoft">Info</a> | <a href="?reset">Reset</a></div>
 <script type='text/javascript'>
   var Module = {};
 
@@ -202,11 +264,26 @@
   {
     (async () => {
       const adapter = await navigator.gpu.requestAdapter();
-      const device = await adapter.requestDevice();
-      Module.preinitializedWebGPUDevice = device;
+      Module.preinitializedWebGPUDevice = await adapter.requestDevice();
+      Module.wst_done_waiting = false;
       Module.wst_set_style = (darkStyle) => {
         document.body.style.backgroundColor = darkStyle ? "black" : "white";
       };
+
+      Module.wst_wait_for_continue = async () => {
+        fadeAndRemove("#intro .status", 0);
+        fadeAndRemove("#intro .error", 0);
+        if(Module.wst_done_waiting)
+          return;
+        const button = document.getElementById("continue");
+        button.style.display = 'inline-block';
+        const promise = new Promise(resolve => button.addEventListener("click", resolve, { once: true }));
+        await promise;
+        Module.wst_done_waiting = true;
+        fadeAndRemove("#intro", 250);
+      }
+
+      // load the main wasm code
       let scriptTag = document.createElement("script");
       scriptTag.type = "text/javascript";
       scriptTag.src = "index.js";
@@ -217,13 +294,43 @@
   else
   {
     console.log("WebGPU is not supported by this browser");
-    const error = document.querySelector("#loading .content .error");
+    fadeAndRemove("#intro .status", 0);
+    const error = document.querySelector("#intro .content .error");
     if(error !== undefined)
       error.innerText = "WebGPU is not supported by this browser";
-    const status = document.querySelector("#loading .content .status");
-    if(status !== undefined)
-      status.parentNode.removeChild(status);
   }
+
+  function fadeAndRemove(selector, duration) {
+    const element = document.querySelector(selector);
+    const rate = 25; // ms
+    if(element !== undefined)
+    {
+      if(duration > 0) {
+        var opacity = 1;
+        var timer = setInterval(function()
+        {
+          if(opacity <= 0)
+          {
+            clearInterval(timer);
+            element.remove();
+          }
+          element.style.opacity = opacity;
+          opacity -= rate / duration;
+        }, rate);
+      } else {
+        element.remove();
+      }
+    }
+  }
+
+  function showHiddenInitially() {
+    const elements = document.querySelectorAll('.hidden-initially');
+    elements.forEach((element) => {
+      element.classList.remove('hidden-initially'); // remove the class
+    });
+  }
+
+  setTimeout(showHiddenInitially, 1000);
 
   function handleDrop(e) {
     var dt = e.dataTransfer;
