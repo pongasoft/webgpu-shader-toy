@@ -121,14 +121,27 @@
     }
 
     #intro .cover {
-      margin-left: 20%;
-      margin-right: 20%;
       background: url('../images/wgpu_shader_toy_bg.webp') black;
       background-repeat: no-repeat;
       background-position: center center;
       background-size: contain;
       background-attachment: fixed;
       height: 100%;
+    }
+
+    @media (orientation: landscape) {
+      #intro .cover {
+        margin-left: calc((100vw - 100vh) / 2);
+        margin-right: calc((100vw - 100vh) / 2);
+      }
+    }
+
+    @media (orientation: portrait) {
+      #intro .cover {
+        margin-left: 0;
+        margin-right: 0;
+        background-size: cover;
+      }
     }
 
     #intro .loader {
