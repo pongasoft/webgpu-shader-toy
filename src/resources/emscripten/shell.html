@@ -51,7 +51,7 @@
 
     #canvas1 {
       width: calc(50vw - 20px);
-      height: calc(min(50vw - 20px, 80vh));
+      height: calc(100vh - 3em);
     }
 
     #canvas1-container {
@@ -60,7 +60,7 @@
 
     #canvas2 {
       width: calc(50vw - 20px);
-      height: calc(min(50vw - 20px, 80vh));
+      height: calc(100vh - 3em);
     }
 
     #canvases #drop-zone {
@@ -179,6 +179,10 @@
       border-radius: 1em;
     }
 
+    #intro .status {
+      margin-top: 1em;
+    }
+
     #continue {
       display: none;
       margin-top: 1em;
@@ -225,15 +229,15 @@
     <div class="content">
       <div class="centered">
         <h1>Welcome to WebGPU Shader Toy</h1>
-        <div class="status hidden-initially">
-          <div>Loading... <span class="loader"></span></div>
-        </div>
         <h3 class="error hidden-initially"></h3>
         <div class="info">
           <p>WebGPU Shader Toy is a free tool for the <a href="https://www.w3.org/TR/WGSL/">WebGPU Shading Language</a> (WGSL).</p>
           <p>This tool is using <a href="https://emscripten.org/">emscripten</a> (web assembly) for the compiler and <a href="https://github.com/ocornut/imgui">ImGui</a> for the GUI with <a href="https://github.com/pongasoft/emscripten-glfw">emscripten-glfw</a> for the backend and WebGPU for the renderer.</p>
           <p>This tool has no tracking, ads or server-side component: it is running 100% in your browser. It uses <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">localStorage</a> to store information across browser sessions. </p>
           <p>It has been inspired by the popular project <a href="https://www.shadertoy.com/">Shadertoy</a>.</p>
+        </div>
+        <div class="status hidden-initially">
+          <div>Loading... <span class="loader"></span></div>
         </div>
         <input id="continue" type="button" value="Continue">
       </div>
