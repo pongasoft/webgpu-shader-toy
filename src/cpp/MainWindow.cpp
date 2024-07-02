@@ -298,22 +298,39 @@ void MainWindow::renderControlsSection()
   // [Section] Controls
   ImGui::SeparatorText("Controls");
 
+  // Reset time
   if(ImGui::Button(fa::kClockRotateLeft))
-  {
     fCurrentFragmentShader->setStartTime(getCurrentTime());
-  }
+
   ImGui::SameLine();
+
+  // Previous frame
+  ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0);
+  if(ImGui::Button(fa::kBackwardStep))
+    fCurrentFragmentShader->previousFrame(getCurrentTime());
+  ImGui::EndDisabled();
+
+  ImGui::SameLine();
+
+  // Play / Pause
   if(ImGui::Button(fCurrentFragmentShader->isRunning() ? fa::kCirclePause : fa::kCirclePlay))
-  {
     fCurrentFragmentShader->toggleRunning(getCurrentTime());
-  }
+
   ImGui::SameLine();
+
+  // Next frame
+  if(ImGui::Button(fa::kForwardStep))
+    fCurrentFragmentShader->nextFrame(getCurrentTime());
+
+  ImGui::SameLine();
+
+  // Fullscreen
   if(ImGui::Button(fa::kExpand))
-  {
     fFragmentShaderWindow->requestFullscreen();
-  }
+
   ImGui::SameLine();
-  ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+  ImGui::Text("%.3f (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 }
 
 

@@ -103,6 +103,22 @@ public:
   }
   constexpr bool isRunning() const { return fRunning; }
 
+  void nextFrame(double iCurrentTime)
+  {
+    fRunning = false;
+    fStartTime = iCurrentTime - fInputs.time;
+    fInputs.frame++;
+    fInputs.time = static_cast<gpu::f32>(iCurrentTime - fStartTime) + 1 / 60.0f;
+  }
+
+  void previousFrame(double iCurrentTime)
+  {
+    fRunning = false;
+    fStartTime = iCurrentTime - fInputs.time;
+    fInputs.frame = std::max(0, fInputs.frame - 1);
+    fInputs.time = std::max(0.0f, static_cast<gpu::f32>(iCurrentTime - fStartTime) - 1 / 60.0f);
+  }
+
   TextEditor &edit() {
     if(!fTextEditor)
     {
