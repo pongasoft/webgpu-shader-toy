@@ -33,6 +33,7 @@ struct Shader
 {
   std::string fName;
   std::string fCode;
+  gpu::Renderable::Size fWindowSize;
 };
 
 struct State
@@ -44,7 +45,7 @@ struct State
   bool fHiDPIAware{true};
   float fLineSpacing{1.0f};
   bool fCodeShowWhiteSpace{false};
-  std::string fAspectRatio{"Free"};
+//  std::string fAspectRatio{"Free"};
   std::vector<Shader> fShaders{};
   std::optional<std::string> fCurrentShader{};
 };

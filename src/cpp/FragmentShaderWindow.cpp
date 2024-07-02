@@ -326,6 +326,7 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
 void FragmentShaderWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
 {
   fCurrentFragmentShader = std::move(iFragmentShader);
+  resize(fCurrentFragmentShader->getWindowSize());
   if(fCurrentFragmentShader->isNotCompiled())
     compile(fCurrentFragmentShader);
 }
@@ -410,6 +411,7 @@ void FragmentShaderWindow::doHandleFrameBufferSizeChange(Renderable::Size const 
   {
     fCurrentFragmentShader->fInputs.size.x = static_cast<float>(fFrameBufferSize.width);
     fCurrentFragmentShader->fInputs.size.y = static_cast<float>(fFrameBufferSize.height);
+    fCurrentFragmentShader->setWindowSize(getSize());
   }
 }
 

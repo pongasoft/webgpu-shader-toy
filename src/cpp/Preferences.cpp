@@ -71,6 +71,7 @@ std::string Preferences::serialize(State const &iState)
     json s{
       {"fName", shader.fName},
       {"fCode", shader.fCode},
+      {"fWindowSize", { {"width", shader.fWindowSize.width}, {"height", shader.fWindowSize.height} } },
     };
     shaders.emplace_back(s);
   }
@@ -83,7 +84,7 @@ std::string Preferences::serialize(State const &iState)
     {"fHiDPIAware", iState.fHiDPIAware},
     {"fLineSpacing", iState.fLineSpacing},
     {"fCodeShowWhiteSpace", iState.fCodeShowWhiteSpace},
-    {"fAspectRatio", iState.fAspectRatio},
+//    {"fAspectRatio", iState.fAspectRatio},
     {"fShaders", shaders}
   };
 
@@ -107,7 +108,7 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
     state.fHiDPIAware = data.value("fHiDPIAware", state.fHiDPIAware);
     state.fLineSpacing = data.value("fLineSpacing", state.fLineSpacing);
     state.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", state.fCodeShowWhiteSpace);
-    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
+//    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
     state.fMainWindowSize = impl::value(data, "fMainWindowSize", state.fMainWindowSize);
     state.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", state.fFragmentShaderWindowSize);
     if(data.find("fShaders") != data.end())
@@ -124,6 +125,7 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
             // TODO: this will throw exception if format is not right...
             s.fName = shader.at("fName");
             s.fCode = shader.at("fCode");
+            s.fWindowSize = impl::value(shader, "fWindowSize", state.fFragmentShaderWindowSize);
             state.fShaders.emplace_back(s);
           }
         }

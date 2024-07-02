@@ -80,6 +80,7 @@ private:
   void promptRenameCurrentShader();
   void promptExportShader(std::string const &iFilename, std::string const &iContent);
   void promptExportProject();
+  void promptShaderWindowSize();
   void renameShader(std::string const &iOldName, std::string const &iNewName);
   inline bool hasDialog() const { return fCurrentDialog != nullptr || !fDialogs.empty(); }
   gui::Dialog &newDialog(std::string iTitle, bool iHighPriority = false);
@@ -95,9 +96,8 @@ private:
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
 
-  std::string fCurrentAspectRatio{"Free"};
-
-  std::optional<AspectRatio> fAspectRatioRequest{};
+//  std::string fCurrentAspectRatio{"Free"};
+//  std::optional<AspectRatio> fAspectRatioRequest{};
   bool fResetRequest{};
 
   std::map<std::string, std::shared_ptr<FragmentShader>> fFragmentShaders{};

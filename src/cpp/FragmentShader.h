@@ -78,13 +78,15 @@ struct ShaderToyInputs {
   using state_t = std::variant<State::NotCompiled, State::Compiling, State::CompiledInError, State::Compiled>;
 
 public:
-  explicit FragmentShader(Shader const &iShader) : fName{iShader.fName}, fCode{iShader.fCode} {}
+  explicit FragmentShader(Shader const &iShader) : fName{iShader.fName}, fCode{iShader.fCode}, fWindowSize{iShader.fWindowSize} {}
 
   inline ShaderToyInputs const &getInputs() const { return fInputs; }
 
   std::string const &getName() const { return fName; }
   void setName(std::string iName) { fName = std::move(iName); }
   std::string const &getCode() const { return fCode; }
+  gpu::Renderable::Size const &getWindowSize() const { return fWindowSize; }
+  void setWindowSize(gpu::Renderable::Size const &iSize) { fWindowSize = iSize; }
 
   constexpr bool hasCompilationError() const { return std::holds_alternative<FragmentShader::State::CompiledInError>(fState); }
   inline std::string getCompilationErrorMessage() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorMessage; }
@@ -128,6 +130,7 @@ private:
 private:
   std::string fName;
   std::string fCode;
+  gpu::Renderable::Size fWindowSize;
 
   ShaderToyInputs fInputs{};
 

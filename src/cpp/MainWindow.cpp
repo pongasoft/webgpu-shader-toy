@@ -81,15 +81,15 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 }
 )";
 
-// kAspectRatios
-static std::vector<std::pair<std::string, Window::AspectRatio>> kAspectRatios{
-  {"Free", Window::AspectRatio{GLFW_DONT_CARE, GLFW_DONT_CARE}},
-  {"1x1", Window::AspectRatio{1, 1}},
-  {"16x9", Window::AspectRatio{16, 9}},
-  {"9x16", Window::AspectRatio{9, 16}},
-  {"4x3", Window::AspectRatio{4, 3}},
-  {"3x4", Window::AspectRatio{3, 4}},
-};
+//// kAspectRatios
+//static std::vector<std::pair<std::string, Window::AspectRatio>> kAspectRatios{
+//  {"Free", Window::AspectRatio{GLFW_DONT_CARE, GLFW_DONT_CARE}},
+//  {"1x1", Window::AspectRatio{1, 1}},
+//  {"16x9", Window::AspectRatio{16, 9}},
+//  {"9x16", Window::AspectRatio{9, 16}},
+//  {"4x3", Window::AspectRatio{4, 3}},
+//  {"3x4", Window::AspectRatio{3, 4}},
+//};
 
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
@@ -178,18 +178,18 @@ void MainWindow::renderSettingsMenu()
     {
       fFragmentShaderWindow->toggleHiDPIAwareness();
     }
-    if(ImGui::BeginMenu("Aspect Ratio"))
-    {
-      for(auto &[name, aspectRatio]: kAspectRatios)
-      {
-        if(ImGui::MenuItem(name.c_str(), nullptr, name == fCurrentAspectRatio))
-        {
-          fCurrentAspectRatio = name;
-          fAspectRatioRequest = aspectRatio;
-        }
-      }
-      ImGui::EndMenu();
-    }
+//    if(ImGui::BeginMenu("Aspect Ratio"))
+//    {
+//      for(auto &[name, aspectRatio]: kAspectRatios)
+//      {
+//        if(ImGui::MenuItem(name.c_str(), nullptr, name == fCurrentAspectRatio))
+//        {
+//          fCurrentAspectRatio = name;
+//          fAspectRatioRequest = aspectRatio;
+//        }
+//      }
+//      ImGui::EndMenu();
+//    }
     ImGui::EndMenu();
   }
 }
@@ -220,8 +220,10 @@ void MainWindow::renderMainMenuBar()
           wgpu_shader_toy_open_file_dialog();
         ImGui::EndMenu();
       }
+#ifndef NDEBUG
       if(ImGui::MenuItem("Quit"))
         stop();
+#endif
       ImGui::EndMenu();
     }
 
@@ -310,7 +312,7 @@ void MainWindow::promptNewEmtpyShader()
       ImGui::InputText("###name", &kShaderName);
     })
     .button("Create", [this] {
-      onNewFragmentShader({kShaderName, kEmptyShader});
+      onNewFragmentShader({kShaderName, kEmptyShader, fFragmentShaderWindow->getSize()});
     }, true)
     .buttonCancel()
     ;
@@ -337,6 +339,27 @@ void MainWindow::promptRenameCurrentShader()
     .button("Rename", [currentName, this] {
       renameShader(currentName, kNewShaderName);
     }, true)
+    .buttonCancel()
+    ;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::promptShaderWindowSize
+//------------------------------------------------------------------------
+void MainWindow::promptShaderWindowSize()
+{
+  static Renderable::Size kSize{};
+
+  kSize = fFragmentShaderWindow->getSize();
+
+  newDialog("Shader Window Size")
+    .lambda([] {
+      ImGui::InputInt2("size", &kSize.width);
+      ImGui::SetItemDefaultFocus();
+    })
+    .button("Resize", [this] {
+      fFragmentShaderWindow->resize(kSize);
+    }, false)
     .buttonCancel()
     ;
 }
@@ -470,10 +493,12 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
               editor.Undo();
             if(ImGui::MenuItem("Redo", "SHIFT + CTRL + Z"))
               editor.Redo();
-            ImGui::SeparatorText("File");
+            ImGui::SeparatorText("Misc");
             if(ImGui::MenuItem("Rename"))
               promptRenameCurrentShader();
-            if(ImGui::MenuItem("Export"))
+            if(ImGui::MenuItem("Resize"))
+              promptShaderWindowSize();
+            if(ImGui::MenuItem("Export (to disk)"))
               promptExportShader(fCurrentFragmentShader->getName(), newCode);
 //            if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
 //              editor.SetText(fCurrentFragmentShader->getCode());
@@ -707,11 +732,11 @@ void MainWindow::beforeFrame()
   }
 
   Window::beforeFrame();
-  if(fAspectRatioRequest)
-  {
-    fFragmentShaderWindow->setAspectRatio(*fAspectRatioRequest);
-    fAspectRatioRequest = std::nullopt;
-  }
+//  if(fAspectRatioRequest)
+//  {
+//    fFragmentShaderWindow->setAspectRatio(*fAspectRatioRequest);
+//    fAspectRatioRequest = std::nullopt;
+//  }
   fFragmentShaderWindow->beforeFrame();
 }
 
@@ -775,7 +800,7 @@ State MainWindow::computeState() const
     .fHiDPIAware = fFragmentShaderWindow->isHiDPIAware(),
     .fLineSpacing = fLineSpacing,
     .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
-    .fAspectRatio = fCurrentAspectRatio,
+//    .fAspectRatio = fCurrentAspectRatio,
     .fCurrentShader = fCurrentFragmentShader
                       ? std::optional<std::string>(fCurrentFragmentShader->getName())
                       : std::nullopt
@@ -783,7 +808,8 @@ State MainWindow::computeState() const
 
   for(auto &shaderName: fFragmentShaderTabs)
   {
-    state.fShaders.emplace_back(Shader{.fName = shaderName, .fCode = fFragmentShaders.at(shaderName)->getCode()});
+    auto const &shader = fFragmentShaders.at(shaderName);
+    state.fShaders.emplace_back(Shader{.fName = shaderName, .fCode = shader->getCode(), .fWindowSize = shader->getWindowSize()});
   }
 
   return state;
@@ -800,16 +826,16 @@ void MainWindow::initFromState(State const &iState)
     fFragmentShaderWindow->toggleHiDPIAwareness();
   fLineSpacing = iState.fLineSpacing;
   fCodeShowWhiteSpace = iState.fCodeShowWhiteSpace;
-  if(fCurrentAspectRatio != iState.fAspectRatio)
-  {
-    auto iter = std::find_if(kAspectRatios.begin(), kAspectRatios.end(),
-                             [ar = iState.fAspectRatio](auto const &p) { return p.first == ar; });
-    if(iter != kAspectRatios.end())
-    {
-      fCurrentAspectRatio = iState.fAspectRatio;
-      fAspectRatioRequest = iter->second;
-    }
-  }
+//  if(fCurrentAspectRatio != iState.fAspectRatio)
+//  {
+//    auto iter = std::find_if(kAspectRatios.begin(), kAspectRatios.end(),
+//                             [ar = iState.fAspectRatio](auto const &p) { return p.first == ar; });
+//    if(iter != kAspectRatios.end())
+//    {
+//      fCurrentAspectRatio = iState.fAspectRatio;
+//      fAspectRatioRequest = iter->second;
+//    }
+//  }
   fFragmentShaderWindow->resize(iState.fFragmentShaderWindowSize);
   fFragmentShaders.clear();
   fFragmentShaderTabs.clear();
@@ -832,6 +858,9 @@ void MainWindow::initFromState(State const &iState)
   }
 }
 
+//------------------------------------------------------------------------
+// JSSetStyle
+//------------------------------------------------------------------------
 EM_JS(void, JSSetStyle, (bool iDarkStyle), {
   Module.wst_set_style(iDarkStyle);
 })
@@ -899,7 +928,7 @@ void MainWindow::onNewFile(char const *iFilename, char const *iContent)
   if(impl::ends_with(filename, ".json"))
     initFromState(Preferences::deserialize(iContent, fDefaultState));
   else
-    onNewFragmentShader({filename, iContent});
+    onNewFragmentShader({filename, iContent, fFragmentShaderWindow->getSize()});
 }
 
 }
