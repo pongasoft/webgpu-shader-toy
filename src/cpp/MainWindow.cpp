@@ -21,6 +21,8 @@
 #include <GLFW/glfw3.h>
 #include "MainWindow.h"
 #include "JetBrainsMono-Regular.cpp"
+#include "IconsFontWGPUShaderToy.h"
+#include "IconsFontWGPUShaderToy.cpp"
 #include "Errors.h"
 #include <iostream>
 #include <emscripten.h>
@@ -91,6 +93,31 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 //  {"3x4", Window::AspectRatio{3, 4}},
 //};
 
+namespace impl {
+
+//------------------------------------------------------------------------
+// impl::mergeFontAwesome
+//------------------------------------------------------------------------
+static void mergeFontAwesome(float iSize)
+{
+  auto &io = ImGui::GetIO();
+  static const ImWchar icons_ranges[] = {fa::kMin, fa::kMax16, 0};
+  ImFontConfig icons_config;
+  icons_config.GlyphOffset = {0, 1};
+  icons_config.MergeMode = true;
+  icons_config.PixelSnapH = true;
+  icons_config.OversampleH = 2;
+  icons_config.FontDataOwnedByAtlas = false;
+  icons_config.GlyphMinAdvanceX = iSize; // to make it monospace
+
+  io.Fonts->AddFontFromMemoryCompressedBase85TTF(IconsFontWGPUShaderToy_compressed_data_base85,
+                                                 iSize,
+                                                 &icons_config,
+                                                 icons_ranges);
+}
+
+}
+
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
 //------------------------------------------------------------------------
@@ -113,7 +140,9 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   fontConfig.OversampleH = 2;
   float fontScale; float dummy;
   glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
-  io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, 13.0f * fontScale, &fontConfig);
+  auto const size = 13.0f * fontScale;
+  io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, size, &fontConfig);
+  impl::mergeFontAwesome(size);
   io.FontGlobalScale = 1.0f / fontScale;
   wgpu_shader_toy_install_handlers(callbacks::OnNewFileCallback,
                                    callbacks::OnBeforeUnload,
@@ -269,17 +298,17 @@ void MainWindow::renderControlsSection()
   // [Section] Controls
   ImGui::SeparatorText("Controls");
 
-  if(ImGui::Button("Reset Time"))
+  if(ImGui::Button(fa::kClockRotateLeft))
   {
     fCurrentFragmentShader->setStartTime(getCurrentTime());
   }
   ImGui::SameLine();
-  if(ImGui::Button(fCurrentFragmentShader->isRunning() ? "Pause" : "Play"))
+  if(ImGui::Button(fCurrentFragmentShader->isRunning() ? fa::kCirclePause : fa::kCirclePlay))
   {
     fCurrentFragmentShader->toggleRunning(getCurrentTime());
   }
   ImGui::SameLine();
-  if(ImGui::Button("Fullscreen"))
+  if(ImGui::Button(fa::kExpand))
   {
     fFragmentShaderWindow->requestFullscreen();
   }
@@ -437,6 +466,40 @@ void MainWindow::renameShader(std::string const &iOldName, std::string const &iN
 }
 
 //------------------------------------------------------------------------
+// MainWindow::renderShaderMenu
+//------------------------------------------------------------------------
+void MainWindow::renderShaderMenu(TextEditor iEditor, std::string const &iNewNode, bool iEdited)
+{
+  if(ImGui::BeginMenu("Shader"))
+  {
+    ImGui::SeparatorText("Code");
+    if(ImGui::MenuItem(ICON_FA_Hammer " Compile", "CTRL + SPACE", false, iEdited))
+      compile(iNewNode);
+    ImGui::SeparatorText("Edit");
+    if(ImGui::MenuItem("Copy", "CTRL + C"))
+      iEditor.Copy();
+    if(ImGui::MenuItem("Cut", "CTRL + X"))
+      iEditor.Cut();
+    if(ImGui::MenuItem("Paste", "CTRL + V"))
+      iEditor.OnKeyboardPaste();
+    if(ImGui::MenuItem("Undo", "CTRL + Z"))
+      iEditor.Undo();
+    if(ImGui::MenuItem("Redo", "SHIFT + CTRL + Z"))
+      iEditor.Redo();
+    ImGui::SeparatorText("Misc");
+    if(ImGui::MenuItem("Rename"))
+      promptRenameCurrentShader();
+    if(ImGui::MenuItem("Resize"))
+      promptShaderWindowSize();
+    if(ImGui::MenuItem("Export (to disk)"))
+      promptExportShader(fCurrentFragmentShader->getName(), iNewNode);
+//            if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
+//              editor.SetText(fCurrentFragmentShader->getCode());
+    ImGui::EndMenu();
+  }
+}
+
+//------------------------------------------------------------------------
 // MainWindow::renderShaderSection
 //------------------------------------------------------------------------
 void MainWindow::renderShaderSection(bool iEditorHasFocus)
@@ -446,23 +509,29 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
 
   if(ImGui::BeginTabBar(fCurrentFragmentShader->getName().c_str()))
   {
+    auto &editor = fCurrentFragmentShader->edit();
+    editor.SetPalette(fDarkStyle ? TextEditor::PaletteId::Dark : TextEditor::PaletteId::Light);
+    editor.SetLineSpacing(fLineSpacing);
+    editor.SetShowWhitespacesEnabled(fCodeShowWhiteSpace);
+
+    auto newCode = editor.GetText();
+    auto edited = newCode != fCurrentFragmentShader->getCode();
+
+    // [Keyboard shortcut]
+    if(iEditorHasFocus && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Space))
+    {
+      if(edited)
+        compile(newCode);
+    }
+    if(ImGui::BeginMainMenuBar())
+    {
+      renderShaderMenu(editor, newCode, edited);
+      ImGui::EndMainMenuBar();
+    }
+
     // [TabItem] Code
     if(ImGui::BeginTabItem("Code"))
     {
-      auto &editor = fCurrentFragmentShader->edit();
-      editor.SetPalette(fDarkStyle ? TextEditor::PaletteId::Dark : TextEditor::PaletteId::Light);
-      editor.SetLineSpacing(fLineSpacing);
-      editor.SetShowWhitespacesEnabled(fCodeShowWhiteSpace);
-
-      // [Keyboard shortcut]
-      if(iEditorHasFocus && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Space))
-      {
-        auto newCode = editor.GetText();
-        auto edited = newCode != fCurrentFragmentShader->getCode();
-        if(edited)
-          compile(newCode);
-      }
-
       // [Child] Menu / toolbar for text editor
       const bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
       long lines = hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationErrorMessage()) + 1 : 1;
@@ -473,39 +542,6 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
                                           ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * static_cast<float>(lines)));
       if(ImGui::BeginChild("Menu Bar", {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_HorizontalScrollbar))
       {
-        auto newCode = editor.GetText();
-        auto edited = newCode != fCurrentFragmentShader->getCode();
-        if(ImGui::BeginMainMenuBar())
-        {
-          if(ImGui::BeginMenu("Shader"))
-          {
-            ImGui::SeparatorText("Code");
-            if(ImGui::MenuItem("Compile", "CTRL + SPACE", false, edited))
-              compile(newCode);
-            ImGui::SeparatorText("Edit");
-            if(ImGui::MenuItem("Copy", "CTRL + C"))
-              editor.Copy();
-            if(ImGui::MenuItem("Cut", "CTRL + X"))
-              editor.Cut();
-            if(ImGui::MenuItem("Paste", "CTRL + V"))
-              editor.OnKeyboardPaste();
-            if(ImGui::MenuItem("Undo", "CTRL + Z"))
-              editor.Undo();
-            if(ImGui::MenuItem("Redo", "SHIFT + CTRL + Z"))
-              editor.Redo();
-            ImGui::SeparatorText("Misc");
-            if(ImGui::MenuItem("Rename"))
-              promptRenameCurrentShader();
-            if(ImGui::MenuItem("Resize"))
-              promptShaderWindowSize();
-            if(ImGui::MenuItem("Export (to disk)"))
-              promptExportShader(fCurrentFragmentShader->getName(), newCode);
-//            if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
-//              editor.SetText(fCurrentFragmentShader->getCode());
-            ImGui::EndMenu();
-          }
-          ImGui::EndMainMenuBar();
-        }
         if(ImGui::BeginMenuBar())
         {
           if(!edited && hasCompilationError)
@@ -516,7 +552,7 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
           editor.GetCursorPosition(lineCount, columnCount);
           ImGui::Text("%d/%d | %d lines", lineCount + 1, columnCount + 1, editor.GetLineCount());
           ImGui::BeginDisabled(!edited);
-          if(ImGui::Button("Compile"))
+          if(ImGui::Button(ICON_FA_Hammer " Compile"))
             compile(newCode);
           ImGui::EndDisabled();
           ImGui::EndMenuBar();

@@ -1,0 +1,246 @@
+---
+backward-step:
+  aliases:
+    names:
+      - step-backward
+    unicodes:
+      secondary:
+        - 10f048
+  changes:
+    - 1.0.0
+    - 5.0.0
+    - 5.10.2
+    - 5.11.0
+    - 5.11.1
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Backward Step
+  search:
+    terms:
+      - beginning
+      - first
+      - previous
+      - rewind
+      - start
+  styles:
+    - solid
+  unicode: f048
+  voted: false
+bars:
+  aliases:
+    names:
+      - navicon
+    unicodes:
+      secondary:
+        - 10f0c9
+  changes:
+    - 2.0.0
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.0.0-beta3
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Bars
+  search:
+    terms:
+      - checklist
+      - drag
+      - hamburger
+      - list
+      - menu
+      - nav
+      - navigation
+      - ol
+      - reorder
+      - settings
+      - todo
+      - ul
+  styles:
+    - solid
+  unicode: f0c9
+  voted: false
+circle-pause:
+  aliases:
+    names:
+      - pause-circle
+    unicodes:
+      composite:
+        - f28c
+      secondary:
+        - 10f28b
+  changes:
+    - 4.5.0
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Circle Pause
+  search:
+    terms:
+      - hold
+      - wait
+  styles:
+    - solid
+  unicode: f28b
+  voted: false
+circle-play:
+  aliases:
+    names:
+      - play-circle
+    unicodes:
+      composite:
+        - f01d
+      secondary:
+        - 10f144
+  changes:
+    - 3.1.0
+    - 5.0.0
+    - 5.10.2
+    - 6.0.0-beta1
+    - 6.0.0
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Circle Play
+  search:
+    terms:
+      - audio
+      - music
+      - playing
+      - sound
+      - start
+      - video
+  styles:
+    - solid
+  unicode: f144
+  voted: false
+clock-rotate-left:
+  aliases:
+    names:
+      - history
+    unicodes:
+      secondary:
+        - 10f1da
+  changes:
+    - 4.1.0
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.0.0-beta2
+    - 6.0.0-beta3
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Clock Rotate Left
+  search:
+    terms:
+      - Rewind
+      - clock
+      - pending
+      - reverse
+      - time
+      - time machine
+      - time travel
+      - waiting
+  styles:
+    - solid
+  unicode: f1da
+  voted: false
+expand:
+  aliases:
+    unicodes:
+      secondary:
+        - 10f065
+  changes:
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Expand
+  search:
+    terms:
+      -   maximize
+      -   resize
+      -   scale
+      -  arrows
+      -  bigger
+      -  enlarge
+      -  fullscreen
+      -  resize
+      -  size
+      - expand
+      - viewfinder
+  styles:
+    - solid
+  unicode: f065
+  voted: false
+forward-step:
+  aliases:
+    names:
+      - step-forward
+    unicodes:
+      secondary:
+        - 10f051
+  changes:
+    - 1.0.0
+    - 5.0.0
+    - 5.10.2
+    - 5.11.0
+    - 5.11.1
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Forward Step
+  search:
+    terms:
+      - end
+      - last
+      - next
+  styles:
+    - solid
+  unicode: f051
+  voted: false
+hammer:
+  aliases:
+    unicodes:
+      composite:
+        - 1f528
+      secondary:
+        - 10f6e3
+  changes:
+    - 5.4.0
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Hammer
+  search:
+    terms:
+      - admin
+      - configuration
+      - equipment
+      - fix
+      - hammer
+      - maintenance
+      - modify
+      - recovery
+      - repair
+      - settings
+      - tool
+  styles:
+    - solid
+  unicode: f6e3
+  voted: true
