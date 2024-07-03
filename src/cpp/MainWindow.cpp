@@ -335,8 +335,10 @@ void MainWindow::renderControlsSection()
 
   // Previous frame
   ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0);
+  ImGui::PushButtonRepeat(true);
   if(ImGui::Button(fa::kBackwardStep))
-    fCurrentFragmentShader->previousFrame(getCurrentTime());
+    fCurrentFragmentShader->previousFrame(getCurrentTime(), ImGui::GetIO().KeyAlt ? 1 : 12);
+  ImGui::PopButtonRepeat();
   ImGui::EndDisabled();
 
   ImGui::SameLine();
@@ -348,8 +350,10 @@ void MainWindow::renderControlsSection()
   ImGui::SameLine();
 
   // Next frame
+  ImGui::PushButtonRepeat(true);
   if(ImGui::Button(fa::kForwardStep))
-    fCurrentFragmentShader->nextFrame(getCurrentTime());
+    fCurrentFragmentShader->nextFrame(getCurrentTime(), ImGui::GetIO().KeyAlt ? 1 : 12);
+  ImGui::PopButtonRepeat();
 
   ImGui::SameLine();
 
