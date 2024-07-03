@@ -240,7 +240,10 @@
     <div class="content">
       <div class="centered">
         <h1>Welcome to WebGPU Shader Toy</h1>
-        <h3 class="error hidden-initially"></h3>
+        <div class="webgpu error hidden"></div>
+        <noscript>
+          <h3 class="error">This tool requires javascript (currently disabled)!</h3>
+        </noscript>
         <div class="info">
           <p>WebGPU Shader Toy is a free tool for the <a href="https://www.w3.org/TR/WGSL/">WebGPU Shading Language</a> (WGSL).</p>
           <p>This tool is using <a href="https://emscripten.org/">emscripten</a> (web assembly) for the compiler and <a href="https://github.com/ocornut/imgui">ImGui</a> for the GUI with <a href="https://github.com/pongasoft/emscripten-glfw">emscripten-glfw</a> for the backend and WebGPU for the renderer.</p>
@@ -370,9 +373,14 @@
   {
     console.log("WebGPU is not supported by this browser");
     fadeAndRemove("#intro .status", 0);
-    const error = document.querySelector("#intro .content .error");
-    if(error !== undefined)
-      error.innerText = "WebGPU is not supported by this browser";
+    const errorSelector = '#intro .content .webgpu.error'
+    const error = document.querySelector(errorSelector);
+    if(error !== undefined) {
+      error.innerHTML =
+        '<h3>WebGPU is not supported by this browser</h3>' +
+        '<h3>Try with Google Chrome (macOS / Windows)</h3>';
+      show(errorSelector);
+    }
   }
 
   function fadeAndRemove(selector, duration) {
