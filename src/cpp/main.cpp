@@ -55,7 +55,8 @@ shader_toy::State computeDefaultState()
   state.fMainWindowSize = {static_cast<int>(width1), static_cast<int>(height1)};
   state.fFragmentShaderWindowSize = {static_cast<int>(width2), static_cast<int>(height2)};
 
-  auto const &defaultShader = shader_toy::kFragmentShaderExamples[0];
+  auto defaultShader = shader_toy::kFragmentShaderExamples[0];
+  defaultShader.fWindowSize = state.fFragmentShaderWindowSize;
   state.fShaders.emplace_back(defaultShader);
   state.fCurrentShader = defaultShader.fName;
 

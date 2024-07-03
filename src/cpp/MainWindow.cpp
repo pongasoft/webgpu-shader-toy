@@ -370,7 +370,7 @@ void MainWindow::compile(std::string const &iNewCode)
 {
   WST_INTERNAL_ASSERT(fCurrentFragmentShader != nullptr);
   fCurrentFragmentShader->updateCode(iNewCode);
-  fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+  setCurrentFragmentShader(fCurrentFragmentShader);
 }
 
 //------------------------------------------------------------------------
@@ -387,7 +387,7 @@ void MainWindow::promptNewEmtpyShader()
       ImGui::InputText("###name", &kShaderName);
     })
     .button("Create", [this] {
-      onNewFragmentShader({kShaderName, kEmptyShader, fFragmentShaderWindow->getSize()});
+      onNewFragmentShader({kShaderName, kEmptyShader});
     }, true)
     .buttonCancel()
     ;
@@ -686,26 +686,25 @@ void MainWindow::doRender()
           if(fCurrentFragmentShaderNameRequest && *fCurrentFragmentShaderNameRequest == fragmentShaderName)
           {
             flags = ImGuiTabItemFlags_SetSelected;
-            fCurrentFragmentShaderNameRequest = std::nullopt;
+            selectedFragmentShader = fragmentShaderName;
           }
           if(ImGui::BeginTabItem(fragmentShaderName.c_str(), &open, flags))
           {
-            selectedFragmentShader = fragmentShaderName;
+            if(!fCurrentFragmentShaderNameRequest)
+              selectedFragmentShader = fragmentShaderName;
             ImGui::EndTabItem();
           }
           if(!open)
             fragmentShaderToDelete = fragmentShaderName;
         }
+        fCurrentFragmentShaderNameRequest = std::nullopt;
         if(fragmentShaderToDelete)
           deleteFragmentShader(*fragmentShaderToDelete);
         else
         {
           WST_INTERNAL_ASSERT(fCurrentFragmentShader != nullptr);
           if(fCurrentFragmentShader->getName() != selectedFragmentShader)
-          {
-            fCurrentFragmentShader = fFragmentShaders[selectedFragmentShader];
-            fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
-          }
+            setCurrentFragmentShader(fFragmentShaders[selectedFragmentShader]);
         }
       }
       // + to add a new shader (from file)
@@ -758,13 +757,12 @@ void MainWindow::doRender()
 //------------------------------------------------------------------------
 void MainWindow::onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
 {
-  fCurrentFragmentShader = std::move(iFragmentShader);
+  setCurrentFragmentShader(std::move(iFragmentShader));
   fFragmentShaders[fCurrentFragmentShader->getName()] = fCurrentFragmentShader;
   if(std::ranges::find(fFragmentShaderTabs, fCurrentFragmentShader->getName()) == fFragmentShaderTabs.end())
   {
     fFragmentShaderTabs.emplace_back(fCurrentFragmentShader->getName());
   }
-  fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
   fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();
 }
 
@@ -773,7 +771,12 @@ void MainWindow::onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentSh
 //------------------------------------------------------------------------
 void MainWindow::onNewFragmentShader(Shader const &iShader)
 {
-  onNewFragmentShader(std::make_shared<FragmentShader>(iShader));
+  auto shader = iShader;
+  if(fFragmentShaders.contains(iShader.fName))
+    shader.fWindowSize = fFragmentShaders[iShader.fName]->getWindowSize();
+  else
+    shader.fWindowSize = fFragmentShaderWindow->getSize();
+  onNewFragmentShader(std::make_shared<FragmentShader>(shader));
 }
 
 //------------------------------------------------------------------------
@@ -794,14 +797,25 @@ std::shared_ptr<FragmentShader> MainWindow::deleteFragmentShader(std::string con
   {
     if(!fCurrentFragmentShader || fCurrentFragmentShader->getName() != iName)
     {
-      fCurrentFragmentShader = fFragmentShaders[fFragmentShaderTabs[0]];
-      fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+      setCurrentFragmentShader(fFragmentShaders[fFragmentShaderTabs[0]]);
     }
   }
   else
     fCurrentFragmentShader = nullptr;
 
   return oldShader;
+}
+
+
+//------------------------------------------------------------------------
+// MainWindow::setCurrentFragmentShader
+//------------------------------------------------------------------------
+void MainWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
+{
+  fCurrentFragmentShader = std::move(iFragmentShader);
+  if(!fManualLayout)
+    fCurrentFragmentShader->setWindowSize(fFragmentShaderWindow->getSize());
+  fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
 }
 
 //------------------------------------------------------------------------
@@ -936,9 +950,8 @@ void MainWindow::initFromState(State const &iState)
       fFragmentShaderTabs.emplace_back(shader.fName);
       if(iState.fCurrentShader && iState.fCurrentShader.value() == shader.fName)
       {
-        fCurrentFragmentShader = fragmentShader;
-        fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
-        fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();
+        setCurrentFragmentShader(fragmentShader);
+        fCurrentFragmentShaderNameRequest = shader.fName;
       }
     }
   }
@@ -1016,7 +1029,7 @@ void MainWindow::onNewFile(char const *iFilename, char const *iContent)
   if(impl::ends_with(filename, ".json"))
     initFromState(Preferences::deserialize(iContent, fDefaultState));
   else
-    onNewFragmentShader({filename, iContent, fFragmentShaderWindow->getSize()});
+    onNewFragmentShader({filename, iContent});
 }
 
 }

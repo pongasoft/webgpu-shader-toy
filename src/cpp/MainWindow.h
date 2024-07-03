@@ -66,6 +66,7 @@ protected:
 private:
   void onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
   std::shared_ptr<FragmentShader> deleteFragmentShader(std::string const &iName);
+  void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
   void reset();
   void initFromState(State const &iState);
   void setStyle(bool iDarkStyle);
