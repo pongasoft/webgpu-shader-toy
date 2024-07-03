@@ -26,6 +26,9 @@ TextEditor::~TextEditor()
 
 void TextEditor::SetPalette(PaletteId aValue)
 {
+  if(mPaletteId == aValue)
+    return;
+
   mPaletteId = aValue;
   const Palette *palletteBase;
   switch(mPaletteId)
@@ -2613,7 +2616,7 @@ const TextEditor::Palette &TextEditor::GetDarkPalette()
                               0x282c34ff, // Background
                               0xe0e0e0ff, // Cursor
                               0x2060a080, // Selection
-                              0xff200080, // ErrorMarker
+                              0xa01400ff, // ErrorMarker
                               0xffffff15, // ControlCharacter
                               0x0080f040, // Breakpoint
                               0x7a8394ff, // Line number
@@ -2671,7 +2674,7 @@ const TextEditor::Palette &TextEditor::GetLightPalette()
                               0xffffffff, // Background
                               0x000000ff, // Cursor
                               0x00006040, // Selection
-                              0xff1000a0, // ErrorMarker
+                              0xff6055ff, // ErrorMarker
                               0x90909090, // ControlCharacter
                               0x0080f080, // Breakpoint
                               0x005050ff, // Line number

@@ -447,7 +447,7 @@ private:
   int mColorRangeMin = 0;
   int mColorRangeMax = 0;
   bool mCheckComments = true;
-  PaletteId mPaletteId;
+  PaletteId mPaletteId{-1};
   Palette mPalette;
   LanguageDefinitionId mLanguageDefinitionId;
   const LanguageDefinition* mLanguageDefinition = nullptr;
