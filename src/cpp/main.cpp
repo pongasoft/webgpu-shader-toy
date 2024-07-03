@@ -79,21 +79,13 @@ int main(int, char **)
       ->registerRenderable<shader_toy::MainWindow>(Window::Args{
                                                      .size = state.fMainWindowSize,
                                                      .title = "WebGPU Shader Toy",
-                                                     .canvas = {
-                                                       .selector = "#canvas1",
-                                                       .resizeSelector = "#canvas1-container",
-                                                       .handleSelector = "#canvas1-handle"
-                                                     }
+                                                     .canvas = { .selector = "#canvas1" }
                                                    },
                                                    shader_toy::MainWindow::Args {
                                                      .fragmentShaderWindow = {
                                                        .size = state.fFragmentShaderWindowSize,
                                                        .title = "WebGPU Shader Toy | fragment shader",
-                                                       .canvas = {
-                                                         .selector = "#canvas2",
-                                                         .resizeSelector = "#canvas2-container",
-                                                         .handleSelector = "#canvas2-handle"
-                                                       }
+                                                       .canvas = { .selector = "#canvas2" }
                                                      },
                                                      .defaultState = defaultState,
                                                      .state = state,

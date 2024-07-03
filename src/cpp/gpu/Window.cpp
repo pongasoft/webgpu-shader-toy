@@ -46,7 +46,8 @@ Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) : Renderable(std::m
   fWindow = glfwCreateWindow(iArgs.size.width, iArgs.size.height, iArgs.title, nullptr, nullptr);
   WST_INTERNAL_ASSERT(fWindow != nullptr, "Cannot create GLFW Window [%s]", iArgs.title);
 
-  emscripten_glfw_make_canvas_resizable(fWindow, iArgs.canvas.resizeSelector, iArgs.canvas.handleSelector);
+  if(iArgs.canvas.resizeSelector)
+    makeCanvasResizable(iArgs.canvas.resizeSelector, iArgs.canvas.handleSelector);
 
   resize(iArgs.size);
 
@@ -217,6 +218,15 @@ double Window::getCurrentTime()
 void Window::requestFullscreen()
 {
   emscripten_glfw_request_fullscreen(fWindow, GLFW_FALSE, GLFW_TRUE);
+}
+
+//------------------------------------------------------------------------
+// Window::makeCanvasResizable
+//------------------------------------------------------------------------
+void Window::makeCanvasResizable(char const *iCanvasResizeSelector, char const *iHandleSelector)
+{
+  emscripten_glfw_make_canvas_resizable(fWindow, iCanvasResizeSelector, iHandleSelector);
+
 }
 
 }

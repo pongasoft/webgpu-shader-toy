@@ -43,6 +43,7 @@ struct State
   gpu::Renderable::Size fFragmentShaderWindowSize{};
   bool fDarkStyle{true};
   bool fHiDPIAware{true};
+  bool fManualLayout{false};
   float fLineSpacing{1.0f};
   bool fCodeShowWhiteSpace{false};
 //  std::string fAspectRatio{"Free"};

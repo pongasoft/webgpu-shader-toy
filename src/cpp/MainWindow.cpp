@@ -119,6 +119,21 @@ static void mergeFontAwesome(float iSize)
 }
 
 //------------------------------------------------------------------------
+// JSSetStyle
+//------------------------------------------------------------------------
+EM_JS(void, JSSetStyle, (bool iDarkStyle), {
+  Module.wst_set_style(iDarkStyle);
+})
+
+//------------------------------------------------------------------------
+// JSSetStyle
+//------------------------------------------------------------------------
+EM_JS(void, JSSetManualLayout, (bool iManualLayout), {
+  Module.wst_set_manual_layout(iManualLayout);
+})
+
+
+//------------------------------------------------------------------------
 // MainWindow::MainWindow
 //------------------------------------------------------------------------
 MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArgs,
@@ -206,6 +221,20 @@ void MainWindow::renderSettingsMenu()
     if(ImGui::MenuItem("Hi DPI", nullptr, fFragmentShaderWindow->isHiDPIAware()))
     {
       fFragmentShaderWindow->toggleHiDPIAwareness();
+    }
+    if(ImGui::BeginMenu("Layout"))
+    {
+      if(ImGui::MenuItem("Manual", nullptr, fManualLayout))
+      {
+        if(!fManualLayout)
+          setManualLayout(true);
+      }
+      if(ImGui::MenuItem("Automatic", nullptr, !fManualLayout))
+      {
+        if(fManualLayout)
+          setManualLayout(false);
+      }
+      ImGui::EndMenu();
     }
 //    if(ImGui::BeginMenu("Aspect Ratio"))
 //    {
@@ -404,6 +433,8 @@ void MainWindow::promptShaderWindowSize()
       ImGui::SetItemDefaultFocus();
     })
     .button("Resize", [this] {
+      if(!fManualLayout)
+        setManualLayout(true);
       fFragmentShaderWindow->resize(kSize);
     }, false)
     .buttonCancel()
@@ -851,6 +882,7 @@ State MainWindow::computeState() const
     .fFragmentShaderWindowSize = fFragmentShaderWindow->getSize(),
     .fDarkStyle = fDarkStyle,
     .fHiDPIAware = fFragmentShaderWindow->isHiDPIAware(),
+    .fManualLayout = fManualLayout,
     .fLineSpacing = fLineSpacing,
     .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
 //    .fAspectRatio = fCurrentAspectRatio,
@@ -874,6 +906,7 @@ State MainWindow::computeState() const
 void MainWindow::initFromState(State const &iState)
 {
   setStyle(iState.fDarkStyle);
+  setManualLayout(iState.fManualLayout);
   resize(iState.fMainWindowSize);
   if(fFragmentShaderWindow->isHiDPIAware() != iState.fHiDPIAware)
     fFragmentShaderWindow->toggleHiDPIAwareness();
@@ -912,13 +945,6 @@ void MainWindow::initFromState(State const &iState)
 }
 
 //------------------------------------------------------------------------
-// JSSetStyle
-//------------------------------------------------------------------------
-EM_JS(void, JSSetStyle, (bool iDarkStyle), {
-  Module.wst_set_style(iDarkStyle);
-})
-
-//------------------------------------------------------------------------
 // MainWindow::setStyle
 //------------------------------------------------------------------------
 void MainWindow::setStyle(bool iDarkStyle)
@@ -931,6 +957,15 @@ void MainWindow::setStyle(bool iDarkStyle)
     ImGui::StyleColorsLight(&style);
   ImGui::GetStyle() = style;
   JSSetStyle(iDarkStyle);
+}
+
+//------------------------------------------------------------------------
+// MainWindow::setManualLayout
+//------------------------------------------------------------------------
+void MainWindow::setManualLayout(bool iManualLayout)
+{
+  fManualLayout = iManualLayout;
+  JSSetManualLayout(iManualLayout);
 }
 
 //------------------------------------------------------------------------

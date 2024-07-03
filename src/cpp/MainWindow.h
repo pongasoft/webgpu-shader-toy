@@ -69,6 +69,7 @@ private:
   void reset();
   void initFromState(State const &iState);
   void setStyle(bool iDarkStyle);
+  void setManualLayout(bool iManualLayout);
   State computeState() const;
   void renderDialog();
   void renderMainMenuBar();
@@ -92,6 +93,7 @@ private:
   std::string fLastComputedState;
   double fLastComputedStateTime;
   bool fDarkStyle{true};
+  bool fManualLayout{false};
   float fLineSpacing{1.0f};
   bool fCodeShowWhiteSpace{false};
 

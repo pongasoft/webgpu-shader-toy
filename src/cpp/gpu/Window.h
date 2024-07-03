@@ -68,6 +68,7 @@ public:
   bool isHiDPIAware() const;
   void toggleHiDPIAwareness();
   void requestFullscreen();
+  void makeCanvasResizable(char const *iCanvasResizeSelector, char const *iHandleSelector);
 
   static double getCurrentTime();
 
