@@ -61,7 +61,6 @@ configure_file("${CMAKE_CURRENT_LIST_DIR}/src/cpp/version.h.in" "${VERSION_DIR}/
 add_executable(wgpu_shader_toy "${wgpu_shader_toy_sources}")
 
 set_target_properties(wgpu_shader_toy PROPERTIES OUTPUT_NAME "index")
-set_target_properties(wgpu_shader_toy PROPERTIES SUFFIX ".html")
 target_include_directories(wgpu_shader_toy PUBLIC
     "${VERSION_DIR}"
     "external/nlohmann/json/single_include"
@@ -70,8 +69,9 @@ target_include_directories(wgpu_shader_toy PUBLIC
 )
 
 file(COPY ${CMAKE_SOURCE_DIR}/src/resources/images DESTINATION ${CMAKE_BINARY_DIR})
+configure_file(${CMAKE_SOURCE_DIR}/src/resources/emscripten/shell.html ${CMAKE_BINARY_DIR}/index.html COPYONLY)
 
-set(wgpu_shader_toy_options "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/emscripten-glfw3.py" "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:branch=docking")
+set(wgpu_shader_toy_options "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/emscripten-glfw3.py" "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:disableDemo=$<IF:$<CONFIG:Debug>,false,true>")
 
 target_compile_options(wgpu_shader_toy PUBLIC
     "${wgpu_shader_toy_options}"
@@ -80,7 +80,6 @@ target_compile_options(wgpu_shader_toy PUBLIC
 
 target_link_options(wgpu_shader_toy PUBLIC
     "-fwasm-exceptions"
-    "--shell-file=${CMAKE_CURRENT_LIST_DIR}/src/resources/emscripten/shell.html"
     "${wgpu_shader_toy_options}"
     "--js-library" "${CMAKE_CURRENT_LIST_DIR}/src/js/lib_wgpu_shader_toy.js"
 )

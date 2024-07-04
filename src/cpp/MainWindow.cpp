@@ -1109,8 +1109,8 @@ void MainWindow::help() const
     {"Ctrl + [ or ]", {"Indentation change"}},
     {"Ctrl + /", {"Toggle line comment"}},
     {"Home or End", {"Beginning or End of line"}},
-    {"<Navigation Key>", {"Arrows, Home, End, PgUp, PgDn: move cursor"}},
-    {"Shift + <Navigation Key>", {"Select text"}},
+    {"<Nav. Key>", {"Arrows, Home, End, PgUp, PgDn: move cursor"}},
+    {"Shift + <Nav. Key>", {"Select text"}},
   };
 
   static const help_t kShaderInputs = {
