@@ -264,6 +264,8 @@ void MainWindow::renderMainMenuBar()
     {
       if(ImGui::MenuItem("About"))
         newAboutDialog();
+      if(ImGui::MenuItem("Help"))
+        newHelpDialog();
       if(ImGui::BeginMenu("Settings"))
       {
         renderSettingsMenu();
@@ -530,18 +532,18 @@ void MainWindow::renderShaderMenu(TextEditor iEditor, std::string const &iNewNod
   if(ImGui::BeginMenu("Shader"))
   {
     ImGui::SeparatorText("Code");
-    if(ImGui::MenuItem(ICON_FA_Hammer " Compile", "CTRL + SPACE", false, iEdited))
+    if(ImGui::MenuItem(ICON_FA_Hammer " Compile", "Ctrl + SPACE", false, iEdited))
       compile(iNewNode);
     ImGui::SeparatorText("Edit");
-    if(ImGui::MenuItem("Copy", "CTRL + C"))
+    if(ImGui::MenuItem("Copy", "Ctrl + C"))
       iEditor.Copy();
-    if(ImGui::MenuItem("Cut", "CTRL + X"))
+    if(ImGui::MenuItem("Cut", "Ctrl + X"))
       iEditor.Cut();
-    if(ImGui::MenuItem("Paste", "CTRL + V"))
+    if(ImGui::MenuItem("Paste", "Ctrl + V"))
       iEditor.OnKeyboardPaste();
-    if(ImGui::MenuItem("Undo", "CTRL + Z"))
+    if(ImGui::MenuItem("Undo", "Ctrl + Z"))
       iEditor.Undo();
-    if(ImGui::MenuItem("Redo", "SHIFT + CTRL + Z"))
+    if(ImGui::MenuItem("Redo", "Shift + Ctrl + Z"))
       iEditor.Redo();
     ImGui::SeparatorText("Misc");
     if(ImGui::MenuItem("Rename"))
@@ -1058,6 +1060,98 @@ void MainWindow::newAboutDialog()
       ImGui::Text("GLFW:       %s", glfwGetVersionString());
     })
     .buttonOk();
+}
+
+//------------------------------------------------------------------------
+// MainWindow::newHelpDialog
+//------------------------------------------------------------------------
+void MainWindow::newHelpDialog()
+{
+  newDialog("Help")
+    .lambda([this]() { help(); })
+    .buttonOk();
+}
+
+//------------------------------------------------------------------------
+// MainWindow::help
+//------------------------------------------------------------------------
+void MainWindow::help() const
+{
+  using help_t = std::vector <std::tuple<char const *, std::vector<char const *>>>;
+
+  static const help_t kIcons = {
+    {fa::kClockRotateLeft, {"Reset time/frame"}},
+    {fa::kBackwardStep, {"Steps backward in time (-12 frames) | Hold to repeat"}},
+    {ICON_FA_BackwardStep " + " "Alt", {"Steps backward in time (-1 frame) | Hold to repeat"}},
+    {ICON_FA_CirclePause " / " ICON_FA_CirclePlay, {"Pause/Play time/frame"}},
+    {fa::kForwardStep, {"Steps forward in time (+12 frames) | Hold to repeat"}},
+    {ICON_FA_ForwardStep " + " "Alt", {"Steps forward in time (+1 frame) | Hold to repeat"}},
+    {fa::kExpand, {"Enter fullscreen (ESC to exit)"}},
+  };
+
+  // for the time being we support only Windows shortcuts because the Command key does not work properly in
+  // browsers
+  static const help_t kShortcuts = {
+    {"Ctrl + SPACE", {"Compile the shader"}},
+    {"Ctrl + C", {"Copy"}},
+    {"Ctrl + X", {"Cut"}},
+    {"Ctrl + V", {"Paste"}},
+    {"Ctrl + Z", {"Undo"}},
+    {"Ctrl + Shift + Z", {"Redo"}},
+    {"Ctrl + A", {"Select All"}},
+    {"Ctrl + [ or ]", {"Indentation change"}},
+    {"Ctrl + /", {"Toggle line comment"}},
+    {"Home or End", {"Beginning or End of line"}},
+    {"<Navigation Key>", {"Arrows, Home, End, PgUp, PgDn: move cursor"}},
+    {"Shift + <Navigation Key>", {"Select text"}},
+  };
+
+  static const help_t kShaderInputs = {
+    {"ShaderToyInputs", {
+                          "struct ShaderToyInputs {",
+                          "  size:  vec4f,",
+                          "  mouse: vec4f,",
+                          "  time:  f32,",
+                          "  frame: i32,",
+                          "};",
+                          "@group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;"
+                        }},
+    {"inputs.size.xy", {"size of the viewport (in pixels)"}},
+    {"inputs.size.zw", {"scale ((1,1) for low res, (2,2) for hi-res)"}},
+    {"inputs.mouse.xy", {"mouse position (in viewport coordinates)"}},
+    {"inputs.mouse.zw", {"position where LMB was pressed ((-1,-1) if not pressed)"}},
+    {"inputs.time", {"time in seconds (since start/reset)"}},
+    {"inputs.frame", {"frame count (since start/reset)"}},
+  };
+
+
+  auto renderHelp = [](help_t const &iHelp, char const *iSectionName, char const *iColumnName) {
+    ImGui::SeparatorText(iSectionName);
+    if(ImGui::BeginTable(iSectionName, 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV))
+    {
+      ImGui::TableSetupColumn(iColumnName);
+      ImGui::TableSetupColumn("Description");
+      ImGui::TableHeadersRow();
+
+      for(auto &entry: iHelp)
+      {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted(std::get<0>(entry));
+        ImGui::TableSetColumnIndex(1);
+        for(auto const &item: std::get<1>(entry))
+        {
+          ImGui::TextUnformatted(item);
+        }
+      }
+      ImGui::EndTable();
+    }
+  };
+
+  renderHelp(kIcons, "Icons", "Icons");
+  renderHelp(kShortcuts, "Keyboard Shortcuts", "Shortcuts");
+  renderHelp(kShaderInputs, "Shader Inputs", "Inputs");
+
 }
 
 }

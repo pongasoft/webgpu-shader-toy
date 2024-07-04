@@ -86,6 +86,8 @@ private:
   void promptShaderWindowSize();
   void renameShader(std::string const &iOldName, std::string const &iNewName);
   void newAboutDialog();
+  void newHelpDialog();
+  void help() const;
   inline bool hasDialog() const { return fCurrentDialog != nullptr || !fDialogs.empty(); }
   gui::Dialog &newDialog(std::string iTitle, bool iHighPriority = false);
 

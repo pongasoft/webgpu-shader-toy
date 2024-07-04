@@ -405,7 +405,7 @@ private:
   std::vector<UndoRecord> mUndoBuffer;
   int mUndoIndex = 0;
 
-  int mTabSize = 4;
+  int mTabSize = 2;
   float mLineSpacing = 1.0f;
   bool mOverwrite = false;
   bool mReadOnly = false;

@@ -1457,9 +1457,7 @@ void TextEditor::MoveDownCurrentLines()
 void TextEditor::ToggleLineComment()
 {
   assert(!mReadOnly);
-  if(mLanguageDefinition == nullptr)
-    return;
-  const std::string &commentString = mLanguageDefinition->mSingleLineComment;
+  static const std::string commentString = "//";
 
   UndoRecord u;
   u.mBefore = mState;
