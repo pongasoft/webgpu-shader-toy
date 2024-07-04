@@ -812,7 +812,11 @@ std::shared_ptr<FragmentShader> MainWindow::deleteFragmentShader(std::string con
     }
   }
   else
+  {
     fCurrentFragmentShader = nullptr;
+    setTitle("WebGPU Shader Toy");
+    fFragmentShaderWindow->setTitle("WebGPU Shader Toy");
+  }
 
   return oldShader;
 }
@@ -827,6 +831,9 @@ void MainWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragm
   if(!fManualLayout)
     fCurrentFragmentShader->setWindowSize(fFragmentShaderWindow->getSize());
   fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+  auto title = fmt::printf("WebGPU Shader Toy | %s", fCurrentFragmentShader->getName());
+  setTitle(title);
+  fFragmentShaderWindow->setTitle(title);
 }
 
 //------------------------------------------------------------------------

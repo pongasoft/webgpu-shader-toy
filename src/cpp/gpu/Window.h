@@ -69,6 +69,7 @@ public:
   void toggleHiDPIAwareness();
   void requestFullscreen();
   void makeCanvasResizable(char const *iCanvasResizeSelector, char const *iHandleSelector);
+  void setTitle(std::string const &iTitle);
 
   static double getCurrentTime();
 

@@ -229,4 +229,12 @@ void Window::makeCanvasResizable(char const *iCanvasResizeSelector, char const *
 
 }
 
+//------------------------------------------------------------------------
+// Window::setTitle
+//------------------------------------------------------------------------
+void Window::setTitle(std::string const &iTitle)
+{
+  glfwSetWindowTitle(fWindow, iTitle.c_str());
+}
+
 }

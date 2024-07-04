@@ -85,7 +85,7 @@ int main(int, char **)
                                                    shader_toy::MainWindow::Args {
                                                      .fragmentShaderWindow = {
                                                        .size = state.fFragmentShaderWindowSize,
-                                                       .title = "WebGPU Shader Toy | fragment shader",
+                                                       .title = "WebGPU Shader Toy",
                                                        .canvas = { .selector = "#canvas2" }
                                                      },
                                                      .defaultState = defaultState,
