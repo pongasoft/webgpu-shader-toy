@@ -26,6 +26,7 @@
 #include "Errors.h"
 #include <iostream>
 #include <emscripten.h>
+#include <version.h>
 
 
 namespace shader_toy {
@@ -261,8 +262,8 @@ void MainWindow::renderMainMenuBar()
   {
     if(ImGui::BeginMenu("WebGPU Shader Toy"))
     {
-      if(ImGui::MenuItem("Reset"))
-        fResetRequest = true;
+      if(ImGui::MenuItem("About"))
+        newAboutDialog();
       if(ImGui::BeginMenu("Settings"))
       {
         renderSettingsMenu();
@@ -278,7 +279,11 @@ void MainWindow::renderMainMenuBar()
           wgpu_shader_toy_open_file_dialog();
         ImGui::EndMenu();
       }
+      ImGui::Separator();
+      if(ImGui::MenuItem("Reset"))
+        fResetRequest = true;
 #ifndef NDEBUG
+      ImGui::Separator();
       if(ImGui::MenuItem("Quit"))
         stop();
 #endif
@@ -1034,6 +1039,25 @@ void MainWindow::onNewFile(char const *iFilename, char const *iContent)
     initFromState(Preferences::deserialize(iContent, fDefaultState));
   else
     onNewFragmentShader({filename, iContent});
+}
+
+//------------------------------------------------------------------------
+// MainWindow::newAboutDialog
+//------------------------------------------------------------------------
+void MainWindow::newAboutDialog()
+{
+  newDialog("WebGPU Shader Toy | About")
+    .lambda([] {
+      ImGui::SeparatorText("About");
+      ImGui::Text("WebGPU Shader Toy is a tool developed by pongasoft.");
+      ImGui::Text("Its main purpose is to experiment with WebGPU fragment shaders");
+      ImGui::SeparatorText("Versions");
+      ImGui::Text("Version:    %s", kFullVersion);
+      ImGui::Text("emscripten: %d.%d.%d", __EMSCRIPTEN_major__, __EMSCRIPTEN_minor__, __EMSCRIPTEN_tiny__);
+      ImGui::Text("ImGui:      %s", IMGUI_VERSION);
+      ImGui::Text("GLFW:       %s", glfwGetVersionString());
+    })
+    .buttonOk();
 }
 
 }

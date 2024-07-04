@@ -3,6 +3,12 @@ cmake_minimum_required(VERSION 3.28)
 # CLion configuration. Note that Ninja does NOT work with c++ 20 for some unknown reason...
 # -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=/usr/local/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Debug
 
+set(wgpu-shader-toy_RELEASE_YEAR  "2024")
+set(wgpu-shader-toy_RELEASE_MONTH "07"  )
+set(wgpu-shader-toy_RELEASE_DAY   "04"  )
+
+set(wgpu-shader-toy_VERSION "${wgpu-shader-toy_RELEASE_YEAR}${wgpu-shader-toy_RELEASE_MONTH}${wgpu-shader-toy_RELEASE_DAY}")
+
 project(wgpu_shader_toy LANGUAGES CXX)
 
 if(NOT EMSCRIPTEN)
@@ -49,11 +55,15 @@ set(wgpu_shader_toy_sources
     external/santaclose/ImGuiColorTextEdit/TextEditor.cpp
 )
 
+set(VERSION_DIR "${CMAKE_BINARY_DIR}/generated")
+configure_file("${CMAKE_CURRENT_LIST_DIR}/src/cpp/version.h.in" "${VERSION_DIR}/version.h")
+
 add_executable(wgpu_shader_toy "${wgpu_shader_toy_sources}")
 
 set_target_properties(wgpu_shader_toy PROPERTIES OUTPUT_NAME "index")
 set_target_properties(wgpu_shader_toy PROPERTIES SUFFIX ".html")
 target_include_directories(wgpu_shader_toy PUBLIC
+    "${VERSION_DIR}"
     "external/nlohmann/json/single_include"
     "external/santaclose/ImGuiColorTextEdit"
     "external/fonts/src"
