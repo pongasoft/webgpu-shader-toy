@@ -245,9 +245,12 @@
           <h3 class="error">This tool requires javascript (currently disabled)!</h3>
         </noscript>
         <div class="info">
-          <p>WebGPU Shader Toy is a free tool for the <a href="https://www.w3.org/TR/WGSL/">WebGPU Shading Language</a> (WGSL).</p>
-          <p>This tool is using <a href="https://emscripten.org/">emscripten</a> (web assembly) for the compiler and <a href="https://github.com/ocornut/imgui">ImGui</a> for the GUI with <a href="https://github.com/pongasoft/emscripten-glfw">emscripten-glfw</a> for the backend and WebGPU for the renderer.</p>
+          <p>WebGPU Shader Toy is a free tool developed by pongasoft for experimenting with WebGPU fragment shaders and the <a href="https://www.w3.org/TR/WGSL/">WebGPU Shading Language</a> (WGSL).</p>
           <p>This tool has no tracking, ads or server-side component: it is running 100% in your browser. It uses <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">localStorage</a> to store information across browser sessions. </p>
+          <p>You can provide feedback or report issues on <a href="https://github.com/pongasoft/webgpu-shader-toy">GitHub</a>.</p>
+          <p>If you are having issues, try to <a href="?reset">reset</a>.</p>
+          <p>This project originated from my interest in learning about WebGPU. It also served as a platform for developing a more comprehensive application for my library: <a href="https://github.com/pongasoft/emscripten-glfw">emscripten-glfw</a>.</p>
+          <p>This tool is using <a href="https://emscripten.org/">emscripten</a> (web assembly) for the compiler, <a href="https://github.com/ocornut/imgui">ImGui</a> and GLFW for the GUI (<a href="https://github.com/pongasoft/emscripten-glfw">emscripten-glfw</a> for the backend and WebGPU for the renderer.)</p>
           <p>It has been inspired by the popular project <a href="https://www.shadertoy.com/">Shadertoy</a>.</p>
         </div>
         <div class="status hidden-initially">
@@ -273,7 +276,7 @@
     <p id="drop-zone-content">Drop Shader Here</p>
   </div>
 </div>
-<div id="footer"><a href="https://pongasoft.com">pongasoft</a> | <a href="https://github.com/pongasoft">Info</a> | <a href="?reset">Reset</a></div>
+<div id="footer"><a href="https://pongasoft.com">pongasoft</a> | <a href="https://github.com/pongasoft/webgpu-shader-toy">Project</a> | <a href="?reset">Reset</a></div>
 <script type='text/javascript'>
   var Module = {};
 
