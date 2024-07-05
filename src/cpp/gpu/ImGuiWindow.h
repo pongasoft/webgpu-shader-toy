@@ -34,6 +34,8 @@ public:
 
   void doHandleFrameBufferSizeChange(Size const &iSize) override;
 
+  void beforeFrame() override;
+
 protected:
   void doRender(wgpu::RenderPassEncoder &iRenderPass) override;
   virtual void doRender() = 0;

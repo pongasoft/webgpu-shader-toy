@@ -54,7 +54,7 @@ struct ShaderToyInputs {
 )";
 
   static constexpr char kHeaderTemplate[] = R"(struct ShaderToyInputs {
-  size:         vec4f, [%d, %d, %d, %d]
+  size:         vec4f, [%d, %d, %.2f, %.2f]
   mouse:        vec4f, [%d, %d, %d, %d]
   time:         f32,   [%.2f]
   frame:        i32,   [%d]

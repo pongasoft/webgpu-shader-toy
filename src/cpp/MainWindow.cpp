@@ -45,6 +45,8 @@ void wgpu_shader_toy_open_file_dialog();
 void wgpu_get_clipboard_string(void *iUserData);
 void wgpu_export_content(char const *iFilename, char const *iContent);
 
+void wgpu_shader_toy_print_stack_trace(char const *iMessage);
+
 }
 
 namespace callbacks {
@@ -209,33 +211,21 @@ void MainWindow::renderSettingsMenu()
   }
   if(ImGui::BeginMenu("Code"))
   {
-    if(ImGui::BeginMenu("Line Spacing"))
+    if(ImGui::MenuItem("Line Spacing"))
     {
-      ImGui::SliderFloat("###line_spacing", &fLineSpacing, 1.0f, 2.0f);
-      ImGui::EndMenu();
+      newDialog("Line Spacing")
+        .lambda([this] { ImGui::SliderFloat("###line_spacing", &fLineSpacing, 1.0f, 2.0f); })
+        .buttonOk()
+        .button("Cancel", [lineSpacing = fLineSpacing, this] { fLineSpacing = lineSpacing; });
     }
     ImGui::MenuItem("Show White Space", nullptr, &fCodeShowWhiteSpace);
     ImGui::EndMenu();
   }
-  if(ImGui::BeginMenu("Window"))
+  if(ImGui::BeginMenu("Resolution"))
   {
     if(ImGui::MenuItem("Hi DPI", nullptr, fFragmentShaderWindow->isHiDPIAware()))
     {
       fFragmentShaderWindow->toggleHiDPIAwareness();
-    }
-    if(ImGui::BeginMenu("Layout"))
-    {
-      if(ImGui::MenuItem("Manual", nullptr, fManualLayout))
-      {
-        if(!fManualLayout)
-          setManualLayout(true);
-      }
-      if(ImGui::MenuItem("Automatic", nullptr, !fManualLayout))
-      {
-        if(fManualLayout)
-          setManualLayout(false);
-      }
-      ImGui::EndMenu();
     }
 //    if(ImGui::BeginMenu("Aspect Ratio"))
 //    {
@@ -251,6 +241,20 @@ void MainWindow::renderSettingsMenu()
 //    }
     ImGui::EndMenu();
   }
+  if(ImGui::BeginMenu("Layout"))
+  {
+    if(ImGui::MenuItem("Manual", nullptr, fManualLayout))
+    {
+      if(!fManualLayout)
+        setManualLayout(true);
+    }
+    if(ImGui::MenuItem("Automatic", nullptr, !fManualLayout))
+    {
+      if(fManualLayout)
+        setManualLayout(false);
+    }
+    ImGui::EndMenu();
+  }
 }
 
 //------------------------------------------------------------------------
@@ -260,27 +264,22 @@ void MainWindow::renderMainMenuBar()
 {
   if(ImGui::BeginMainMenuBar())
   {
-    if(ImGui::BeginMenu("WebGPU Shader Toy"))
+    if(ImGui::BeginMenu(fa::kBars))
+//    if(ImGui::BeginMenu("WebGPU Shader Toy"))
     {
       if(ImGui::MenuItem("About"))
         newAboutDialog();
       if(ImGui::MenuItem("Help"))
         newHelpDialog();
-      if(ImGui::BeginMenu("Settings"))
-      {
-        renderSettingsMenu();
-        ImGui::EndMenu();
-      }
-      if(ImGui::BeginMenu("Project"))
-      {
-        if(ImGui::MenuItem("Save (browser)"))
-          saveState();
-        if(ImGui::MenuItem("Export (disk)"))
-          promptExportProject();
-        if(ImGui::MenuItem("Import (disk)"))
-          wgpu_shader_toy_open_file_dialog();
-        ImGui::EndMenu();
-      }
+      ImGui::SeparatorText("Settings");
+      renderSettingsMenu();
+      ImGui::SeparatorText("File");
+      if(ImGui::MenuItem("Save (browser)"))
+        saveState();
+      if(ImGui::MenuItem("Export (disk)"))
+        promptExportProject();
+      if(ImGui::MenuItem("Import (disk)"))
+        wgpu_shader_toy_open_file_dialog();
       ImGui::Separator();
       if(ImGui::MenuItem("Reset"))
         fResetRequest = true;
@@ -636,7 +635,7 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
     {
       auto &inputs = fCurrentFragmentShader->getInputs();
       ImGui::Text(FragmentShader::kHeaderTemplate,
-                  static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), static_cast<int>(inputs.size.z), static_cast<int>(inputs.size.w), // size: vec4f
+                  static_cast<int>(inputs.size.x), static_cast<int>(inputs.size.y), inputs.size.z, inputs.size.w, // size: vec4f
                   static_cast<int>(inputs.mouse.x), static_cast<int>(inputs.mouse.y), static_cast<int>(inputs.mouse.z), static_cast<int>(inputs.mouse.w), // mouse: vec4f
                   inputs.time, // time: f32
                   inputs.frame // frame: i32
@@ -847,7 +846,8 @@ void MainWindow::beforeFrame()
     fResetRequest = false;
   }
 
-  Window::beforeFrame();
+  ImGuiWindow::beforeFrame();
+
 //  if(fAspectRatioRequest)
 //  {
 //    fFragmentShaderWindow->setAspectRatio(*fAspectRatioRequest);
@@ -1124,7 +1124,7 @@ void MainWindow::help() const
                           "@group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;"
                         }},
     {"inputs.size.xy", {"size of the viewport (in pixels)"}},
-    {"inputs.size.zw", {"scale ((1,1) for low res, (2,2) for hi-res)"}},
+    {"inputs.size.zw", {"scale ((1.0,1.0) for low res)"}},
     {"inputs.mouse.xy", {"mouse position (in viewport coordinates)"}},
     {"inputs.mouse.zw", {"position where LMB was pressed ((-1,-1) if not pressed)"}},
     {"inputs.time", {"time in seconds (since start/reset)"}},

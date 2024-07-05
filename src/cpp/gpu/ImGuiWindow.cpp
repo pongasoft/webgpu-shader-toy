@@ -87,4 +87,13 @@ void ImGuiWindow::doRender(wgpu::RenderPassEncoder &iRenderPass)
 
 }
 
+//------------------------------------------------------------------------
+// ImGuiWindow::beforeFrame
+//------------------------------------------------------------------------
+void ImGuiWindow::beforeFrame()
+{
+  Window::beforeFrame();
+  ImGui::SetCurrentContext(fImGuiContext);
+}
+
 }

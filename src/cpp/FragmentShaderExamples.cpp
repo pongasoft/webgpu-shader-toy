@@ -49,7 +49,7 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   @group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;
 
   - inputs.size.xy: the size of the viewport (in pixels)
-  - inputs.size.zw: the scale ((1,1) for low res, (2,2) for hi-res)
+  - inputs.size.zw: the scale ((1.0,1.0) for low res)
   - inputs.mouse.xy: the mouse position (in viewport coordinates [0 ... inputs.size.x, 0 ... inputs.size.y])
   - inputs.mouse.zw: the position where the LMB was pressed or (-1, -1) if not pressed
   - inputs.time: time in seconds (since start/reset)
