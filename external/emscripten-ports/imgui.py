@@ -114,7 +114,7 @@ def get(ports, settings, shared):
         srcs.append(os.path.join('backends', f'imgui_impl_{opts["backend"]}.cpp'))
         srcs.append(os.path.join('backends', f'imgui_impl_{opts["renderer"]}.cpp'))
 
-        flags = [f'--use-port={build_deps[dep]}' for dep in deps]
+        flags = [f'--use-port={value}' for value in build_deps.values()]
         flags.append('-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3')
 
         ports.build_port(source_path, final, name, srcs=srcs, flags=flags)
