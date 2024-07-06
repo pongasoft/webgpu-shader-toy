@@ -19,16 +19,19 @@ from typing import Union, Dict, Optional
 from tools import utils
 import shutil
 
-TAG = '1.90.5'
+TAG = '1.90.9'
 
 DISTRIBUTIONS = {
     'master': {
-        'hash': 'b3e7e0dad187e853a3117ca73ba9a673589f3060486a1cd5ebc639d348e51cd6182190dd61ad72325eb3bdb84e107e02ff229ce6b311fc51899766f7a84aa1f7'
+        # curl -sfL https://github.com/ocornut/imgui/archive/refs/tags/v{TAG}.zip | shasum -a 512
+        'hash': 'ea7df9888a8bea41b13af7ca9b895209583e03d19f06ff444921d8081495ebaf600b35a41e6febae5bf4f7f59004b04860cafe313675afe2e777d8d80027eb06'
     },
     'docking': {
-        'hash': '182d082201433e3092e48c8f8f097d3888ad32f9ef7d0c94e03b8337f1c334a590aaac7bdb2ab9c89a5dad896fa725bccf22d8c96e0bf6adbaa37795d6067103'
+        # curl -sfL https://github.com/ocornut/imgui/archive/refs/tags/v{TAG}-docking.zip | shasum -a 512
+        'hash': '5d64076b62a3d9c0a647190cbcea6f5749ae6b126bab2e99d5df35bc4c997567c141be8a7deaeda26d46067c82c036700ce8d8cce88a5d7e06898e357f9eab12'
     }
 }
+
 
 # contrib port information (required)
 URL = 'https://github.com/ocornut/imgui'
