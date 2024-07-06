@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.28)
 
 set(wgpu-shader-toy_RELEASE_YEAR  "2024")
 set(wgpu-shader-toy_RELEASE_MONTH "07"  )
-set(wgpu-shader-toy_RELEASE_DAY   "04"  )
+set(wgpu-shader-toy_RELEASE_DAY   "06"  )
 
 set(wgpu-shader-toy_VERSION "${wgpu-shader-toy_RELEASE_YEAR}${wgpu-shader-toy_RELEASE_MONTH}${wgpu-shader-toy_RELEASE_DAY}")
 
