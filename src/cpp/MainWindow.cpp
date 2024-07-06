@@ -152,20 +152,47 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
 {
   initFromState(iMainWindowArgs.state);
 
+  setFontSize(iMainWindowArgs.state.fFontSize);
+  fSetFontSizeRequest = std::nullopt;
+
+  wgpu_shader_toy_install_handlers(callbacks::OnNewFileCallback,
+                                   callbacks::OnBeforeUnload,
+                                   callbacks::OnClipboardStringCallback,
+                                   this);
+}
+
+
+//------------------------------------------------------------------------
+// MainWindow::setFontSize
+//------------------------------------------------------------------------
+void MainWindow::setFontSize(float iFontSize)
+{
+  if(fFontSize == iFontSize)
+    return;
+
+  fFontSize = iFontSize;
+
   auto &io = ImGui::GetIO();
   io.Fonts->Clear();
   ImFontConfig fontConfig;
   fontConfig.OversampleH = 2;
   float fontScale; float dummy;
   glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
-  auto const size = 13.0f * fontScale;
+  auto const size = fFontSize * fontScale;
   io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, size, &fontConfig);
   impl::mergeFontAwesome(size);
   io.FontGlobalScale = 1.0f / fontScale;
-  wgpu_shader_toy_install_handlers(callbacks::OnNewFileCallback,
-                                   callbacks::OnBeforeUnload,
-                                   callbacks::OnClipboardStringCallback,
-                                   this);
+}
+
+
+//------------------------------------------------------------------------
+// MainWindow::requestFontSize
+//------------------------------------------------------------------------
+void MainWindow::requestFontSize(float iFontSize)
+{
+  iFontSize = std::clamp(iFontSize, 8.0f, 30.0f);
+  if(fFontSize != iFontSize)
+    fSetFontSizeRequest = iFontSize;
 }
 
 //------------------------------------------------------------------------
@@ -208,6 +235,21 @@ void MainWindow::renderSettingsMenu()
     if(newDarkStyle)
       setStyle(*newDarkStyle);
     ImGui::EndMenu();
+  }
+  if(ImGui::MenuItem("Font Size"))
+  {
+    newDialog("Font Size")
+      .lambda([this] {
+        if(ImGui::Button(" + "))
+          requestFontSize(fFontSize + 1.0f);
+        ImGui::SameLine();
+        if(ImGui::Button(" - "))
+          requestFontSize(fFontSize - 1.0f);
+        ImGui::SameLine();
+        ImGui::Text("%.0fpx", fFontSize);
+      })
+      .buttonOk()
+      .button("Cancel", [fontSize = fFontSize, this] { requestFontSize(fontSize); });
   }
   if(ImGui::BeginMenu("Code"))
   {
@@ -848,6 +890,14 @@ void MainWindow::beforeFrame()
 
   ImGuiWindow::beforeFrame();
 
+  if(fSetFontSizeRequest)
+  {
+    setFontSize(*fSetFontSizeRequest);
+    fSetFontSizeRequest = std::nullopt;
+    // forcing rebuild of device (where the font is created)
+    doHandleFrameBufferSizeChange(getFrameBufferSize());
+  }
+
 //  if(fAspectRatioRequest)
 //  {
 //    fFragmentShaderWindow->setAspectRatio(*fAspectRatioRequest);
@@ -915,6 +965,7 @@ State MainWindow::computeState() const
     .fDarkStyle = fDarkStyle,
     .fHiDPIAware = fFragmentShaderWindow->isHiDPIAware(),
     .fManualLayout = fManualLayout,
+    .fFontSize = fFontSize,
     .fLineSpacing = fLineSpacing,
     .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
 //    .fAspectRatio = fCurrentAspectRatio,
@@ -937,6 +988,7 @@ State MainWindow::computeState() const
 //------------------------------------------------------------------------
 void MainWindow::initFromState(State const &iState)
 {
+  requestFontSize(iState.fFontSize);
   setStyle(iState.fDarkStyle);
   setManualLayout(iState.fManualLayout);
   resize(iState.fMainWindowSize);

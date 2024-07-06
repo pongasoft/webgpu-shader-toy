@@ -44,6 +44,7 @@ struct State
   bool fDarkStyle{true};
   bool fHiDPIAware{true};
   bool fManualLayout{false};
+  float fFontSize{13.0f};
   float fLineSpacing{1.0f};
   bool fCodeShowWhiteSpace{false};
 //  std::string fAspectRatio{"Free"};

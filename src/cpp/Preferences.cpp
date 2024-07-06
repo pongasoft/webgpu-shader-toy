@@ -83,6 +83,7 @@ std::string Preferences::serialize(State const &iState)
     {"fDarkStyle", iState.fDarkStyle},
     {"fManualLayout", iState.fManualLayout},
     {"fHiDPIAware", iState.fHiDPIAware},
+    {"fFontSize", iState.fFontSize},
     {"fLineSpacing", iState.fLineSpacing},
     {"fCodeShowWhiteSpace", iState.fCodeShowWhiteSpace},
 //    {"fAspectRatio", iState.fAspectRatio},
@@ -108,6 +109,7 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
     state.fDarkStyle = data.value("fDarkStyle", state.fDarkStyle);
     state.fManualLayout = data.value("fManualLayout", state.fManualLayout);
     state.fHiDPIAware = data.value("fHiDPIAware", state.fHiDPIAware);
+    state.fFontSize = data.value("fFontSize", state.fFontSize);
     state.fLineSpacing = data.value("fLineSpacing", state.fLineSpacing);
     state.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", state.fCodeShowWhiteSpace);
 //    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);

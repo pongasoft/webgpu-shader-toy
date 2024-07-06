@@ -70,6 +70,8 @@ private:
   void reset();
   void initFromState(State const &iState);
   void setStyle(bool iDarkStyle);
+  void setFontSize(float iFontSize);
+  void requestFontSize(float iFontSize);
   void setManualLayout(bool iManualLayout);
   State computeState() const;
   void renderDialog();
@@ -99,6 +101,7 @@ private:
   bool fDarkStyle{true};
   bool fManualLayout{false};
   float fLineSpacing{1.0f};
+  float fFontSize{};
   bool fCodeShowWhiteSpace{false};
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
@@ -106,6 +109,7 @@ private:
 //  std::string fCurrentAspectRatio{"Free"};
 //  std::optional<AspectRatio> fAspectRatioRequest{};
   bool fResetRequest{};
+  std::optional<float> fSetFontSizeRequest{};
 
   std::map<std::string, std::shared_ptr<FragmentShader>> fFragmentShaders{};
   std::vector<std::string> fFragmentShaderTabs{};
