@@ -24,6 +24,7 @@
 #include "IconsFontWGPUShaderToy.h"
 #include "IconsFontWGPUShaderToy.cpp"
 #include "Errors.h"
+#include "utils/DataManager.h"
 #include <iostream>
 #include <emscripten.h>
 #include <version.h>
@@ -103,6 +104,8 @@ namespace impl {
 //------------------------------------------------------------------------
 static void mergeFontAwesome(float iSize)
 {
+  static auto kFontData = utils::DataManager::loadCompressedBase85(IconsFontWGPUShaderToy_compressed_data_base85);
+
   auto &io = ImGui::GetIO();
   static const ImWchar icons_ranges[] = {fa::kMin, fa::kMax16, 0};
   ImFontConfig icons_config;
@@ -113,10 +116,12 @@ static void mergeFontAwesome(float iSize)
   icons_config.FontDataOwnedByAtlas = false;
   icons_config.GlyphMinAdvanceX = iSize; // to make it monospace
 
-  io.Fonts->AddFontFromMemoryCompressedBase85TTF(IconsFontWGPUShaderToy_compressed_data_base85,
-                                                 iSize,
-                                                 &icons_config,
-                                                 icons_ranges);
+  icons_config.FontDataOwnedByAtlas = false;
+  io.Fonts->AddFontFromMemoryTTF(kFontData.data(),
+                                 static_cast<int>(kFontData.size()),
+                                 iSize,
+                                 &icons_config,
+                                 icons_ranges);
 }
 
 }
@@ -161,12 +166,13 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
                                    this);
 }
 
-
 //------------------------------------------------------------------------
 // MainWindow::setFontSize
 //------------------------------------------------------------------------
 void MainWindow::setFontSize(float iFontSize)
 {
+  static auto kFontData = utils::DataManager::loadCompressedBase85(JetBrainsMonoRegular_compressed_data_base85);
+
   if(fFontSize == iFontSize)
     return;
 
@@ -179,7 +185,8 @@ void MainWindow::setFontSize(float iFontSize)
   float fontScale; float dummy;
   glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
   auto const size = fFontSize * fontScale;
-  io.Fonts->AddFontFromMemoryCompressedBase85TTF(JetBrainsMonoRegular_compressed_data_base85, size, &fontConfig);
+  fontConfig.FontDataOwnedByAtlas = false;
+  io.Fonts->AddFontFromMemoryTTF(kFontData.data(), static_cast<int>(kFontData.size()), size, &fontConfig);
   impl::mergeFontAwesome(size);
   io.FontGlobalScale = 1.0f / fontScale;
 }

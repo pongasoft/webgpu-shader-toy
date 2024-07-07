@@ -49,6 +49,8 @@ set(wgpu_shader_toy_sources
     src/cpp/gpu/Window.h
     src/cpp/gpu/Window.cpp
 
+    src/cpp/utils/DataManager.h
+    src/cpp/utils/DataManager.cpp
     src/cpp/utils/Storage.h
     src/cpp/utils/JSStorage.cpp
 
