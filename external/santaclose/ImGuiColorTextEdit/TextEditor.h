@@ -363,6 +363,7 @@ private:
   void MoveDownCurrentLines();
   void ToggleLineComment();
   void RemoveCurrentLines();
+  void RemoveCurrentLine();
 
   float TextDistanceToLineStart(const Coordinates& aFrom, bool aSanitizeCoords = true) const;
   void EnsureCursorVisible(int aCursor = -1, bool aStartToo = false);

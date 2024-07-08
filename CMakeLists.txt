@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.28)
 
 set(wgpu-shader-toy_RELEASE_YEAR  "2024")
 set(wgpu-shader-toy_RELEASE_MONTH "07"  )
-set(wgpu-shader-toy_RELEASE_DAY   "06"  )
+set(wgpu-shader-toy_RELEASE_DAY   "08"  )
 
 set(wgpu-shader-toy_VERSION "${wgpu-shader-toy_RELEASE_YEAR}${wgpu-shader-toy_RELEASE_MONTH}${wgpu-shader-toy_RELEASE_DAY}")
 
@@ -73,6 +73,7 @@ target_include_directories(wgpu_shader_toy PUBLIC
 file(COPY ${CMAKE_SOURCE_DIR}/src/resources/images DESTINATION ${CMAKE_BINARY_DIR})
 configure_file(${CMAKE_SOURCE_DIR}/src/resources/emscripten/shell.html ${CMAKE_BINARY_DIR}/index.html @ONLY)
 
+#set(wgpu_shader_toy_options "--use-port=contrib.glfw3" "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:disableDemo=$<IF:$<CONFIG:Debug>,false,true>")
 set(wgpu_shader_toy_options "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/emscripten-glfw3.py" "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:disableDemo=$<IF:$<CONFIG:Debug>,false,true>")
 
 target_compile_options(wgpu_shader_toy PUBLIC

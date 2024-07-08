@@ -248,6 +248,8 @@ void TextEditor::Cut()
       u.mAfter = mState;
       AddUndo(u);
     }
+    else
+      RemoveCurrentLine();
   }
 }
 
@@ -1585,6 +1587,55 @@ void TextEditor::RemoveCurrentLines()
   AddUndo(u);
 }
 
+void TextEditor::RemoveCurrentLine()
+{
+  UndoRecord u;
+  u.mBefore = mState;
+
+  MoveHome();
+  OnCursorPositionChanged(); // might combine cursors
+
+  for(int c = mState.mCurrentCursor; c > -1; c--)
+  {
+    int currentLine = mState.mCursors[c].mInteractiveEnd.mLine;
+    int nextLine = currentLine + 1;
+    int prevLine = currentLine - 1;
+
+    Coordinates toDeleteStart, toDeleteEnd;
+    if(mLines.size() > nextLine) // next line exists
+    {
+      toDeleteStart = Coordinates(currentLine, 0);
+      toDeleteEnd = Coordinates(nextLine, 0);
+      SetCursorPosition({mState.mCursors[c].mInteractiveEnd.mLine, 0}, c);
+    } else if(prevLine > -1) // previous line exists
+    {
+      toDeleteStart = Coordinates(prevLine, GetLineMaxColumn(prevLine));
+      toDeleteEnd = Coordinates(currentLine, GetLineMaxColumn(currentLine));
+      SetCursorPosition({prevLine, 0}, c);
+    } else
+    {
+      toDeleteStart = Coordinates(currentLine, 0);
+      toDeleteEnd = Coordinates(currentLine, GetLineMaxColumn(currentLine));
+      SetCursorPosition({currentLine, 0}, c);
+    }
+
+    auto line = GetText(toDeleteStart, toDeleteEnd);
+    ImGui::SetClipboardText(line.c_str());
+
+    u.mOperations.push_back(
+      {line, toDeleteStart, toDeleteEnd, UndoOperationType::Delete});
+
+    std::unordered_set<int> handledCursors = {c};
+    if(toDeleteStart.mLine != toDeleteEnd.mLine)
+      RemoveLine(currentLine, &handledCursors);
+    else
+      DeleteRange(toDeleteStart, toDeleteEnd);
+  }
+
+  u.mAfter = mState;
+  AddUndo(u);
+}
+
 float TextEditor::TextDistanceToLineStart(const Coordinates &aFrom, bool aSanitizeCoords) const
 {
   if(aSanitizeCoords)
@@ -2033,8 +2084,8 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
       Delete(ctrl);
     else if(!mReadOnly && !alt && !shift && !super && ImGui::IsKeyPressed(ImGuiKey_Backspace))
       Backspace(ctrl);
-    else if(!mReadOnly && !alt && ctrl && shift && !super && ImGui::IsKeyPressed(ImGuiKey_K))
-      RemoveCurrentLines();
+//    else if(!mReadOnly && !alt && ctrl && shift && !super && ImGui::IsKeyPressed(ImGuiKey_K))
+//      RemoveCurrentLines();
     else if(!mReadOnly && !alt && ctrl && !shift && !super && ImGui::IsKeyPressed(ImGuiKey_LeftBracket))
       ChangeCurrentLinesIndentation(false);
     else if(!mReadOnly && !alt && ctrl && !shift && !super && ImGui::IsKeyPressed(ImGuiKey_RightBracket))

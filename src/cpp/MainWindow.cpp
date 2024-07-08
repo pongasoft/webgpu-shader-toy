@@ -1159,8 +1159,8 @@ void MainWindow::help() const
   // browsers
   static const help_t kShortcuts = {
     {"Ctrl + SPACE", {"Compile the shader"}},
-    {"Ctrl + C", {"Copy"}},
-    {"Ctrl + X", {"Cut"}},
+    {"Ctrl + C", {"Copy selection"}},
+    {"Ctrl + X", {"Cut selection / Cut Line (no selection)"}},
     {"Ctrl + V", {"Paste"}},
     {"Ctrl + Z", {"Undo"}},
     {"Ctrl + Shift + Z", {"Redo"}},
