@@ -66,6 +66,7 @@ public:
   Dialog &button(std::string iLabel, Button::action_t iAction, bool iDefaultFocus = false);
   Dialog &buttonCancel(std::string iLabel = "Cancel", bool iDefaultFocus = false) { return button(std::move(iLabel), {}, iDefaultFocus); }
   Dialog &buttonOk(std::string iLabel = "Ok", bool iDefaultFocus = false) { return button(std::move(iLabel), {}, iDefaultFocus); }
+  Dialog &allowDismissDialog() { fAllowDismissDialog = true; return *this; }
 
   bool isOpen() const;
 
@@ -78,6 +79,8 @@ protected:
   std::optional<std::string> fPostContentMessage{};
   std::vector<std::shared_ptr<Content>> fContent{};
   std::vector<Button> fButtons{};
+  bool fAllowDismissDialog{false};
+  bool fDialogIsNotDismissed{true};
 
 private:
   std::string fDialogID;

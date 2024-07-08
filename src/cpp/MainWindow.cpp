@@ -1125,6 +1125,7 @@ void MainWindow::newAboutDialog()
       ImGui::Text("ImGui:      %s", IMGUI_VERSION);
       ImGui::Text("GLFW:       %s", glfwGetVersionString());
     })
+    .allowDismissDialog()
     .buttonOk();
 }
 
@@ -1135,6 +1136,7 @@ void MainWindow::newHelpDialog()
 {
   newDialog("Help")
     .lambda([this]() { help(); })
+    .allowDismissDialog()
     .buttonOk();
 }
 

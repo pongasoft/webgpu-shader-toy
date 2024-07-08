@@ -47,7 +47,7 @@ void Dialog::render()
 
   auto needsSeparator = false;
 
-  if(ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_HorizontalScrollbar))
+  if(ImGui::BeginPopupModal(title, fAllowDismissDialog ? &fDialogIsNotDismissed : nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_HorizontalScrollbar))
   {
     if(fPreContentMessage)
     {
