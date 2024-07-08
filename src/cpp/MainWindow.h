@@ -76,7 +76,7 @@ private:
   State computeState() const;
   void renderDialog();
   void renderMainMenuBar();
-  void renderShaderMenu(TextEditor iEditor, std::string const &iNewNode, bool iEdited);
+  void renderShaderMenu(TextEditor &iEditor, std::string const &iNewNode, bool iEdited);
   void renderSettingsMenu();
   void renderControlsSection();
   void renderShaderSection(bool iEditorHasFocus);

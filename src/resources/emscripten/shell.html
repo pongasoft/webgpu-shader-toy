@@ -379,8 +379,10 @@
     const error = document.querySelector(errorSelector);
     if(error !== undefined) {
       error.innerHTML =
-        '<h3>WebGPU is not supported by this browser</h3>' +
-        '<h3>Try with Google Chrome or Microsoft Edge</h3>';
+        '<h3>WebGPU is not supported by this browser' +
+        '<br>Try with Google Chrome or Microsoft Edge' +
+        '<br>Check <a href="https://caniuse.com/webgpu">this site</a> for details' +
+        '</h3>';
       show(errorSelector);
     }
   }

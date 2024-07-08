@@ -575,7 +575,7 @@ void MainWindow::renameShader(std::string const &iOldName, std::string const &iN
 //------------------------------------------------------------------------
 // MainWindow::renderShaderMenu
 //------------------------------------------------------------------------
-void MainWindow::renderShaderMenu(TextEditor iEditor, std::string const &iNewNode, bool iEdited)
+void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewNode, bool iEdited)
 {
   if(ImGui::BeginMenu("Shader"))
   {
