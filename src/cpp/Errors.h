@@ -23,21 +23,29 @@
 #include <string>
 #include "fmt.h"
 
+extern "C" {
+void wgpu_shader_toy_abort(char const *iMessage);
+}
+
 namespace pongasoft {
 
 struct Exception : public std::logic_error {
-  explicit Exception(std::string const &s) : std::logic_error(s.c_str()) {}
+  explicit Exception(std::string const &s) : std::logic_error(s) {}
   explicit Exception(char const *s) : std::logic_error(s) {}
 
   [[ noreturn ]] static void throwException(char const *iMessage, char const *iFile, int iLine)
   {
-    throw Exception(fmt::printf("%s:%d | %s", iFile, iLine, iMessage));
+    auto message = fmt::printf("%s:%d | %s", iFile, iLine, iMessage);
+    wgpu_shader_toy_abort(message.c_str());
+    throw Exception(message);
   }
 
   template<typename ... Args>
   [[ noreturn ]] static void throwException(char const *iMessage, char const *iFile, int iLine, const std::string& format, Args ... args)
   {
-    throw Exception(fmt::printf(" %s:%d | %s | %s", iFile, iLine, iMessage, fmt::printf(format, std::forward<Args>(args)...)));
+    auto message = fmt::printf(" %s:%d | %s | %s", iFile, iLine, iMessage, fmt::printf(format, std::forward<Args>(args)...));
+    wgpu_shader_toy_abort(message.c_str());
+    throw Exception(message);
   }
 };
 

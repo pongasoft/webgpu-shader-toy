@@ -233,6 +233,24 @@
       color: teal;
     }
 
+    #error-dialog {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      background: teal;
+      border: solid 5px red;
+      padding: 5px;
+      font-family: monospace;
+      z-index: 30;
+      box-shadow: 8px 8px 16px 0 rgba(0,0,0,0.8);
+    }
+
+    #error-dialog h3 {
+      margin-top: 0;
+    }
+
   </style>
 </head>
 <body>
@@ -276,7 +294,19 @@
     <p id="drop-zone-content">Drop Shader Here</p>
   </div>
 </div>
+
+<div id="error-dialog" class="hidden">
+  <h3>Something went wrong</h3>
+  <ul>
+    <li>An unexpected problem has happened. Please check the console for more details.</li>
+    <li>Message (if any): <span class="message"></span></li>
+    <li>You can try to <a href="?reset">reset</a> the tool.</li>
+    <li>You can <a href="https://github.com/pongasoft/webgpu-shader-toy/issues" target="_blank">report</a> this problem.</li>
+  </ul>
+</div>
+
 <div id="footer"><a href="https://pongasoft.com" target="_blank">pongasoft</a> | <a href="?reset">Reset</a> | <a href="https://github.com/pongasoft/webgpu-shader-toy" target="_blank">v@wgpu-shader-toy_VERSION@</a></div>
+
 <script type='text/javascript'>
   var Module = {};
 
@@ -310,13 +340,45 @@
   function show(cssSelector) { removeClass(cssSelector, "hidden"); }
   function hide(cssSelector) { addClass(cssSelector, "hidden"); }
 
+  function showError(errorMessage) {
+    fadeAndRemove("#intro .status", 0);
+    const errorSelector = '#intro .content .webgpu.error'
+    const error = document.querySelector(errorSelector);
+    if(error) {
+      error.innerHTML = errorMessage;
+      show(errorSelector);
+    }
+  }
+
+  function showErrorDialog(message) {
+    fadeAndRemove("#intro .status", 0);
+    if(message) {
+      const selector = '#error-dialog .message';
+      const error = document.querySelector(selector);
+      if(error) {
+        error.innerText = message;
+      }
+    }
+    show('#error-dialog');
+  }
+
   // Detect WebGPU
-  if(navigator.gpu !== undefined)
+  if(navigator.gpu)
   {
+    Module.onAbort = (reason) => {
+      showErrorDialog(reason);
+    }
+
     (async () => {
-      const adapter = await navigator.gpu.requestAdapter();
-      Module.preinitializedWebGPUDevice = await adapter.requestDevice();
-      Module.wst_done_waiting = false;
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        Module.preinitializedWebGPUDevice = await adapter.requestDevice();
+        Module.wst_done_waiting = false;
+      } catch(error) {
+        console.log(`Cannot acquire WebGPU adapter: ${error}`);
+        showError(`<h3>${error}</h3>`);
+        return;
+      }
 
       // Module.wst_set_style
       Module.wst_set_style = (darkStyle) => {
@@ -374,23 +436,18 @@
   else
   {
     console.log("WebGPU is not supported by this browser");
-    fadeAndRemove("#intro .status", 0);
-    const errorSelector = '#intro .content .webgpu.error'
-    const error = document.querySelector(errorSelector);
-    if(error !== undefined) {
-      error.innerHTML =
-        '<h3>WebGPU is not supported by this browser' +
-        '<br>Try with Google Chrome or Microsoft Edge' +
-        '<br>Check <a href="https://caniuse.com/webgpu">this site</a> for details' +
-        '</h3>';
-      show(errorSelector);
-    }
+    showError(
+      '<h3>WebGPU is not supported by this browser' +
+      '<br>Try with Google Chrome or Microsoft Edge' +
+      '<br>Check <a href="https://caniuse.com/webgpu">this site</a> for details' +
+      '</h3>'
+    );
   }
 
   function fadeAndRemove(selector, duration) {
     const element = document.querySelector(selector);
     const rate = 25; // ms
-    if(element !== undefined)
+    if(element)
     {
       if(duration > 0) {
         var opacity = 1;

@@ -102,9 +102,19 @@ let wgpu_shader_toy = {
 
   // wgpu_shader_toy_print_stack_trace
   wgpu_shader_toy_print_stack_trace: (message) => {
-    message = message ? UTF8ToString(message): null;
+    message = message ? UTF8ToString(message) : null;
     const error = new Error(message);
     console.log(error.stack);
+  },
+
+  // wgpu_shader_toy_abort
+  wgpu_shader_toy_abort: (message) => {
+    message = message ? UTF8ToString(message) : null;
+    const error = new Error(message);
+    console.log(error.stack);
+    if(Module.onAbort) {
+      Module.onAbort(message);
+    }
   },
 
   // wgpu_get_clipboard_string

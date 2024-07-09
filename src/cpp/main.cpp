@@ -12,12 +12,25 @@ std::unique_ptr<shader_toy::Application> kApplication;
  * Main loop for emscripten */
 static void MainLoopForEmscripten()
 {
-  if(kApplication && kApplication->running())
-    kApplication->mainLoop();
-  else
+  try
   {
-    emscripten_cancel_main_loop();
-    kApplication = nullptr;
+    if(kApplication && kApplication->running())
+      kApplication->mainLoop();
+    else
+    {
+      emscripten_cancel_main_loop();
+      kApplication = nullptr;
+    }
+  }
+  catch(std::exception &e)
+  {
+    printf("ABORT| Unrecoverable exception detected: %s\n", e.what());
+    abort();
+  }
+  catch(...)
+  {
+    printf("ABORT| Unrecoverable exception detected: Unknown exception\n");
+    abort();
   }
 }
 
@@ -100,11 +113,13 @@ int main(int, char **)
   }
   catch(std::exception &e)
   {
-    printf("ABORT| Unrecoverable exception detected: %s", e.what());
+    printf("ABORT| Unrecoverable exception detected: %s\n", e.what());
+    abort();
   }
   catch(...)
   {
-    printf("ABORT| Unrecoverable exception detected: Unknown exception");
+    printf("ABORT| Unrecoverable exception detected: Unknown exception\n");
+    abort();
   }
 
   return 0;
