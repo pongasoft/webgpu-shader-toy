@@ -70,6 +70,7 @@ public:
   void requestFullscreen();
   void makeCanvasResizable(char const *iCanvasResizeSelector, char const *iHandleSelector);
   void setTitle(std::string const &iTitle);
+  void saveScreenshot(std::string const &iFilename, std::string const &iType = "image/png", float iQuality = 0.85);
 
   static double getCurrentTime();
 

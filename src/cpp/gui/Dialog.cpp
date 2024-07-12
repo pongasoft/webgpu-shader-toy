@@ -72,7 +72,11 @@ void Dialog::render()
     }
 
     if(needsSeparator)
+    {
+      ImGui::Spacing();
       ImGui::Separator();
+      ImGui::Spacing();
+    }
 
     auto needsSameLine = false;
     ImVec2 buttonSize{computeButtonWidth(), 0};

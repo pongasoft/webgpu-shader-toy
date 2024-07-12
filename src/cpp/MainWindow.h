@@ -79,6 +79,7 @@ private:
   void renderShaderMenu(TextEditor &iEditor, std::string const &iNewNode, bool iEdited);
   void renderSettingsMenu();
   void renderControlsSection();
+  void renderTimeControls();
   void renderShaderSection(bool iEditorHasFocus);
   void compile(std::string const &iNewCode);
   void promptNewEmtpyShader();
@@ -86,6 +87,7 @@ private:
   void promptExportShader(std::string const &iFilename, std::string const &iContent);
   void promptExportProject();
   void promptShaderWindowSize();
+  void maybePromptSaveCurrentFragmentShaderScreenshot();
   void renameShader(std::string const &iOldName, std::string const &iNewName);
   void newAboutDialog();
   void newHelpDialog();

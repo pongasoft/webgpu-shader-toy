@@ -43,8 +43,8 @@ void wgpu_shader_toy_install_handlers(OnNewFileHandler iOnNewFileHandler,
 
 void wgpu_shader_toy_uninstall_handlers();
 void wgpu_shader_toy_open_file_dialog();
-void wgpu_get_clipboard_string(void *iUserData);
-void wgpu_export_content(char const *iFilename, char const *iContent);
+void wgpu_shader_toy_get_clipboard_string(void *iUserData);
+void wgpu_shader_toy_export_content(char const *iFilename, char const *iContent);
 
 void wgpu_shader_toy_print_stack_trace(char const *iMessage);
 
@@ -322,7 +322,7 @@ void MainWindow::renderMainMenuBar()
         newHelpDialog();
       ImGui::SeparatorText("Settings");
       renderSettingsMenu();
-      ImGui::SeparatorText("File");
+      ImGui::SeparatorText("Project");
       if(ImGui::MenuItem("Save (browser)"))
         saveState();
       if(ImGui::MenuItem("Export (disk)"))
@@ -373,15 +373,11 @@ void MainWindow::renderMainMenuBar()
     ImGui::EndMainMenuBar();
   }
 }
-
 //------------------------------------------------------------------------
-// MainWindow::renderControlsSection
+// MainWindow::renderTimeControls
 //------------------------------------------------------------------------
-void MainWindow::renderControlsSection()
+void MainWindow::renderTimeControls()
 {
-  // [Section] Controls
-  ImGui::SeparatorText("Controls");
-
   // Reset time
   if(ImGui::Button(fa::kClockRotateLeft))
     fCurrentFragmentShader->setStartTime(getCurrentTime());
@@ -409,6 +405,24 @@ void MainWindow::renderControlsSection()
   if(ImGui::Button(fa::kForwardStep))
     fCurrentFragmentShader->nextFrame(getCurrentTime(), ImGui::GetIO().KeyAlt ? 1 : 12);
   ImGui::PopButtonRepeat();
+}
+
+//------------------------------------------------------------------------
+// MainWindow::renderControlsSection
+//------------------------------------------------------------------------
+void MainWindow::renderControlsSection()
+{
+  // [Section] Controls
+  ImGui::SeparatorText("Controls");
+
+  // Time controls
+  renderTimeControls();
+
+  ImGui::SameLine();
+
+  // Screenshot
+  if(ImGui::Button(fa::kCamera))
+    maybePromptSaveCurrentFragmentShaderScreenshot();
 
   ImGui::SameLine();
 
@@ -530,7 +544,7 @@ void MainWindow::promptExportShader(std::string const &iFilename, std::string co
       ImGui::InputText("###name", &kShaderFilename);
     })
     .button("Export", [content = iContent] {
-      wgpu_export_content(kShaderFilename.c_str(), content.c_str());
+      wgpu_shader_toy_export_content(kShaderFilename.c_str(), content.c_str());
     }, true)
     .buttonCancel()
     ;
@@ -552,7 +566,7 @@ void MainWindow::promptExportProject()
       ImGui::InputText("###name", &kProjectName);
     })
     .button("Export", [this] {
-      wgpu_export_content(kProjectName.c_str(), fPreferences->serialize(computeState()).c_str());
+      wgpu_shader_toy_export_content(kProjectName.c_str(), fPreferences->serialize(computeState()).c_str());
     }, true)
     .buttonCancel()
     ;
@@ -570,6 +584,80 @@ void MainWindow::renameShader(std::string const &iOldName, std::string const &iN
     oldShader->setName(iNewName);
     onNewFragmentShader(std::move(oldShader));
   }
+}
+
+namespace image::format {
+
+struct Info
+{
+  std::string fMimeType;
+  std::string fExtension;
+  std::string fDescription;
+  bool fHasQuality;
+};
+
+constexpr auto kPNG = Info { .fMimeType = "image/png", .fExtension = "png", .fDescription = "PNG", .fHasQuality = false};
+constexpr auto kJPG = Info { .fMimeType = "image/jpeg", .fExtension = "jpg", .fDescription = "JPEG", .fHasQuality = true};
+constexpr auto kWEBP = Info { .fMimeType = "image/webp", .fExtension = "webp", .fDescription = "WebP", .fHasQuality = true};
+
+constexpr Info kAll[] = {kPNG, kJPG, kWEBP};
+
+}
+
+
+//------------------------------------------------------------------------
+// MainWindow::maybePromptSaveCurrentFragmentShaderScreenshot
+//------------------------------------------------------------------------
+void MainWindow::maybePromptSaveCurrentFragmentShaderScreenshot()
+{
+  static std::string kFilename{};
+  static auto kFormat = image::format::kPNG;
+  static float kQuality = 0.85;
+
+  if(!fCurrentFragmentShader)
+    return;
+
+  kFilename = fCurrentFragmentShader->getName();
+
+  if(ImGui::GetIO().KeyAlt)
+  {
+    // bypasses prompt and saves using previous/default parameters
+    fFragmentShaderWindow->saveScreenshot(fmt::printf("%s.%s", kFilename, kFormat.fExtension), kFormat.fMimeType, kQuality);
+  }
+  else
+  {
+    newDialog("Screenshot")
+      .lambda([this] {
+        ImGui::SeparatorText("Filename");
+        auto label = fmt::printf(".%s###name", kFormat.fExtension);
+        ImGui::InputText(label.c_str(), &kFilename);
+        ImGui::SeparatorText("Format");
+        if(ImGui::BeginCombo("Format", kFormat.fDescription.c_str()))
+        {
+          for(auto &format: image::format::kAll)
+          {
+            if(ImGui::Selectable(format.fDescription.c_str(), kFormat.fMimeType == format.fMimeType))
+              kFormat = format;
+          }
+          ImGui::EndCombo();
+        }
+        if(kFormat.fHasQuality)
+        {
+          auto quality = static_cast<int>(kQuality * 100);
+          if(ImGui::SliderInt("Quality", &quality, 1, 100, "%d%%"))
+            kQuality = static_cast<float>(quality) / 100.f;
+        }
+        ImGui::SeparatorText("Time Controls");
+        if(fCurrentFragmentShader)
+          renderTimeControls();
+      })
+      .button(ICON_FA_Camera " Screenshot", [this] {
+        fFragmentShaderWindow->saveScreenshot(fmt::printf("%s.%s", kFilename, kFormat.fExtension), kFormat.fMimeType, kQuality);
+      }, true)
+      .buttonCancel()
+      ;
+  }
+
 }
 
 //------------------------------------------------------------------------
@@ -673,7 +761,7 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
       ImGui::PopStyleColor(hasCompilationError ? 2 : 1);
 
       // [Editor] Render
-      editor.SetOnKeyboardPasteHandler([](TextEditor &iEditor) { wgpu_get_clipboard_string(&iEditor); });
+      editor.SetOnKeyboardPasteHandler([](TextEditor &iEditor) { wgpu_shader_toy_get_clipboard_string(&iEditor); });
       editor.Render("Code", iEditorHasFocus, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar);
 
       ImGui::EndTabItem();
@@ -1154,6 +1242,7 @@ void MainWindow::help() const
     {ICON_FA_CirclePause " / " ICON_FA_CirclePlay, {"Pause/Play time/frame"}},
     {fa::kForwardStep, {"Steps forward in time (+12 frames) | Hold to repeat"}},
     {ICON_FA_ForwardStep " + " "Alt", {"Steps forward in time (+1 frame) | Hold to repeat"}},
+    {fa::kCamera, {"Take a screenshot | Use Alt to bypass prompt"}},
     {fa::kExpand, {"Enter fullscreen (ESC to exit)"}},
   };
 

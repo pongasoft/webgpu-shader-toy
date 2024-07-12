@@ -23,6 +23,10 @@
 
 namespace pongasoft::gpu {
 
+extern "C" {
+void wgpu_shader_toy_save_screenshot(GLFWwindow const *iWindow, char const *iFilename, char const *iType, float iQuality);
+}
+
 namespace callbacks {
 
 //------------------------------------------------------------------------
@@ -235,6 +239,14 @@ void Window::makeCanvasResizable(char const *iCanvasResizeSelector, char const *
 void Window::setTitle(std::string const &iTitle)
 {
   glfwSetWindowTitle(fWindow, iTitle.c_str());
+}
+
+//------------------------------------------------------------------------
+// Window::saveScreenshot
+//------------------------------------------------------------------------
+void Window::saveScreenshot(std::string const &iFilename, std::string const &iType, float iQuality)
+{
+  wgpu_shader_toy_save_screenshot(fWindow, iFilename.c_str(), iType.c_str(), iQuality);
 }
 
 }

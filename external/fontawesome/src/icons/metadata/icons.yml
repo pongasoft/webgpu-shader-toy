@@ -64,6 +64,42 @@ bars:
     - solid
   unicode: f0c9
   voted: false
+camera:
+  aliases:
+    names:
+      - camera-alt
+    unicodes:
+      composite:
+        - f332
+      primary:
+        - f332
+      secondary:
+        - 10f030
+        - 10f332
+  changes:
+    - 1.0.0
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.0.0-beta2
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Camera
+  search:
+    terms:
+      - image
+      - img
+      - lens
+      - photo
+      - picture
+      - record
+      - shutter
+      - video
+  styles:
+    - solid
+  unicode: f030
+  voted: false
 circle-pause:
   aliases:
     names:

@@ -5,13 +5,15 @@
 
 namespace fa {
 
-constexpr auto kMin = 0xf048;
+constexpr auto kMin = 0xf030;
 constexpr auto kMax16 = 0xf6e3;
 constexpr auto kMax = 0xf6e3;
 #define ICON_FA_BackwardStep "\xef\x81\x88"	// U+f048
 constexpr auto kBackwardStep = "\xef\x81\x88";	// U+f048
 #define ICON_FA_Bars "\xef\x83\x89"	// U+f0c9
 constexpr auto kBars = "\xef\x83\x89";	// U+f0c9
+#define ICON_FA_Camera "\xef\x80\xb0"	// U+f030
+constexpr auto kCamera = "\xef\x80\xb0";	// U+f030
 #define ICON_FA_CirclePause "\xef\x8a\x8b"	// U+f28b
 constexpr auto kCirclePause = "\xef\x8a\x8b";	// U+f28b
 #define ICON_FA_CirclePlay "\xef\x85\x84"	// U+f144

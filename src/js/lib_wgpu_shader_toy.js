@@ -117,8 +117,8 @@ let wgpu_shader_toy = {
     }
   },
 
-  // wgpu_get_clipboard_string
-  wgpu_get_clipboard_string: (user_data) => {
+  // wgpu_shader_toy_get_clipboard_string
+  wgpu_shader_toy_get_clipboard_string: (user_data) => {
     navigator.clipboard.readText()
       .then(text => {
         if(WGPU_SHADER_TOY.fClipboardStringHandler) {
@@ -135,8 +135,8 @@ let wgpu_shader_toy = {
       })
   },
 
-  // wgpu_export_content
-  wgpu_export_content: (filename, content) => {
+  // wgpu_shader_toy_export_content
+  wgpu_shader_toy_export_content: (filename, content) => {
     filename = filename ? UTF8ToString(filename): null;
     content = content ? UTF8ToString(content): null;
 
@@ -149,6 +149,24 @@ let wgpu_shader_toy = {
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
+  },
+
+  // wgpu_shader_toy_save_screenshot
+  wgpu_shader_toy_save_screenshot: (glfwWindow, filename, type, quality) => {
+    filename = filename ? UTF8ToString(filename): null;
+    type = type ? UTF8ToString(type) : 'image/png';
+    const canvas = Module.glfwGetCanvas(glfwWindow);
+    if(canvas) {
+      canvas.toBlob((blob) => {
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        document.body.append(a);
+        a.download = filename;
+        a.href = url;
+        a.click();
+        a.remove();
+      }, type, quality);
+    }
   },
 
 }
