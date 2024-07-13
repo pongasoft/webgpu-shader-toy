@@ -312,6 +312,9 @@ void MainWindow::renderSettingsMenu()
 //------------------------------------------------------------------------
 void MainWindow::renderMainMenuBar()
 {
+  auto padding = ImGui::GetStyle().FramePadding;
+  padding.y *= 2.0f;
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, padding);
   if(ImGui::BeginMainMenuBar())
   {
     if(ImGui::BeginMenu(fa::kBars))
@@ -373,6 +376,7 @@ void MainWindow::renderMainMenuBar()
 
     ImGui::EndMainMenuBar();
   }
+  ImGui::PopStyleVar();
 }
 //------------------------------------------------------------------------
 // MainWindow::renderTimeControls
