@@ -369,7 +369,7 @@ void FragmentShaderWindow::beforeFrame()
     // TODO HIGH YP: fix content scale callback not working when dynamically switching
     glfwGetWindowContentScale(fWindow, &fContentScale.x, &fContentScale.y);
 
-    if(fCurrentFragmentShader->fRunning)
+    if(fCurrentFragmentShader->isTimeEnabled())
     {
       fCurrentFragmentShader->fInputs.frame++;
       fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(getCurrentTime() - fCurrentFragmentShader->fStartTime);

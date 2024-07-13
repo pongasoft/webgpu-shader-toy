@@ -385,20 +385,17 @@ void MainWindow::renderTimeControls()
 
   ImGui::SameLine();
 
+  auto const isKeyAlt = gui::WstGui::IsKeyAlt();
+  auto const frameCount = isKeyAlt ? 1 : 12;
+
   // Previous frame
   ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0);
   {
     ImGui::PushButtonRepeat(true);
-    if(gui::WstGui::IsKeyAlt())
-    {
-      if(ImGui::Button(fa::kBackward))
-        fCurrentFragmentShader->previousFrame(getCurrentTime(), 1);
-    }
-    else
-    {
-      if(ImGui::Button(fa::kBackwardFast))
-        fCurrentFragmentShader->previousFrame(getCurrentTime(), 12);
-    }
+    if(ImGui::Button(isKeyAlt ? fa::kBackward : fa::kBackwardFast) || ImGui::IsItemActivated())
+      fCurrentFragmentShader->previousFrame(getCurrentTime(), frameCount);
+    if(ImGui::IsItemDeactivated())
+      fCurrentFragmentShader->stopManualTime(getCurrentTime());
     ImGui::PopButtonRepeat();
   }
   ImGui::EndDisabled();
@@ -413,15 +410,10 @@ void MainWindow::renderTimeControls()
 
   // Next frame
   ImGui::PushButtonRepeat(true);
-  if(gui::WstGui::IsKeyAlt())
-  {
-    if(ImGui::Button(fa::kForward))
-      fCurrentFragmentShader->nextFrame(getCurrentTime(), 1);
-  } else
-  {
-    if(ImGui::Button(fa::kForwardFast))
-      fCurrentFragmentShader->nextFrame(getCurrentTime(), 12);
-  }
+  if(ImGui::Button(isKeyAlt ? fa::kForward : fa::kForwardFast) || ImGui::IsItemActivated())
+    fCurrentFragmentShader->nextFrame(getCurrentTime(), frameCount);
+  if(ImGui::IsItemDeactivated())
+    fCurrentFragmentShader->stopManualTime(getCurrentTime());
   ImGui::PopButtonRepeat();
 }
 

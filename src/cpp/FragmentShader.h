@@ -126,11 +126,7 @@ public:
 
   void nextFrame(double iCurrentTime, int frameCount = 1)
   {
-    if(fRunning)
-    {
-      fRunning = false;
-      frameCount = 1;
-    }
+    fManualTime = true;
 
     fStartTime = iCurrentTime - fInputs.time;
     fInputs.frame += frameCount;
@@ -139,17 +135,25 @@ public:
 
   void previousFrame(double iCurrentTime, int frameCount = 1)
   {
-    if(fRunning)
-    {
-      fRunning = false;
-      frameCount = 1;
-    }
+    fManualTime = true;
 
     fStartTime = iCurrentTime - fInputs.time;
     fInputs.frame = std::max(0, fInputs.frame - frameCount);
     fInputs.time =
       std::max(0.0f, static_cast<gpu::f32>(iCurrentTime - fStartTime) - static_cast<float>(frameCount) / 60.0f);
   }
+
+  constexpr void stopManualTime(double iCurrentTime)
+  {
+    if(fManualTime)
+    {
+      if(fRunning)
+        fStartTime = iCurrentTime - fInputs.time;
+      fManualTime = false;
+    }
+  }
+
+  constexpr bool isTimeEnabled() const { return fRunning && !fManualTime; }
 
   TextEditor &edit() {
     if(!fTextEditor)
@@ -188,6 +192,7 @@ private:
   std::optional<TextEditor> fTextEditor{};
 
   bool fRunning{true};
+  bool fManualTime{false};
   bool fEnabled{true};
 };
 
