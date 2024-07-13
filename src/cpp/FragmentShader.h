@@ -143,7 +143,7 @@ public:
       std::max(0.0f, static_cast<gpu::f32>(iCurrentTime - fStartTime) - static_cast<float>(frameCount) / 60.0f);
   }
 
-  constexpr void stopManualTime(double iCurrentTime)
+  void stopManualTime(double iCurrentTime)
   {
     if(fManualTime)
     {
