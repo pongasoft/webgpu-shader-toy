@@ -364,7 +364,7 @@ void FragmentShaderWindow::beforeFrame()
     fMouseClick = {-1, -1};
 
 
-  if(fCurrentFragmentShader && fCurrentFragmentShader->isCompiled())
+  if(fCurrentFragmentShader && fCurrentFragmentShader->isEnabled() && fCurrentFragmentShader->isCompiled())
   {
     // TODO HIGH YP: fix content scale callback not working when dynamically switching
     glfwGetWindowContentScale(fWindow, &fContentScale.x, &fContentScale.y);
@@ -388,7 +388,7 @@ void FragmentShaderWindow::beforeFrame()
 //------------------------------------------------------------------------
 void FragmentShaderWindow::doRender(wgpu::RenderPassEncoder &iRenderPass)
 {
-  if(fCurrentFragmentShader && fCurrentFragmentShader->isCompiled())
+  if(fCurrentFragmentShader && fCurrentFragmentShader->isEnabled() && fCurrentFragmentShader->isCompiled())
   {
     fGPU->getDevice().GetQueue().WriteBuffer(fShaderToyInputsBuffer,
                                              0,
@@ -407,7 +407,7 @@ void FragmentShaderWindow::doHandleFrameBufferSizeChange(Renderable::Size const 
 {
   Window::doHandleFrameBufferSizeChange(iSize);
   fFrameBufferSize = iSize;
-  if(fCurrentFragmentShader)
+  if(fCurrentFragmentShader && fCurrentFragmentShader->isEnabled())
   {
     fCurrentFragmentShader->fInputs.size.x = static_cast<float>(fFrameBufferSize.width);
     fCurrentFragmentShader->fInputs.size.y = static_cast<float>(fFrameBufferSize.height);
@@ -420,7 +420,7 @@ void FragmentShaderWindow::doHandleFrameBufferSizeChange(Renderable::Size const 
 //------------------------------------------------------------------------
 void FragmentShaderWindow::onMousePosChange(double xpos, double ypos)
 {
-  if(fCurrentFragmentShader)
+  if(fCurrentFragmentShader && fCurrentFragmentShader->isEnabled())
   {
     auto pos = adjustSize({static_cast<float>(xpos), static_cast<float>(ypos)});
     fCurrentFragmentShader->fInputs.mouse.x = pos.x;

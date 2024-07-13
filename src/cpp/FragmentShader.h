@@ -103,6 +103,27 @@ public:
   }
   constexpr bool isRunning() const { return fRunning; }
 
+  constexpr bool isEnabled() const { return fEnabled; }
+  constexpr void toggleEnabled() { fEnabled = !fEnabled; }
+
+  constexpr char const* getStatus() const
+  {
+    if(isCompiled())
+    {
+      if(isEnabled())
+        return isRunning() ? "Running" : "Paused";
+      else
+        return "Disabled";
+    }
+    else
+    {
+      if(hasCompilationError())
+        return "Error";
+      else
+        return "Compiling...";
+    }
+  }
+
   void nextFrame(double iCurrentTime, int frameCount = 1)
   {
     if(fRunning)
@@ -167,6 +188,7 @@ private:
   std::optional<TextEditor> fTextEditor{};
 
   bool fRunning{true};
+  bool fEnabled{true};
 };
 
 }

@@ -1,33 +1,65 @@
 ---
-backward-step:
+backward:
   aliases:
-    names:
-      - step-backward
     unicodes:
+      composite:
+        - 23ea
       secondary:
-        - 10f048
+        - 10f04a
   changes:
     - 1.0.0
     - 5.0.0
-    - 5.10.2
-    - 5.11.0
-    - 5.11.1
     - 6.0.0-beta1
     - 6.2.0
     - 6.3.0
     - 6.4.0
     - 6.5.0
-  label: Backward Step
+  label: Backward
   search:
     terms:
-      - beginning
-      - first
+      - arrow
+      - double
+      - fast reverse button
       - previous
       - rewind
-      - start
   styles:
     - solid
-  unicode: f048
+  unicode: f04a
+  voted: false
+backward-fast:
+  aliases:
+    names:
+      - fast-backward
+    unicodes:
+      composite:
+        - 23ee
+      secondary:
+        - 10f049
+  changes:
+    - 1.0.0
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Backward Fast
+  search:
+    terms:
+      - arrow
+      - beginning
+      - first
+      - last track button
+      - previous
+      - previous scene
+      - previous track
+      - quick
+      - rewind
+      - start
+      - triangle
+  styles:
+    - solid
+  unicode: f049
   voted: false
 bars:
   aliases:
@@ -99,6 +131,34 @@ camera:
   styles:
     - solid
   unicode: f030
+  voted: false
+camera-polaroid:
+  aliases:
+    unicodes:
+      secondary:
+        - 10f8aa
+  changes:
+    - 5.11.0
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Camera Polaroid
+  search:
+    terms:
+      - capture
+      - film
+      - instant camera
+      - lens
+      - photo
+      - photography
+      - retro
+      - snapshot
+      - vintage
+  styles:
+    - solid
+  unicode: f8aa
   voted: false
 circle-pause:
   aliases:
@@ -220,33 +280,67 @@ expand:
     - solid
   unicode: f065
   voted: false
-forward-step:
+forward:
   aliases:
-    names:
-      - step-forward
     unicodes:
+      composite:
+        - '23e9'
       secondary:
-        - 10f051
+        - 10f04e
   changes:
     - 1.0.0
     - 5.0.0
-    - 5.10.2
-    - 5.11.0
-    - 5.11.1
     - 6.0.0-beta1
     - 6.2.0
     - 6.3.0
     - 6.4.0
     - 6.5.0
-  label: Forward Step
+  label: Forward
   search:
     terms:
+      - arrow
+      - double
+      - fast
+      - fast-forward button
+      - forward
+      - next
+      - skip
+  styles:
+    - solid
+  unicode: f04e
+  voted: false
+forward-fast:
+  aliases:
+    names:
+      - fast-forward
+    unicodes:
+      composite:
+        - 23ed
+      secondary:
+        - 10f050
+  changes:
+    - 1.0.0
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Forward Fast
+  search:
+    terms:
+      - arrow
       - end
       - last
       - next
+      - next scene
+      - next track
+      - next track button
+      - quick
+      - triangle
   styles:
     - solid
-  unicode: f051
+  unicode: f050
   voted: false
 hammer:
   aliases:
@@ -280,3 +374,32 @@ hammer:
     - solid
   unicode: f6e3
   voted: true
+power-off:
+  aliases:
+    unicodes:
+      composite:
+        - 23fb
+      secondary:
+        - 10f011
+  changes:
+    - 1.0.0
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.0.0
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+  label: Power Off
+  search:
+    terms:
+      - Power Symbol
+      - cancel
+      - computer
+      - on
+      - reboot
+      - restart
+  styles:
+    - solid
+  unicode: f011
+  voted: false

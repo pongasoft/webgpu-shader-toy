@@ -86,6 +86,8 @@ std::string Preferences::serialize(State const &iState)
     {"fFontSize", iState.fFontSize},
     {"fLineSpacing", iState.fLineSpacing},
     {"fCodeShowWhiteSpace", iState.fCodeShowWhiteSpace},
+    {"fScreenshotMimeType", iState.fScreenshotMimeType},
+    {"fScreenshotQuality", iState.fScreenshotQuality},
 //    {"fAspectRatio", iState.fAspectRatio},
     {"fShaders", shaders}
   };
@@ -112,6 +114,8 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
     state.fFontSize = data.value("fFontSize", state.fFontSize);
     state.fLineSpacing = data.value("fLineSpacing", state.fLineSpacing);
     state.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", state.fCodeShowWhiteSpace);
+    state.fScreenshotMimeType = data.value("fScreenshotMimeType", state.fScreenshotMimeType);
+    state.fScreenshotQuality = data.value("fScreenshotQuality", state.fScreenshotQuality);
 //    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
     state.fMainWindowSize = impl::value(data, "fMainWindowSize", state.fMainWindowSize);
     state.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", state.fFragmentShaderWindowSize);

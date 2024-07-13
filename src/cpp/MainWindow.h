@@ -31,6 +31,26 @@ using namespace pongasoft::gpu;
 
 namespace shader_toy {
 
+namespace image::format {
+
+struct Format
+{
+  std::string fMimeType;
+  std::string fExtension;
+  std::string fDescription;
+  bool fHasQuality;
+};
+
+constexpr auto kPNG = Format { .fMimeType = "image/png", .fExtension = "png", .fDescription = "PNG", .fHasQuality = false};
+constexpr auto kJPG = Format { .fMimeType = "image/jpeg", .fExtension = "jpg", .fDescription = "JPEG", .fHasQuality = true};
+constexpr auto kWEBP = Format { .fMimeType = "image/webp", .fExtension = "webp", .fDescription = "WebP", .fHasQuality = true};
+
+constexpr Format kAll[] = {kPNG, kJPG, kWEBP};
+
+Format getFormatFromMimeType(std::string const &iMimeType);
+
+}
+
 class MainWindow : public ImGuiWindow
 {
 public:
@@ -87,7 +107,8 @@ private:
   void promptExportShader(std::string const &iFilename, std::string const &iContent);
   void promptExportProject();
   void promptShaderWindowSize();
-  void maybePromptSaveCurrentFragmentShaderScreenshot();
+  void promptSaveCurrentFragmentShaderScreenshot();
+  void saveCurrentFragmentShaderScreenshot(std::string const &iFilename);
   void renameShader(std::string const &iOldName, std::string const &iNewName);
   void newAboutDialog();
   void newHelpDialog();
@@ -105,6 +126,8 @@ private:
   float fLineSpacing{1.0f};
   float fFontSize{};
   bool fCodeShowWhiteSpace{false};
+  image::format::Format fScreenshotFormat{image::format::kPNG};
+  float fScreenshotQuality{0.85};
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
 

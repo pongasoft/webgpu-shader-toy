@@ -20,6 +20,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <GLFW/glfw3.h>
 #include "MainWindow.h"
+#include "gui/WstGui.h"
 #include "JetBrainsMono-Regular.cpp"
 #include "IconsFontWGPUShaderToy.h"
 #include "IconsFontWGPUShaderToy.cpp"
@@ -386,10 +387,20 @@ void MainWindow::renderTimeControls()
 
   // Previous frame
   ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0);
-  ImGui::PushButtonRepeat(true);
-  if(ImGui::Button(fa::kBackwardStep))
-    fCurrentFragmentShader->previousFrame(getCurrentTime(), ImGui::GetIO().KeyAlt ? 1 : 12);
-  ImGui::PopButtonRepeat();
+  {
+    ImGui::PushButtonRepeat(true);
+    if(gui::WstGui::IsKeyAlt())
+    {
+      if(ImGui::Button(fa::kBackward))
+        fCurrentFragmentShader->previousFrame(getCurrentTime(), 1);
+    }
+    else
+    {
+      if(ImGui::Button(fa::kBackwardFast))
+        fCurrentFragmentShader->previousFrame(getCurrentTime(), 12);
+    }
+    ImGui::PopButtonRepeat();
+  }
   ImGui::EndDisabled();
 
   ImGui::SameLine();
@@ -402,8 +413,15 @@ void MainWindow::renderTimeControls()
 
   // Next frame
   ImGui::PushButtonRepeat(true);
-  if(ImGui::Button(fa::kForwardStep))
-    fCurrentFragmentShader->nextFrame(getCurrentTime(), ImGui::GetIO().KeyAlt ? 1 : 12);
+  if(gui::WstGui::IsKeyAlt())
+  {
+    if(ImGui::Button(fa::kForward))
+      fCurrentFragmentShader->nextFrame(getCurrentTime(), 1);
+  } else
+  {
+    if(ImGui::Button(fa::kForwardFast))
+      fCurrentFragmentShader->nextFrame(getCurrentTime(), 12);
+  }
   ImGui::PopButtonRepeat();
 }
 
@@ -415,24 +433,48 @@ void MainWindow::renderControlsSection()
   // [Section] Controls
   ImGui::SeparatorText("Controls");
 
-  // Time controls
-  renderTimeControls();
+  ImGui::BeginDisabled(!fCurrentFragmentShader->isEnabled());
+  {
+    // Time controls
+    renderTimeControls();
+
+    ImGui::SameLine();
+
+    // Screenshot
+    if(gui::WstGui::IsKeyAlt())
+    {
+      if(ImGui::Button(fa::kCamera))
+        promptSaveCurrentFragmentShaderScreenshot();
+    }
+    else
+    {
+      if(ImGui::Button(fa::kCameraPolaroid))
+        saveCurrentFragmentShaderScreenshot(fCurrentFragmentShader->getName());
+    }
+
+    ImGui::SameLine();
+
+    // Fullscreen
+    if(ImGui::Button(fa::kExpand))
+      fFragmentShaderWindow->requestFullscreen();
+  }
+  ImGui::EndDisabled();
 
   ImGui::SameLine();
 
-  // Screenshot
-  if(ImGui::Button(fa::kCamera))
-    maybePromptSaveCurrentFragmentShaderScreenshot();
+  ImGui::Text("|");
 
   ImGui::SameLine();
 
-  // Fullscreen
-  if(ImGui::Button(fa::kExpand))
-    fFragmentShaderWindow->requestFullscreen();
+  if(ImGui::Button(fa::kPowerOff))
+    fCurrentFragmentShader->toggleEnabled();
 
   ImGui::SameLine();
 
-  ImGui::Text("%.3f (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+  ImGui::Text("| %s | %.3f (%.1f FPS)",
+              fCurrentFragmentShader->getStatus(),
+              1000.0f / ImGui::GetIO().Framerate,
+              ImGui::GetIO().Framerate);
 }
 
 
@@ -586,79 +628,61 @@ void MainWindow::renameShader(std::string const &iOldName, std::string const &iN
   }
 }
 
-namespace image::format {
-
-struct Info
+//------------------------------------------------------------------------
+// MainWindow::saveCurrentFragmentShaderScreenshot
+//------------------------------------------------------------------------
+void MainWindow::saveCurrentFragmentShaderScreenshot(std::string const &iFilename)
 {
-  std::string fMimeType;
-  std::string fExtension;
-  std::string fDescription;
-  bool fHasQuality;
-};
-
-constexpr auto kPNG = Info { .fMimeType = "image/png", .fExtension = "png", .fDescription = "PNG", .fHasQuality = false};
-constexpr auto kJPG = Info { .fMimeType = "image/jpeg", .fExtension = "jpg", .fDescription = "JPEG", .fHasQuality = true};
-constexpr auto kWEBP = Info { .fMimeType = "image/webp", .fExtension = "webp", .fDescription = "WebP", .fHasQuality = true};
-
-constexpr Info kAll[] = {kPNG, kJPG, kWEBP};
-
+  fFragmentShaderWindow->saveScreenshot(fmt::printf("%s.%s", iFilename, fScreenshotFormat.fExtension), fScreenshotFormat.fMimeType, fScreenshotQuality);
 }
 
-
 //------------------------------------------------------------------------
-// MainWindow::maybePromptSaveCurrentFragmentShaderScreenshot
+// MainWindow::promptSaveCurrentFragmentShaderScreenshot
 //------------------------------------------------------------------------
-void MainWindow::maybePromptSaveCurrentFragmentShaderScreenshot()
+void MainWindow::promptSaveCurrentFragmentShaderScreenshot()
 {
   static std::string kFilename{};
-  static auto kFormat = image::format::kPNG;
-  static float kQuality = 0.85;
 
   if(!fCurrentFragmentShader)
     return;
 
   kFilename = fCurrentFragmentShader->getName();
 
-  if(ImGui::GetIO().KeyAlt)
-  {
-    // bypasses prompt and saves using previous/default parameters
-    fFragmentShaderWindow->saveScreenshot(fmt::printf("%s.%s", kFilename, kFormat.fExtension), kFormat.fMimeType, kQuality);
-  }
-  else
-  {
-    newDialog("Screenshot")
-      .lambda([this] {
-        ImGui::SeparatorText("Filename");
-        auto label = fmt::printf(".%s###name", kFormat.fExtension);
-        ImGui::InputText(label.c_str(), &kFilename);
-        ImGui::SeparatorText("Format");
-        if(ImGui::BeginCombo("Format", kFormat.fDescription.c_str()))
+  newDialog("Screenshot")
+    .lambda([this] {
+      ImGui::SeparatorText("Filename");
+      auto label = fmt::printf(".%s###name", fScreenshotFormat.fExtension);
+      ImGui::InputText(label.c_str(), &kFilename);
+      ImGui::SeparatorText("Format");
+      if(ImGui::BeginCombo("Format", fScreenshotFormat.fDescription.c_str()))
+      {
+        for(auto &format: image::format::kAll)
         {
-          for(auto &format: image::format::kAll)
-          {
-            if(ImGui::Selectable(format.fDescription.c_str(), kFormat.fMimeType == format.fMimeType))
-              kFormat = format;
-          }
-          ImGui::EndCombo();
+          if(ImGui::Selectable(format.fDescription.c_str(), fScreenshotFormat.fMimeType == format.fMimeType))
+            fScreenshotFormat = format;
         }
-        if(kFormat.fHasQuality)
-        {
-          auto quality = static_cast<int>(kQuality * 100);
-          if(ImGui::SliderInt("Quality", &quality, 1, 100, "%d%%"))
-            kQuality = static_cast<float>(quality) / 100.f;
-        }
-        ImGui::SeparatorText("Time Controls");
-        if(fCurrentFragmentShader)
-          renderTimeControls();
-      })
-      .button(ICON_FA_Camera " Screenshot", [this] {
-        fFragmentShaderWindow->saveScreenshot(fmt::printf("%s.%s", kFilename, kFormat.fExtension), kFormat.fMimeType, kQuality);
-      }, true)
-      .buttonCancel()
-      ;
-  }
-
+        ImGui::EndCombo();
+      }
+      if(fScreenshotFormat.fHasQuality)
+      {
+        auto quality = static_cast<int>(fScreenshotQuality * 100);
+        if(ImGui::SliderInt("Quality", &quality, 1, 100, "%d%%"))
+          fScreenshotQuality = static_cast<float>(quality) / 100.f;
+      }
+      ImGui::SeparatorText("Time Controls");
+      if(fCurrentFragmentShader)
+        renderTimeControls();
+    })
+    .button(ICON_FA_Camera " Screenshot", [this] {
+      saveCurrentFragmentShaderScreenshot(kFilename);
+    }, true)
+    .button("Cancel", [format = fScreenshotFormat, quality = fScreenshotQuality, this]() {
+      fScreenshotFormat = format;
+      fScreenshotQuality = quality;
+    })
+    ;
 }
+
 
 //------------------------------------------------------------------------
 // MainWindow::renderShaderMenu
@@ -682,6 +706,8 @@ void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewNo
     if(ImGui::MenuItem("Redo", "Shift + Ctrl + Z"))
       iEditor.Redo();
     ImGui::SeparatorText("Misc");
+    if(ImGui::MenuItem(ICON_FA_PowerOff " Enabled", nullptr, fCurrentFragmentShader->isEnabled()))
+      fCurrentFragmentShader->toggleEnabled();
     if(ImGui::MenuItem("Rename"))
       promptRenameCurrentShader();
     if(ImGui::MenuItem("Resize"))
@@ -1063,6 +1089,8 @@ State MainWindow::computeState() const
     .fFontSize = fFontSize,
     .fLineSpacing = fLineSpacing,
     .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
+    .fScreenshotMimeType = fScreenshotFormat.fMimeType,
+    .fScreenshotQuality = fScreenshotQuality,
 //    .fAspectRatio = fCurrentAspectRatio,
     .fCurrentShader = fCurrentFragmentShader
                       ? std::optional<std::string>(fCurrentFragmentShader->getName())
@@ -1091,6 +1119,8 @@ void MainWindow::initFromState(State const &iState)
     fFragmentShaderWindow->toggleHiDPIAwareness();
   fLineSpacing = iState.fLineSpacing;
   fCodeShowWhiteSpace = iState.fCodeShowWhiteSpace;
+  fScreenshotFormat = image::format::getFormatFromMimeType(iState.fScreenshotMimeType);
+  fScreenshotQuality = iState.fScreenshotQuality;
 //  if(fCurrentAspectRatio != iState.fAspectRatio)
 //  {
 //    auto iter = std::find_if(kAspectRatios.begin(), kAspectRatios.end(),
@@ -1237,13 +1267,18 @@ void MainWindow::help() const
 
   static const help_t kIcons = {
     {fa::kClockRotateLeft, {"Reset time/frame"}},
-    {fa::kBackwardStep, {"Steps backward in time (-12 frames) | Hold to repeat"}},
-    {ICON_FA_BackwardStep " + " "Alt", {"Steps backward in time (-1 frame) | Hold to repeat"}},
+    {fa::kBackwardFast, {"Steps backward in time (-12 frames) | Hold to repeat"}},
     {ICON_FA_CirclePause " / " ICON_FA_CirclePlay, {"Pause/Play time/frame"}},
-    {fa::kForwardStep, {"Steps forward in time (+12 frames) | Hold to repeat"}},
-    {ICON_FA_ForwardStep " + " "Alt", {"Steps forward in time (+1 frame) | Hold to repeat"}},
-    {fa::kCamera, {"Take a screenshot | Use Alt to bypass prompt"}},
+    {fa::kForwardFast, {"Steps forward in time (+12 frames) | Hold to repeat"}},
+    {fa::kCameraPolaroid, {"Take an instant screenshot"}},
     {fa::kExpand, {"Enter fullscreen (ESC to exit)"}},
+  };
+
+  static const help_t kAltIcons = {
+    {fa::kBackward, {"Steps backward in time (-1 frames) | Hold to repeat"}},
+    {fa::kForward, {"Steps forward in time (+1 frame) | Hold to repeat"}},
+    {fa::kCamera, {"Open the menu to take a screenshot (choose format)"}},
+    {fa::kPowerOff, {"Disable/Enable shader rendering"}},
   };
 
   // for the time being we support only Windows shortcuts because the Command key does not work properly in
@@ -1306,9 +1341,24 @@ void MainWindow::help() const
   };
 
   renderHelp(kIcons, "Icons", "Icons");
+  renderHelp(kAltIcons, "Alternative Icons (Hold Alt Key)", "Icons");
   renderHelp(kShortcuts, "Keyboard Shortcuts", "Shortcuts");
   renderHelp(kShaderInputs, "Shader Inputs", "Inputs");
 
+}
+
+//------------------------------------------------------------------------
+// image::format::getFormatFromMimeType
+//------------------------------------------------------------------------
+image::format::Format image::format::getFormatFromMimeType(std::string const &iMimeType)
+{
+  auto iter = std::find_if(std::begin(image::format::kAll),
+                           std::end(image::format::kAll),
+                           [&iMimeType](auto &f) { return f.fMimeType == iMimeType; });
+  if(iter != std::end(image::format::kAll))
+    return *iter;
+  else
+    return image::format::kPNG;
 }
 
 }

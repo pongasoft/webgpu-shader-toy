@@ -88,6 +88,15 @@ void CopyToClipboard(F &&iContent)
   }
   ImGui::PopID();
 }
+
+//------------------------------------------------------------------------
+// WstGui::IsKeyAlt
+//------------------------------------------------------------------------
+inline bool IsKeyAlt()
+{
+  return ImGui::GetIO().KeyAlt;
+}
+
 }
 
 #endif //WGPU_SHADER_TOY_WSTGUI_H
