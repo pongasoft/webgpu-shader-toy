@@ -782,6 +782,8 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
     // [TabItem] Code
     if(ImGui::BeginTabItem("Code"))
     {
+      if(iEditorHasFocus)
+        ImGui::SetKeyboardFocusHere();
       // [Child] Menu / toolbar for text editor
       const bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
       long lines = std::min(hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationErrorMessage()) + 1 : 1, 10L);
@@ -850,10 +852,13 @@ void MainWindow::renderDialog()
     fCurrentDialog = std::move(fDialogs[0]);
     fDialogs.erase(fDialogs.begin());
   }
-
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   fCurrentDialog->render();
   if(!fCurrentDialog->isOpen())
+  {
+    ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
     fCurrentDialog = nullptr;
+  }
 }
 
 //------------------------------------------------------------------------
@@ -861,11 +866,11 @@ void MainWindow::renderDialog()
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
-  auto const editorHasFocus = !ImGui::IsAnyItemActive() && !hasDialog();
-
   renderMainMenuBar();
 
-  if(hasDialog())
+  bool isDialogOpen = hasDialog();
+
+  if(isDialogOpen)
     renderDialog();
 
   // The main window occupies the full available space
@@ -939,6 +944,7 @@ void MainWindow::doRender()
     if(fCurrentFragmentShader)
     {
       renderControlsSection();
+      auto const editorHasFocus = !ImGui::IsAnyItemActive() && !isDialogOpen;
       renderShaderSection(editorHasFocus);
     }
     else

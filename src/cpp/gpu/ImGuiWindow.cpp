@@ -30,8 +30,6 @@ ImGuiWindow::ImGuiWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs) :
 {
   IMGUI_CHECKVERSION();
   fImGuiContext = ImGui::CreateContext();
-  ImGuiIO &io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
