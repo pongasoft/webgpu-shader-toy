@@ -811,8 +811,8 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
         {
           ImGui::Text("%s", fCurrentFragmentShader->getCompilationErrorMessage().c_str());
         }
-        ImGui::EndChild();
       }
+      ImGui::EndChild();
       ImGui::PopStyleColor(hasCompilationError ? 2 : 1);
 
       // [Editor] Render
