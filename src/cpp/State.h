@@ -48,7 +48,7 @@ struct State
   float fLineSpacing{1.0f};
   bool fCodeShowWhiteSpace{false};
   std::string fScreenshotMimeType{"image/png"};
-  float fScreenshotQuality{0.85};
+  int fScreenshotQualityPercent{85};
 //  std::string fAspectRatio{"Free"};
   std::vector<Shader> fShaders{};
   std::optional<std::string> fCurrentShader{};

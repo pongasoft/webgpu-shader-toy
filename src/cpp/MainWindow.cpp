@@ -540,26 +540,43 @@ void MainWindow::promptRenameCurrentShader()
 }
 
 //------------------------------------------------------------------------
-// MainWindow::promptShaderWindowSize
+// MainWindow::resizeShader
 //------------------------------------------------------------------------
-void MainWindow::promptShaderWindowSize()
+void MainWindow::resizeShader(Renderable::Size const &iSize, bool iApplyToAll)
+{
+  if(!fManualLayout)
+    setManualLayout(true);
+  fFragmentShaderWindow->resize(iSize);
+  if(iApplyToAll)
+  {
+    for(auto &[_, shader]: fFragmentShaders)
+      shader->setWindowSize(iSize);
+  }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::promptShaderFrameSize
+//------------------------------------------------------------------------
+void MainWindow::promptShaderFrameSize()
 {
   static Renderable::Size kSize{};
 
   kSize = fFragmentShaderWindow->getSize();
 
-  newDialog("Shader Window Size")
+  auto &dialog = newDialog("Shader Frame Size")
     .lambda([] {
-      ImGui::InputInt2("size", &kSize.width);
+      ImGui::SeparatorText("Size (width x height)");
+      ImGui::InputInt2("###size", &kSize.width);
       ImGui::SetItemDefaultFocus();
     })
-    .button("Resize", [this] {
-      if(!fManualLayout)
-        setManualLayout(true);
-      fFragmentShaderWindow->resize(kSize);
-    }, false)
-    .buttonCancel()
-    ;
+    .button("Resize", [this] { resizeShader(kSize, false); }, true)
+  ;
+
+  if(fFragmentShaders.size() > 1)
+    dialog.button(fmt::printf("Resize All (%d)", fFragmentShaders.size()), [this] { resizeShader(kSize, true); });
+
+  dialog.allowDismissDialog();
+  dialog.buttonCancel();
 }
 
 
@@ -639,7 +656,9 @@ void MainWindow::renameShader(std::string const &iOldName, std::string const &iN
 //------------------------------------------------------------------------
 void MainWindow::saveCurrentFragmentShaderScreenshot(std::string const &iFilename)
 {
-  fFragmentShaderWindow->saveScreenshot(fmt::printf("%s.%s", iFilename, fScreenshotFormat.fExtension), fScreenshotFormat.fMimeType, fScreenshotQuality);
+  fFragmentShaderWindow->saveScreenshot(fmt::printf("%s.%s", iFilename, fScreenshotFormat.fExtension),
+                                        fScreenshotFormat.fMimeType,
+                                        static_cast<float>(fScreenshotQualityPercent) / 100.0f);
 }
 
 //------------------------------------------------------------------------
@@ -670,23 +689,18 @@ void MainWindow::promptSaveCurrentFragmentShaderScreenshot()
         ImGui::EndCombo();
       }
       if(fScreenshotFormat.fHasQuality)
-      {
-        auto quality = static_cast<int>(fScreenshotQuality * 100);
-        if(ImGui::SliderInt("Quality", &quality, 1, 100, "%d%%"))
-          fScreenshotQuality = static_cast<float>(quality) / 100.f;
-      }
+        ImGui::SliderInt("Quality", &fScreenshotQualityPercent, 1, 100, "%d%%");
+
       ImGui::SeparatorText("Time Controls");
+
       if(fCurrentFragmentShader)
         renderTimeControls();
     })
     .button(ICON_FA_Camera " Screenshot", [this] {
       saveCurrentFragmentShaderScreenshot(kFilename);
     }, true)
-    .button("Cancel", [format = fScreenshotFormat, quality = fScreenshotQuality, this]() {
-      fScreenshotFormat = format;
-      fScreenshotQuality = quality;
-    })
-    ;
+    .allowDismissDialog()
+    .buttonCancel();
 }
 
 
@@ -697,10 +711,19 @@ void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewNo
 {
   if(ImGui::BeginMenu("Shader"))
   {
+    // -- Code ------
     ImGui::SeparatorText("Code");
+
     if(ImGui::MenuItem(ICON_FA_Hammer " Compile", "Ctrl + SPACE", false, iEdited))
       compile(iNewNode);
+    if(ImGui::MenuItem("Rename"))
+      promptRenameCurrentShader();
+    if(ImGui::MenuItem("Export"))
+      promptExportShader(fCurrentFragmentShader->getName(), iNewNode);
+
+    // -- Edit ------
     ImGui::SeparatorText("Edit");
+
     if(ImGui::MenuItem("Copy", "Ctrl + C"))
       iEditor.Copy();
     if(ImGui::MenuItem("Cut", "Ctrl + X"))
@@ -711,17 +734,17 @@ void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewNo
       iEditor.Undo();
     if(ImGui::MenuItem("Redo", "Shift + Ctrl + Z"))
       iEditor.Redo();
-    ImGui::SeparatorText("Misc");
+
+    // -- Frame ------
+    ImGui::SeparatorText("Frame");
+
     if(ImGui::MenuItem(ICON_FA_PowerOff " Enabled", nullptr, fCurrentFragmentShader->isEnabled()))
       fCurrentFragmentShader->toggleEnabled();
-    if(ImGui::MenuItem("Rename"))
-      promptRenameCurrentShader();
     if(ImGui::MenuItem("Resize"))
-      promptShaderWindowSize();
-    if(ImGui::MenuItem("Export (to disk)"))
-      promptExportShader(fCurrentFragmentShader->getName(), iNewNode);
-//            if(ImGui::MenuItem("Revert Changes", nullptr, false, edited))
-//              editor.SetText(fCurrentFragmentShader->getCode());
+      promptShaderFrameSize();
+    if(ImGui::MenuItem(ICON_FA_Camera " Screenshot"))
+      promptSaveCurrentFragmentShaderScreenshot();
+
     ImGui::EndMenu();
   }
 }
@@ -1096,7 +1119,7 @@ State MainWindow::computeState() const
     .fLineSpacing = fLineSpacing,
     .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
     .fScreenshotMimeType = fScreenshotFormat.fMimeType,
-    .fScreenshotQuality = fScreenshotQuality,
+    .fScreenshotQualityPercent = fScreenshotQualityPercent,
 //    .fAspectRatio = fCurrentAspectRatio,
     .fCurrentShader = fCurrentFragmentShader
                       ? std::optional<std::string>(fCurrentFragmentShader->getName())
@@ -1126,7 +1149,7 @@ void MainWindow::initFromState(State const &iState)
   fLineSpacing = iState.fLineSpacing;
   fCodeShowWhiteSpace = iState.fCodeShowWhiteSpace;
   fScreenshotFormat = image::format::getFormatFromMimeType(iState.fScreenshotMimeType);
-  fScreenshotQuality = iState.fScreenshotQuality;
+  fScreenshotQualityPercent = iState.fScreenshotQualityPercent;
 //  if(fCurrentAspectRatio != iState.fAspectRatio)
 //  {
 //    auto iter = std::find_if(kAspectRatios.begin(), kAspectRatios.end(),

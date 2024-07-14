@@ -106,10 +106,11 @@ private:
   void promptRenameCurrentShader();
   void promptExportShader(std::string const &iFilename, std::string const &iContent);
   void promptExportProject();
-  void promptShaderWindowSize();
+  void promptShaderFrameSize();
   void promptSaveCurrentFragmentShaderScreenshot();
   void saveCurrentFragmentShaderScreenshot(std::string const &iFilename);
   void renameShader(std::string const &iOldName, std::string const &iNewName);
+  void resizeShader(Renderable::Size const &iSize, bool iApplyToAll);
   void newAboutDialog();
   void newHelpDialog();
   void help() const;
@@ -127,7 +128,7 @@ private:
   float fFontSize{};
   bool fCodeShowWhiteSpace{false};
   image::format::Format fScreenshotFormat{image::format::kPNG};
-  float fScreenshotQuality{0.85};
+  int fScreenshotQualityPercent{85};
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
 
