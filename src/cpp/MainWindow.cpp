@@ -782,11 +782,9 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
     // [TabItem] Code
     if(ImGui::BeginTabItem("Code"))
     {
-      if(iEditorHasFocus)
-        ImGui::SetKeyboardFocusHere();
       // [Child] Menu / toolbar for text editor
       const bool hasCompilationError = fCurrentFragmentShader->hasCompilationError();
-      long lines = std::min(hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationErrorMessage()) + 1 : 1, 10L);
+      long lines = std::min(hasCompilationError ? impl::lineCount(fCurrentFragmentShader->getCompilationErrorMessage()) - 1 : 1, 10L);
       ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
       if(hasCompilationError)
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(editor.GetErrorMarkerColor()));
