@@ -97,6 +97,9 @@ void Dialog::render()
       needsSameLine = true;
     }
 
+    if(fAllowDismissDialog && ImGui::IsKeyPressed(ImGuiKey_Escape))
+      ImGui::CloseCurrentPopup();
+
     ImGui::EndPopup();
   }
 }
