@@ -37,21 +37,34 @@ public:
     std::string fLabel{};
     action_t fAction{};
     bool fDefaultFocus{};
+    bool fEnabled{true};
   };
+
+  using controls_t = std::vector<Button>;
 
   class Content
   {
   public:
     virtual ~Content() = default;
-    virtual void render() = 0;
+    virtual void render(Dialog &iDialog) = 0;
   };
 
+private:
   class LamdaContent : public Content
   {
   public:
-    void render() override;
+    void render(Dialog &iDialog) override;
 
     std::function<void()> fLambda{};
+    bool fCopyToClipboard{};
+  };
+
+  class LamdaControlsContent : public Content
+  {
+  public:
+    void render(Dialog &iDialog) override;
+
+    std::function<void(std::vector<Button> &)> fLambda{};
     bool fCopyToClipboard{};
   };
 
@@ -63,6 +76,7 @@ public:
   Dialog &postContentMessage(std::string iMessage) { fPostContentMessage = std::move(iMessage); return *this; }
   Dialog &text(std::string iText, bool iCopyToClipboard = false);
   Dialog &lambda(std::function<void()> iLambda, bool iCopyToClipboard = false);
+  Dialog &lambda(std::function<void(controls_t &)> iLambda, bool iCopyToClipboard = false);
   Dialog &button(std::string iLabel, Button::action_t iAction, bool iDefaultFocus = false);
   Dialog &buttonCancel(std::string iLabel = "Cancel", bool iDefaultFocus = false) { return button(std::move(iLabel), {}, iDefaultFocus); }
   Dialog &buttonOk(std::string iLabel = "Ok", bool iDefaultFocus = false) { return button(std::move(iLabel), {}, iDefaultFocus); }

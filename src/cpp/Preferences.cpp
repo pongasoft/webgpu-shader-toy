@@ -78,6 +78,7 @@ std::string Preferences::serialize(State const &iState)
 
   json data{
     {"fFormatVersion", iState.fFormatVersion},
+    {"fType", "project"},
     {"fMainWindowSize", { {"width", iState.fMainWindowSize.width}, {"height", iState.fMainWindowSize.height} } },
     {"fFragmentShaderWindowSize", { {"width", iState.fFragmentShaderWindowSize.width}, {"height", iState.fFragmentShaderWindowSize.height} } },
     {"fDarkStyle", iState.fDarkStyle},

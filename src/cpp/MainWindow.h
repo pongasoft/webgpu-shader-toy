@@ -76,7 +76,7 @@ public:
   void afterFrame() override;
 
   void onNewFile(char const *iFilename, char const *iContent);
-  void onNewFragmentShader(Shader const &iShader);
+  void maybeNewFragmentShader(std::string const &iTitle, std::string const &iOkButton, Shader const &iShader);
   void saveState();
   void onClipboardString(void *iRequestUserData, char const *iClipboardString);
 
@@ -84,6 +84,7 @@ protected:
   void doRender() override;
 
 private:
+  void onNewFragmentShader(Shader const &iShader);
   void onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
   std::shared_ptr<FragmentShader> deleteFragmentShader(std::string const &iName);
   void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
@@ -96,7 +97,7 @@ private:
   State computeState() const;
   void renderDialog();
   void renderMainMenuBar();
-  void renderShaderMenu(TextEditor &iEditor, std::string const &iNewNode, bool iEdited);
+  void renderShaderMenu(TextEditor &iEditor, std::string const &iNewCode, bool iEdited);
   void renderSettingsMenu();
   void renderControlsSection();
   void renderTimeControls();
@@ -104,6 +105,12 @@ private:
   void compile(std::string const &iNewCode);
   void promptNewEmtpyShader();
   void promptRenameCurrentShader();
+  void promptDuplicateShader(std::string const &iShaderName);
+  void promptShaderName(std::string const &iTitle,
+                        std::string const &iOkButtonName,
+                        std::string const &iShaderName,
+                        std::function<void(std::string const &)> iOkAction,
+                        std::shared_ptr<FragmentShader> iShader = nullptr);
   void promptExportShader(std::string const &iFilename, std::string const &iContent);
   void promptExportProject();
   void promptShaderFrameSize();

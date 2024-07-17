@@ -59,7 +59,7 @@ void Dialog::render()
     {
       if(needsSeparator)
         ImGui::Separator();
-      content->render();
+      content->render(*this);
       needsSeparator = true;
     }
 
@@ -86,15 +86,19 @@ void Dialog::render()
       if(needsSameLine)
         ImGui::SameLine();
 
-      if(ImGui::Button(button.fLabel.c_str(), buttonSize))
+      ImGui::BeginDisabled(!button.fEnabled);
       {
-        if(button.fAction)
-          button.fAction();
-        ImGui::CloseCurrentPopup();
+        if(ImGui::Button(button.fLabel.c_str(), buttonSize))
+        {
+          if(button.fAction)
+            button.fAction();
+          ImGui::CloseCurrentPopup();
+        }
+        if(button.fDefaultFocus)
+          ImGui::SetItemDefaultFocus();
+        needsSameLine = true;
       }
-      if(button.fDefaultFocus)
-        ImGui::SetItemDefaultFocus();
-      needsSameLine = true;
+      ImGui::EndDisabled();
     }
 
     if(fAllowDismissDialog && ImGui::IsKeyPressed(ImGuiKey_Escape))
@@ -120,6 +124,18 @@ Dialog &Dialog::text(std::string iText, bool iCopyToClipboard)
 Dialog &Dialog::lambda(std::function<void()> iLambda, bool iCopyToClipboard)
 {
   auto content = std::make_unique<LamdaContent>();
+  content->fLambda = std::move(iLambda);
+  content->fCopyToClipboard = iCopyToClipboard;
+  fContent.emplace_back(std::move(content));
+  return *this;
+}
+
+//------------------------------------------------------------------------
+// Dialog::lambda
+//------------------------------------------------------------------------
+Dialog &Dialog::lambda(std::function<void(controls_t &)> iLambda, bool iCopyToClipboard)
+{
+  auto content = std::make_unique<LamdaControlsContent>();
   content->fLambda = std::move(iLambda);
   content->fCopyToClipboard = iCopyToClipboard;
   fContent.emplace_back(std::move(content));
@@ -160,7 +176,7 @@ bool Dialog::isOpen() const
 //------------------------------------------------------------------------
 // Dialog::LamdaContent::render
 //------------------------------------------------------------------------
-void Dialog::LamdaContent::render()
+void Dialog::LamdaContent::render(Dialog &iDialog)
 {
   if(!fLambda)
     return;
@@ -169,5 +185,19 @@ void Dialog::LamdaContent::render()
     WstGui::CopyToClipboard([this] { fLambda(); });
   else
     fLambda();
+}
+
+//------------------------------------------------------------------------
+// Dialog::LamdaControlsContent::render
+//------------------------------------------------------------------------
+void Dialog::LamdaControlsContent::render(Dialog &iDialog)
+{
+  if(!fLambda)
+    return;
+
+  if(fCopyToClipboard)
+    WstGui::CopyToClipboard([this, &iDialog] { fLambda(iDialog.fButtons); });
+  else
+    fLambda(iDialog.fButtons);
 }
 }

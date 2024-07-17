@@ -361,7 +361,7 @@ void MainWindow::renderMainMenuBar()
       {
         if(ImGui::MenuItem(shader.fName.c_str()))
         {
-          onNewFragmentShader(shader);
+          maybeNewFragmentShader("Load Example", "", shader);
         }
       }
       ImGui::EndMenu();
@@ -499,19 +499,7 @@ void MainWindow::compile(std::string const &iNewCode)
 //------------------------------------------------------------------------
 void MainWindow::promptNewEmtpyShader()
 {
-  static std::string kShaderName{};
-
-  kShaderName.clear();
-
-  newDialog("New Shader | Name")
-    .lambda([] {
-      ImGui::InputText("###name", &kShaderName);
-    })
-    .button("Create", [this] {
-      onNewFragmentShader({kShaderName, kEmptyShader});
-    }, true)
-    .buttonCancel()
-    ;
+  maybeNewFragmentShader("New Shader", "Create", {"", kEmptyShader});
 }
 
 //------------------------------------------------------------------------
@@ -519,22 +507,64 @@ void MainWindow::promptNewEmtpyShader()
 //------------------------------------------------------------------------
 void MainWindow::promptRenameCurrentShader()
 {
-  static std::string kNewShaderName{};
-
   if(!fCurrentFragmentShader)
     return;
 
   auto const currentName = fCurrentFragmentShader->getName();
 
-  kNewShaderName = fCurrentFragmentShader->getName();
+  promptShaderName("Rename Shader",
+                   "Rename",
+                   fCurrentFragmentShader->getName(),
+                   [currentName, this](auto const &iNewName) {
+                     renameShader(currentName, iNewName);
+                   },
+                   fCurrentFragmentShader);
+}
 
-  newDialog("Rename Shader")
-    .lambda([] {
+
+//------------------------------------------------------------------------
+// MainWindow::promptDuplicateShader
+//------------------------------------------------------------------------
+void MainWindow::promptDuplicateShader(std::string const &iShaderName)
+{
+  if(fFragmentShaders.contains(iShaderName))
+  {
+    maybeNewFragmentShader(fmt::printf("Duplicate %s", iShaderName),
+                           "Duplicate",
+                           {"", fFragmentShaders[iShaderName]->getCode()});
+  }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::promptShaderName
+//------------------------------------------------------------------------
+void MainWindow::promptShaderName(std::string const &iTitle,
+                                  std::string const &iOkButtonName,
+                                  std::string const &iShaderName,
+                                  std::function<void(std::string const &)> iOkAction,
+                                  std::shared_ptr<FragmentShader> iShader)
+{
+  static std::string kNewShaderName{};
+
+  kNewShaderName = iShaderName;
+
+  newDialog(iTitle)
+    .lambda([this, shader = std::move(iShader), okButtonName = iOkButtonName] (auto &iControls) {
       ImGui::InputText("###name", &kNewShaderName);
+      if(fFragmentShaders.contains(kNewShaderName) && fFragmentShaders[kNewShaderName] != shader)
+      {
+        ImGui::SeparatorText("!!! Warning !!!");
+        ImGui::Text("Duplicate name detected.");
+        ImGui::Text("Continuing will override the content of the shader.");
+        ImGui::Text("This operation cannot be undone.");
+        iControls[0].fLabel = "Override";
+      }
+      else
+        iControls[0].fLabel = okButtonName;
+
+      iControls[0].fEnabled = !kNewShaderName.empty();
     })
-    .button("Rename", [currentName, this] {
-      renameShader(currentName, kNewShaderName);
-    }, true)
+    .button(iOkButtonName, [action = std::move(iOkAction)] { action(kNewShaderName); }, true)
     .buttonCancel()
     ;
 }
@@ -707,19 +737,21 @@ void MainWindow::promptSaveCurrentFragmentShaderScreenshot()
 //------------------------------------------------------------------------
 // MainWindow::renderShaderMenu
 //------------------------------------------------------------------------
-void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewNode, bool iEdited)
+void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewCode, bool iEdited)
 {
   if(ImGui::BeginMenu("Shader"))
   {
     // -- Code ------
-    ImGui::SeparatorText("Code");
+    ImGui::SeparatorText("Shader");
 
     if(ImGui::MenuItem(ICON_FA_Hammer " Compile", "Ctrl + SPACE", false, iEdited))
-      compile(iNewNode);
+      compile(iNewCode);
     if(ImGui::MenuItem("Rename"))
       promptRenameCurrentShader();
+    if(ImGui::MenuItem("Duplicate"))
+      promptDuplicateShader(fCurrentFragmentShader->getName());
     if(ImGui::MenuItem("Export"))
-      promptExportShader(fCurrentFragmentShader->getName(), iNewNode);
+      promptExportShader(fCurrentFragmentShader->getName(), iNewCode);
 
     // -- Edit ------
     ImGui::SeparatorText("Edit");
@@ -895,6 +927,15 @@ void MainWindow::doRender()
           }
           if(ImGui::BeginTabItem(fragmentShaderName.c_str(), &open, flags))
           {
+            if (ImGui::BeginPopupContextItem())
+            {
+              if(ImGui::MenuItem("Rename"))
+                promptRenameCurrentShader();
+              if(ImGui::MenuItem("Duplicate"))
+                promptDuplicateShader(fragmentShaderName);
+
+              ImGui::EndPopup();
+            }
             if(!fCurrentFragmentShaderNameRequest)
               selectedFragmentShader = fragmentShaderName;
             ImGui::EndTabItem();
@@ -928,7 +969,7 @@ void MainWindow::doRender()
           {
             if(ImGui::MenuItem(shader.fName.c_str()))
             {
-              onNewFragmentShader(shader);
+              maybeNewFragmentShader("Load Example", "Add", shader);
             }
           }
           ImGui::EndMenu();
@@ -983,6 +1024,24 @@ void MainWindow::onNewFragmentShader(Shader const &iShader)
   else
     shader.fWindowSize = fFragmentShaderWindow->getSize();
   onNewFragmentShader(std::make_shared<FragmentShader>(shader));
+}
+
+
+//------------------------------------------------------------------------
+// MainWindow::maybeNewFragmentShader
+//------------------------------------------------------------------------
+void MainWindow::maybeNewFragmentShader(std::string const &iTitle, std::string const &iOkButton, Shader const &iShader)
+{
+  if(iShader.fName.empty() || fFragmentShaders.contains(iShader.fName))
+  {
+    promptShaderName(iTitle, iOkButton, iShader.fName,
+                     [shader = iShader, this] (std::string const &iShaderName) mutable {
+                       shader.fName = iShaderName;
+                       onNewFragmentShader(shader);
+                     });
+  }
+  else
+    onNewFragmentShader(iShader);
 }
 
 //------------------------------------------------------------------------
@@ -1257,7 +1316,13 @@ void MainWindow::onNewFile(char const *iFilename, char const *iContent)
   if(impl::ends_with(filename, ".json"))
     initFromState(Preferences::deserialize(iContent, fDefaultState));
   else
-    onNewFragmentShader({filename, iContent});
+  {
+    // remove the extension...
+    if(impl::ends_with(filename, ".wgsl"))
+      filename = filename.substr(0, filename.find_last_of('.'));
+
+    maybeNewFragmentShader("Import Shader", "Continue", {filename, iContent});
+  }
 }
 
 //------------------------------------------------------------------------
