@@ -24,18 +24,18 @@
 namespace pongasoft::gui {
 
 //------------------------------------------------------------------------
-// Dialog::Dialog
+// IDialog::IDialog
 //------------------------------------------------------------------------
-Dialog::Dialog(std::string iTitle) : fTitle{std::move(iTitle)},
-                                     fDialogID{fmt::printf("%s###Dialog", fTitle)}
+IDialog::IDialog(std::string iTitle) : fTitle{std::move(iTitle)},
+                                       fDialogID{fmt::printf("%s###Dialog", fTitle)}
 {
   WST_INTERNAL_ASSERT(!fTitle.empty());
 }
 
 //------------------------------------------------------------------------
-// Dialog::render
+// IDialog::render
 //------------------------------------------------------------------------
-void Dialog::render()
+void IDialog::render()
 {
   auto title = fDialogID.c_str();
 
@@ -49,25 +49,11 @@ void Dialog::render()
 
   if(ImGui::BeginPopupModal(title, fAllowDismissDialog ? &fDialogIsNotDismissed : nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_HorizontalScrollbar))
   {
-    if(fPreContentMessage)
-    {
-      ImGui::TextUnformatted(fPreContentMessage->c_str());
-      needsSeparator = true;
-    }
-
     for(auto &content: fContent)
     {
       if(needsSeparator)
         ImGui::Separator();
-      content->render(*this);
-      needsSeparator = true;
-    }
-
-    if(fPostContentMessage)
-    {
-      if(needsSeparator)
-        ImGui::Separator();
-      ImGui::TextUnformatted(fPostContentMessage->c_str());
+      content.render();
       needsSeparator = true;
     }
 
@@ -90,8 +76,7 @@ void Dialog::render()
       {
         if(ImGui::Button(button.fLabel.c_str(), buttonSize))
         {
-          if(button.fAction)
-            button.fAction();
+          button.execute();
           ImGui::CloseCurrentPopup();
         }
         if(button.fDefaultFocus)
@@ -109,52 +94,26 @@ void Dialog::render()
 }
 
 //------------------------------------------------------------------------
-// Dialog::text
+// IDialog::addContent
 //------------------------------------------------------------------------
-Dialog &Dialog::text(std::string iText, bool iCopyToClipboard)
+void IDialog::addContent(Content::renderable_t iRenderable, bool iCopyToClipboard)
 {
-  return lambda([text = std::move(iText)]() { WstGui::MultiLineText(text); },
-                iCopyToClipboard);
-}
-
-
-//------------------------------------------------------------------------
-// Dialog::lambda
-//------------------------------------------------------------------------
-Dialog &Dialog::lambda(std::function<void()> iLambda, bool iCopyToClipboard)
-{
-  auto content = std::make_unique<LamdaContent>();
-  content->fLambda = std::move(iLambda);
-  content->fCopyToClipboard = iCopyToClipboard;
-  fContent.emplace_back(std::move(content));
-  return *this;
+  fContent.emplace_back(Content{.fRenderable = std::move(iRenderable), .fCopyToClipboard = iCopyToClipboard});
 }
 
 //------------------------------------------------------------------------
-// Dialog::lambda
+// IDialog::addButton
 //------------------------------------------------------------------------
-Dialog &Dialog::lambda(std::function<void(controls_t &)> iLambda, bool iCopyToClipboard)
+void IDialog::addButton(std::string iLabel, Button::action_t iAction, bool iDefaultFocus)
 {
-  auto content = std::make_unique<LamdaControlsContent>();
-  content->fLambda = std::move(iLambda);
-  content->fCopyToClipboard = iCopyToClipboard;
-  fContent.emplace_back(std::move(content));
-  return *this;
+  WST_INTERNAL_ASSERT(!iLabel.empty());
+  fButtons.emplace_back(Button{.fLabel = std::move(iLabel), .fAction = std::move(iAction), .fDefaultFocus = iDefaultFocus});
 }
 
 //------------------------------------------------------------------------
-// Dialog::button
+// IDialog::computeButtonWidth
 //------------------------------------------------------------------------
-Dialog &Dialog::button(std::string iLabel, Dialog::Button::action_t iAction, bool iDefaultFocus)
-{
-  fButtons.emplace_back(Button{std::move(iLabel), std::move(iAction), iDefaultFocus});
-  return *this;
-}
-
-//------------------------------------------------------------------------
-// Dialog::computeButtonWidth
-//------------------------------------------------------------------------
-float Dialog::computeButtonWidth() const
+float IDialog::computeButtonWidth() const
 {
   float w{120.0f};
 
@@ -166,38 +125,23 @@ float Dialog::computeButtonWidth() const
 }
 
 //------------------------------------------------------------------------
-// Dialog::isOpen
+// IDialog::isOpen
 //------------------------------------------------------------------------
-bool Dialog::isOpen() const
+bool IDialog::isOpen() const
 {
   return ImGui::IsPopupOpen(fDialogID.c_str());
 }
 
 //------------------------------------------------------------------------
-// Dialog::LamdaContent::render
+// IDialog::initKeyboardFocusHere
 //------------------------------------------------------------------------
-void Dialog::LamdaContent::render(Dialog &iDialog)
+void IDialog::initKeyboardFocusHere()
 {
-  if(!fLambda)
-    return;
-
-  if(fCopyToClipboard)
-    WstGui::CopyToClipboard([this] { fLambda(); });
-  else
-    fLambda();
+  if(!fKeyboardFocusInitialized)
+  {
+    fKeyboardFocusInitialized = true;
+    ImGui::SetKeyboardFocusHere();
+  }
 }
 
-//------------------------------------------------------------------------
-// Dialog::LamdaControlsContent::render
-//------------------------------------------------------------------------
-void Dialog::LamdaControlsContent::render(Dialog &iDialog)
-{
-  if(!fLambda)
-    return;
-
-  if(fCopyToClipboard)
-    WstGui::CopyToClipboard([this, &iDialog] { fLambda(iDialog.fButtons); });
-  else
-    fLambda(iDialog.fButtons);
-}
 }

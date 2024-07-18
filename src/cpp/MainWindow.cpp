@@ -227,6 +227,26 @@ inline long lineCount(std::string const &s)
 static bool kShowDemoWindow = false;
 #endif
 
+//------------------------------------------------------------------------
+// MainWindow::newDialog
+//------------------------------------------------------------------------
+template<typename State>
+gui::Dialog<State> &MainWindow::newDialog(std::string iTitle, State const &iState)
+{
+  auto dialog = std::make_unique<gui::Dialog<State>>(std::move(iTitle), iState);
+  auto &res = *dialog.get();
+  fDialogs.emplace_back(std::move(dialog));
+  return res;
+}
+
+
+//------------------------------------------------------------------------
+// MainWindow::newDialog
+//------------------------------------------------------------------------
+gui::DialogNoState &MainWindow::newDialog(std::string iTitle)
+{
+  return newDialog<gui::VoidState>(std::move(iTitle), {});
+}
 
 //------------------------------------------------------------------------
 // MainWindow::renderSettingsMenu
@@ -247,7 +267,7 @@ void MainWindow::renderSettingsMenu()
   if(ImGui::MenuItem("Font Size"))
   {
     newDialog("Font Size")
-      .lambda([this] {
+      .content([this] {
         if(ImGui::Button(" + "))
           requestFontSize(fFontSize + 1.0f);
         ImGui::SameLine();
@@ -264,7 +284,7 @@ void MainWindow::renderSettingsMenu()
     if(ImGui::MenuItem("Line Spacing"))
     {
       newDialog("Line Spacing")
-        .lambda([this] { ImGui::SliderFloat("###line_spacing", &fLineSpacing, 1.0f, 2.0f); })
+        .content([this] { ImGui::SliderFloat("###line_spacing", &fLineSpacing, 1.0f, 2.0f); })
         .buttonOk()
         .button("Cancel", [lineSpacing = fLineSpacing, this] { fLineSpacing = lineSpacing; });
     }
@@ -361,7 +381,7 @@ void MainWindow::renderMainMenuBar()
       {
         if(ImGui::MenuItem(shader.fName.c_str()))
         {
-          maybeNewFragmentShader("Load Example", "", shader);
+          maybeNewFragmentShader("Load Example", "Add", shader);
         }
       }
       ImGui::EndMenu();
@@ -544,27 +564,25 @@ void MainWindow::promptShaderName(std::string const &iTitle,
                                   std::function<void(std::string const &)> iOkAction,
                                   std::shared_ptr<FragmentShader> iShader)
 {
-  static std::string kNewShaderName{};
-
-  kNewShaderName = iShaderName;
-
-  newDialog(iTitle)
-    .lambda([this, shader = std::move(iShader), okButtonName = iOkButtonName] (auto &iControls) {
-      ImGui::InputText("###name", &kNewShaderName);
-      if(fFragmentShaders.contains(kNewShaderName) && fFragmentShaders[kNewShaderName] != shader)
+  newDialog(iTitle, iShaderName)
+    .content([this, shader = std::move(iShader), okButtonName = iOkButtonName] (auto &iDialog) {
+      auto &newShaderName = iDialog.state();
+      iDialog.initKeyboardFocusHere();
+      ImGui::InputText("###name", &newShaderName);
+      if(fFragmentShaders.contains(newShaderName) && fFragmentShaders[newShaderName] != shader)
       {
         ImGui::SeparatorText("!!! Warning !!!");
         ImGui::Text("Duplicate name detected.");
         ImGui::Text("Continuing will override the content of the shader.");
         ImGui::Text("This operation cannot be undone.");
-        iControls[0].fLabel = "Override";
+        iDialog.button(0).fLabel = "Override";
       }
       else
-        iControls[0].fLabel = okButtonName;
+        iDialog.button(0).fLabel = okButtonName;
 
-      iControls[0].fEnabled = !kNewShaderName.empty();
+      iDialog.button(0).fEnabled = !newShaderName.empty();
     })
-    .button(iOkButtonName, [action = std::move(iOkAction)] { action(kNewShaderName); }, true)
+    .button(iOkButtonName, [action = std::move(iOkAction)] (auto &iDialog) { action(iDialog.state()); }, true)
     .buttonCancel()
     ;
 }
@@ -589,21 +607,24 @@ void MainWindow::resizeShader(Renderable::Size const &iSize, bool iApplyToAll)
 //------------------------------------------------------------------------
 void MainWindow::promptShaderFrameSize()
 {
-  static Renderable::Size kSize{};
+  auto resizeAll = fFragmentShaders.size() > 1;
 
-  kSize = fFragmentShaderWindow->getSize();
-
-  auto &dialog = newDialog("Shader Frame Size")
-    .lambda([] {
+  auto &dialog = newDialog("Shader Frame Size", fFragmentShaderWindow->getSize())
+    .content([resizeAll] (auto &iDialog) {
+      auto &size = iDialog.state();
       ImGui::SeparatorText("Size (width x height)");
-      ImGui::InputInt2("###size", &kSize.width);
+      iDialog.initKeyboardFocusHere();
+      ImGui::InputInt2("###size", &size.width);
       ImGui::SetItemDefaultFocus();
+      iDialog.button(0).fEnabled = size.width > 0 && size.height > 0;
+      if(resizeAll)
+        iDialog.button(1).fEnabled = iDialog.button(0).fEnabled;
     })
-    .button("Resize", [this] { resizeShader(kSize, false); }, true)
+    .button("Resize", [this] (auto &iDialog) { resizeShader(iDialog.state(), false); }, true)
   ;
 
-  if(fFragmentShaders.size() > 1)
-    dialog.button(fmt::printf("Resize All (%d)", fFragmentShaders.size()), [this] { resizeShader(kSize, true); });
+  if(resizeAll)
+    dialog.button(fmt::printf("Resize All (%d)", fFragmentShaders.size()), [this] (auto &iDialog) { resizeShader(iDialog.state(), true); });
 
   dialog.allowDismissDialog();
   dialog.buttonCancel();
@@ -629,17 +650,17 @@ inline bool ends_with(std::string const &s, std::string const &iSuffix)
 //------------------------------------------------------------------------
 void MainWindow::promptExportShader(std::string const &iFilename, std::string const &iContent)
 {
-  static std::string kShaderFilename{};
+  auto filename = impl::ends_with(iFilename, ".wgsl") ? iFilename : fmt::printf("%s.wgsl", iFilename);
 
-  kShaderFilename = impl::ends_with(iFilename, ".wgsl") ? iFilename : fmt::printf("%s.wgsl", iFilename);
-
-  newDialog("Export Shader")
-    .preContentMessage("Enter/Modify the filename")
-    .lambda([] {
-      ImGui::InputText("###name", &kShaderFilename);
+  newDialog("Export Shader", filename)
+    .content([] (auto &iDialog) {
+      ImGui::SeparatorText("Filename");
+      iDialog.initKeyboardFocusHere();
+      ImGui::InputText("###name", &iDialog.state());
+      iDialog.button(0).fEnabled = !iDialog.state().empty();
     })
-    .button("Export", [content = iContent] {
-      wgpu_shader_toy_export_content(kShaderFilename.c_str(), content.c_str());
+    .button("Export", [content = iContent] (auto &iDialog) {
+      wgpu_shader_toy_export_content(iDialog.state().c_str(), content.c_str());
     }, true)
     .buttonCancel()
     ;
@@ -651,21 +672,18 @@ void MainWindow::promptExportShader(std::string const &iFilename, std::string co
 //------------------------------------------------------------------------
 void MainWindow::promptExportProject()
 {
-  static std::string kProjectName{};
-
-  kProjectName = "WebGPUShaderToy.json";
-
-  newDialog("Export Project")
-    .preContentMessage("Enter/Modify the filename")
-    .lambda([] {
-      ImGui::InputText("###name", &kProjectName);
+  newDialog("Export Project", std::string("WebGPUShaderToy.json"))
+    .content([] (auto &iDialog) {
+      ImGui::SeparatorText("Filename");
+      iDialog.initKeyboardFocusHere();
+      ImGui::InputText("###name", &iDialog.state());
+      iDialog.button(0).fEnabled = !iDialog.state().empty();
     })
-    .button("Export", [this] {
-      wgpu_shader_toy_export_content(kProjectName.c_str(), fPreferences->serialize(computeState()).c_str());
+    .button("Export", [this] (auto &iDialog) {
+      wgpu_shader_toy_export_content(iDialog.state().c_str(), fPreferences->serialize(computeState()).c_str());
     }, true)
     .buttonCancel()
     ;
-
 }
 
 //------------------------------------------------------------------------
@@ -696,18 +714,16 @@ void MainWindow::saveCurrentFragmentShaderScreenshot(std::string const &iFilenam
 //------------------------------------------------------------------------
 void MainWindow::promptSaveCurrentFragmentShaderScreenshot()
 {
-  static std::string kFilename{};
-
   if(!fCurrentFragmentShader)
     return;
 
-  kFilename = fCurrentFragmentShader->getName();
-
-  newDialog("Screenshot")
-    .lambda([this] {
+  newDialog("Screenshot", fCurrentFragmentShader->getName())
+    .content([this] (auto &iDialog) {
       ImGui::SeparatorText("Filename");
       auto label = fmt::printf(".%s###name", fScreenshotFormat.fExtension);
-      ImGui::InputText(label.c_str(), &kFilename);
+      iDialog.initKeyboardFocusHere();
+      ImGui::InputText(label.c_str(), &iDialog.state());
+      iDialog.button(0).fEnabled = !iDialog.state().empty();
       ImGui::SeparatorText("Format");
       if(ImGui::BeginCombo("Format", fScreenshotFormat.fDescription.c_str()))
       {
@@ -726,8 +742,8 @@ void MainWindow::promptSaveCurrentFragmentShaderScreenshot()
       if(fCurrentFragmentShader)
         renderTimeControls();
     })
-    .button(ICON_FA_Camera " Screenshot", [this] {
-      saveCurrentFragmentShaderScreenshot(kFilename);
+    .button(ICON_FA_Camera " Screenshot", [this] (auto &iDialog) {
+      saveCurrentFragmentShaderScreenshot(iDialog.state());
     }, true)
     .allowDismissDialog()
     .buttonCancel();
@@ -1268,23 +1284,7 @@ void MainWindow::setManualLayout(bool iManualLayout)
   JSSetManualLayout(iManualLayout);
 }
 
-//------------------------------------------------------------------------
-// MainWindow::newDialog
-//------------------------------------------------------------------------
-gui::Dialog &MainWindow::newDialog(std::string iTitle, bool iHighPriority)
-{
-  auto dialog = std::make_unique<gui::Dialog>(std::move(iTitle));
-  if(iHighPriority)
-  {
-    fCurrentDialog = std::move(dialog);
-    return *fCurrentDialog;
-  }
-  else
-  {
-    fDialogs.emplace_back(std::move(dialog));
-    return *fDialogs[fDialogs.size() - 1];
-  }
-}
+
 
 //------------------------------------------------------------------------
 // MainWindow::onClipboardString
@@ -1331,7 +1331,7 @@ void MainWindow::onNewFile(char const *iFilename, char const *iContent)
 void MainWindow::newAboutDialog()
 {
   newDialog("WebGPU Shader Toy | About")
-    .lambda([] {
+    .content([] {
       ImGui::SeparatorText("About");
       ImGui::Text("WebGPU Shader Toy is a tool developed by pongasoft.");
       ImGui::Text("Its main purpose is to experiment with WebGPU fragment shaders");
@@ -1351,7 +1351,7 @@ void MainWindow::newAboutDialog()
 void MainWindow::newHelpDialog()
 {
   newDialog("Help")
-    .lambda([this]() { help(); })
+    .content([this]() { help(); })
     .allowDismissDialog()
     .buttonOk();
 }

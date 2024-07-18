@@ -24,15 +24,18 @@
 #include <functional>
 #include <optional>
 #include <memory>
+#include <type_traits>
 
 namespace pongasoft::gui {
 
-class Dialog
+class IDialog
 {
 public:
   struct Button
   {
     using action_t = std::function<void()>;
+
+    inline void execute() const { if(fAction) fAction(); }
 
     std::string fLabel{};
     action_t fAction{};
@@ -40,65 +43,77 @@ public:
     bool fEnabled{true};
   };
 
-  using controls_t = std::vector<Button>;
-
-  class Content
+  struct Content
   {
-  public:
-    virtual ~Content() = default;
-    virtual void render(Dialog &iDialog) = 0;
-  };
+    using renderable_t = std::function<void()>;
 
-private:
-  class LamdaContent : public Content
-  {
-  public:
-    void render(Dialog &iDialog) override;
+    inline void render() const { if(fRenderable) fRenderable(); }
 
-    std::function<void()> fLambda{};
-    bool fCopyToClipboard{};
-  };
-
-  class LamdaControlsContent : public Content
-  {
-  public:
-    void render(Dialog &iDialog) override;
-
-    std::function<void(std::vector<Button> &)> fLambda{};
+    renderable_t fRenderable{};
     bool fCopyToClipboard{};
   };
 
 public:
-  explicit Dialog(std::string iTitle);
+  explicit IDialog(std::string iTitle);
+  virtual ~IDialog() = default;
   void render();
-
-  Dialog &preContentMessage(std::string iMessage) { fPreContentMessage = std::move(iMessage); return *this; }
-  Dialog &postContentMessage(std::string iMessage) { fPostContentMessage = std::move(iMessage); return *this; }
-  Dialog &text(std::string iText, bool iCopyToClipboard = false);
-  Dialog &lambda(std::function<void()> iLambda, bool iCopyToClipboard = false);
-  Dialog &lambda(std::function<void(controls_t &)> iLambda, bool iCopyToClipboard = false);
-  Dialog &button(std::string iLabel, Button::action_t iAction, bool iDefaultFocus = false);
-  Dialog &buttonCancel(std::string iLabel = "Cancel", bool iDefaultFocus = false) { return button(std::move(iLabel), {}, iDefaultFocus); }
-  Dialog &buttonOk(std::string iLabel = "Ok", bool iDefaultFocus = false) { return button(std::move(iLabel), {}, iDefaultFocus); }
-  Dialog &allowDismissDialog() { fAllowDismissDialog = true; return *this; }
-
   bool isOpen() const;
+  void initKeyboardFocusHere();
 
 protected:
   float computeButtonWidth() const;
+  void addContent(Content::renderable_t iRenderable, bool iCopyToClipboard);
+  void addButton(std::string iLabel, Button::action_t iAction, bool iDefaultFocus);
 
 protected:
   std::string fTitle;
-  std::optional<std::string> fPreContentMessage{};
-  std::optional<std::string> fPostContentMessage{};
-  std::vector<std::shared_ptr<Content>> fContent{};
+  std::vector<Content> fContent{};
   std::vector<Button> fButtons{};
   bool fAllowDismissDialog{false};
   bool fDialogIsNotDismissed{true};
+  bool fKeyboardFocusInitialized{false};
 
 private:
   std::string fDialogID;
 };
+
+struct VoidState{};
+
+template<typename T>
+concept HasState = !std::is_same_v<T, VoidState>;
+
+template<typename State>
+class Dialog : public IDialog
+{
+public:
+  explicit Dialog(std::string iTitle, State const &iState) : IDialog(std::move(iTitle)), fState{iState} {}
+
+  Dialog &content(Content::renderable_t iRenderable, bool iCopyToClipboard = false) {
+    addContent(std::move(iRenderable), iCopyToClipboard);
+    return *this;
+  }
+  Dialog &content(std::function<void(Dialog &)> iContent, bool iCopyToClipboard = false) {
+    return content([dialog = this, content = std::move(iContent)] { if(content) content(*dialog); }, iCopyToClipboard);
+  }
+  Dialog &button(std::string iLabel, Button::action_t iAction, bool iDefaultFocus = false) {
+    addButton(std::move(iLabel), std::move(iAction), iDefaultFocus);
+    return *this;
+  }
+  Dialog &button(std::string iLabel, std::function<void(Dialog &)> iAction, bool iDefaultFocus = false) {
+    return button(std::move(iLabel), [dialog = this, action = std::move(iAction)] { if(action) action(*dialog); }, iDefaultFocus);
+  }
+  Dialog &buttonCancel(std::string iLabel = "Cancel", bool iDefaultFocus = false) { return button(std::move(iLabel), Button::action_t{}, iDefaultFocus); }
+  Dialog &buttonOk(std::string iLabel = "Ok", bool iDefaultFocus = false) { return button(std::move(iLabel), Button::action_t{}, iDefaultFocus); }
+  Dialog &allowDismissDialog() { fAllowDismissDialog = true; return *this; }
+
+  State &state() noexcept requires HasState<State> { return fState; }
+  Button &button(std::size_t iButton) { return fButtons[iButton]; }
+
+private:
+  State fState;
+};
+
+using DialogNoState = Dialog<VoidState>;
 
 }
 

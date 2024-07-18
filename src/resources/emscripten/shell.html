@@ -367,6 +367,8 @@
   if(navigator.gpu)
   {
     Module.onAbort = (reason) => {
+      const error = new Error(`Aborted: ${reason}`);
+      console.log(error.stack);
       showErrorDialog(reason);
     }
 

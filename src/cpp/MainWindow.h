@@ -122,7 +122,11 @@ private:
   void newHelpDialog();
   void help() const;
   inline bool hasDialog() const { return fCurrentDialog != nullptr || !fDialogs.empty(); }
-  gui::Dialog &newDialog(std::string iTitle, bool iHighPriority = false);
+  template<typename State>
+  gui::Dialog<State> &newDialog(std::string iTitle, State const &iState);
+  gui::DialogNoState &newDialog(std::string iTitle);
+
+private:
 
 private:
   std::shared_ptr<Preferences> fPreferences;
@@ -149,8 +153,8 @@ private:
   std::shared_ptr<FragmentShader>fCurrentFragmentShader{};
   TextEditor fTextEditor{};
 
-  std::vector<std::unique_ptr<gui::Dialog>> fDialogs{};
-  std::unique_ptr<gui::Dialog> fCurrentDialog{};
+  std::vector<std::unique_ptr<gui::IDialog>> fDialogs{};
+  std::unique_ptr<gui::IDialog> fCurrentDialog{};
 
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
 };
