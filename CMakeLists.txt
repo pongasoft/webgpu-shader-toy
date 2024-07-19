@@ -71,7 +71,17 @@ target_include_directories(wgpu_shader_toy PUBLIC
 )
 
 file(COPY ${CMAKE_SOURCE_DIR}/src/resources/images DESTINATION ${CMAKE_BINARY_DIR})
-configure_file(${CMAKE_SOURCE_DIR}/src/resources/emscripten/shell.html ${CMAKE_BINARY_DIR}/index.html @ONLY)
+
+# Copy (and processes) shell.html
+set(SHELL_SRC "${CMAKE_SOURCE_DIR}/src/resources/emscripten/shell.html")
+set(SHELL_DST "${CMAKE_BINARY_DIR}/index.html")
+
+add_custom_command(
+    OUTPUT ${SHELL_DST}
+    COMMAND ${CMAKE_COMMAND} -D SRC=${SHELL_SRC} -D DST=${SHELL_DST} -D wgpu-shader-toy_VERSION=${wgpu-shader-toy_VERSION} -P ${CMAKE_CURRENT_LIST_DIR}/CopyResource.cmake
+    DEPENDS ${SHELL_SRC}
+)
+add_custom_target(copy_shell_html DEPENDS ${SHELL_DST})
 
 #set(wgpu_shader_toy_options "--use-port=contrib.glfw3" "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:disableDemo=$<IF:$<CONFIG:Debug>,false,true>")
 set(wgpu_shader_toy_options "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/emscripten-glfw3.py" "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:disableDemo=$<IF:$<CONFIG:Debug>,false,true>")
@@ -86,3 +96,5 @@ target_link_options(wgpu_shader_toy PUBLIC
     "${wgpu_shader_toy_options}"
     "--js-library" "${CMAKE_CURRENT_LIST_DIR}/src/js/lib_wgpu_shader_toy.js"
 )
+
+add_dependencies(wgpu_shader_toy copy_shell_html)
