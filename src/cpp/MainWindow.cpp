@@ -778,10 +778,14 @@ void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewCo
       iEditor.Cut();
     if(ImGui::MenuItem("Paste", "Ctrl + V"))
       iEditor.OnKeyboardPaste();
+    ImGui::Separator();
     if(ImGui::MenuItem("Undo", "Ctrl + Z"))
       iEditor.Undo();
     if(ImGui::MenuItem("Redo", "Shift + Ctrl + Z"))
       iEditor.Redo();
+    ImGui::Separator();
+    if(ImGui::MenuItem("Select All", "Shift + Ctrl + A"))
+      iEditor.SelectAll();
 
     // -- Frame ------
     ImGui::SeparatorText("Frame");
@@ -1334,7 +1338,8 @@ void MainWindow::newAboutDialog()
     .content([] {
       ImGui::SeparatorText("About");
       ImGui::Text("WebGPU Shader Toy is a tool developed by pongasoft.");
-      ImGui::Text("Its main purpose is to experiment with WebGPU fragment shaders");
+      ImGui::Text("Its main purpose is to experiment with WebGPU fragment shaders.");
+      ImGui::Text("And to have fun while doing it :)");
       ImGui::SeparatorText("Versions");
       ImGui::Text("Version:    %s", kFullVersion);
       ImGui::Text("emscripten: %d.%d.%d", __EMSCRIPTEN_major__, __EMSCRIPTEN_minor__, __EMSCRIPTEN_tiny__);
@@ -1388,10 +1393,12 @@ void MainWindow::help() const
     {"Ctrl + V", {"Paste"}},
     {"Ctrl + Z", {"Undo"}},
     {"Ctrl + Shift + Z", {"Redo"}},
-    {"Ctrl + A", {"Select All"}},
+    {"Ctrl + Shift + A", {"Select All"}},
     {"Ctrl + [ or ]", {"Indentation change"}},
     {"Ctrl + /", {"Toggle line comment"}},
     {"Home or End", {"Beginning or End of line"}},
+    {"Ctrl + A", {"Beginning of line"}},
+    {"Ctrl + E", {"End of line"}},
     {"<Nav. Key>", {"Arrows, Home, End, PgUp, PgDn: move cursor"}},
     {"Shift + <Nav. Key>", {"Select text"}},
   };

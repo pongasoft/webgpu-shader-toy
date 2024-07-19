@@ -2100,6 +2100,10 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
       mOverwrite ^= true;
     else if(isCtrlOnly && ImGui::IsKeyPressed(ImGuiKey_Insert))
       Copy();
+    else if(isCtrlOnly && ImGui::IsKeyPressed(ImGuiKey_A))
+      MoveHome(false);
+    else if(isCtrlOnly && ImGui::IsKeyPressed(ImGuiKey_E))
+      MoveEnd(false);
     else if(isShortcut && ImGui::IsKeyPressed(ImGuiKey_C))
       Copy();
     else if(!mReadOnly && isShiftOnly && ImGui::IsKeyPressed(ImGuiKey_Insert))
@@ -2110,7 +2114,7 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
       Cut();
     else if(isShiftOnly && ImGui::IsKeyPressed(ImGuiKey_Delete))
       Cut();
-    else if(isShortcut && ImGui::IsKeyPressed(ImGuiKey_A))
+    else if(isShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_A))
       SelectAll();
     else if(isShortcut && ImGui::IsKeyPressed(ImGuiKey_D))
       AddCursorForNextOccurrence();
