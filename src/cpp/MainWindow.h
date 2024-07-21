@@ -84,6 +84,9 @@ protected:
   void doRender() override;
 
 private:
+  using gui_action_t = std::function<void()>;
+
+private:
   void onNewFragmentShader(Shader const &iShader);
   void onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
   std::shared_ptr<FragmentShader> deleteFragmentShader(std::string const &iName);
@@ -93,7 +96,9 @@ private:
   void setStyle(bool iDarkStyle);
   void setFontSize(float iFontSize);
   void requestFontSize(float iFontSize);
-  void setManualLayout(bool iManualLayout);
+  void setManualLayout(bool iManualLayout, std::optional<Size> iLeftPaneSize = std::nullopt, std::optional<Size> iRightPaneSize = std::nullopt);
+  void switchToManualLayout();
+  void switchToAutomaticLayout();
   State computeState() const;
   void renderDialog();
   void renderMainMenuBar();
@@ -126,7 +131,7 @@ private:
   gui::Dialog<State> &newDialog(std::string iTitle, State const &iState);
   gui::DialogNoState &newDialog(std::string iTitle);
 
-private:
+  void deferBeforeImGuiFrame(gui_action_t iAction) { if(iAction) fBeforeImGuiFrameActions.emplace_back(std::move(iAction)); }
 
 private:
   std::shared_ptr<Preferences> fPreferences;
@@ -145,8 +150,9 @@ private:
 
 //  std::string fCurrentAspectRatio{"Free"};
 //  std::optional<AspectRatio> fAspectRatioRequest{};
-  bool fResetRequest{};
   std::optional<float> fSetFontSizeRequest{};
+
+  std::vector<gui_action_t> fBeforeImGuiFrameActions{};
 
   std::map<std::string, std::shared_ptr<FragmentShader>> fFragmentShaders{};
   std::vector<std::string> fFragmentShaderTabs{};

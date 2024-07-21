@@ -135,10 +135,10 @@ EM_JS(void, JSSetStyle, (bool iDarkStyle), {
 })
 
 //------------------------------------------------------------------------
-// JSSetStyle
+// JSSetLayout
 //------------------------------------------------------------------------
-EM_JS(void, JSSetManualLayout, (bool iManualLayout), {
-  Module.wst_set_manual_layout(iManualLayout);
+EM_JS(void, JSSetLayout, (bool iManualLayout, int iLeftPaneWidth, int iRightPaneWidth), {
+  Module.wst_set_layout(iManualLayout, iLeftPaneWidth, iRightPaneWidth);
 })
 
 
@@ -316,12 +316,12 @@ void MainWindow::renderSettingsMenu()
     if(ImGui::MenuItem("Manual", nullptr, fManualLayout))
     {
       if(!fManualLayout)
-        setManualLayout(true);
+        switchToManualLayout();
     }
     if(ImGui::MenuItem("Automatic", nullptr, !fManualLayout))
     {
       if(fManualLayout)
-        setManualLayout(false);
+        switchToAutomaticLayout();
     }
     ImGui::EndMenu();
   }
@@ -355,7 +355,7 @@ void MainWindow::renderMainMenuBar()
         wgpu_shader_toy_open_file_dialog();
       ImGui::Separator();
       if(ImGui::MenuItem("Reset"))
-        fResetRequest = true;
+        deferBeforeImGuiFrame([this] { reset(); });
 #ifndef NDEBUG
       ImGui::Separator();
       if(ImGui::MenuItem("Quit"))
@@ -592,14 +592,16 @@ void MainWindow::promptShaderName(std::string const &iTitle,
 //------------------------------------------------------------------------
 void MainWindow::resizeShader(Renderable::Size const &iSize, bool iApplyToAll)
 {
-  if(!fManualLayout)
-    setManualLayout(true);
-  fFragmentShaderWindow->resize(iSize);
-  if(iApplyToAll)
-  {
-    for(auto &[_, shader]: fFragmentShaders)
-      shader->setWindowSize(iSize);
-  }
+  deferBeforeImGuiFrame([this, iSize, iApplyToAll]() {
+    if(!fManualLayout)
+      setManualLayout(true);
+    fFragmentShaderWindow->resize(iSize);
+    if(iApplyToAll)
+    {
+      for(auto &[_, shader]: fFragmentShaders)
+        shader->setWindowSize(iSize);
+    }
+  });
 }
 
 //------------------------------------------------------------------------
@@ -1115,11 +1117,9 @@ void MainWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragm
 //------------------------------------------------------------------------
 void MainWindow::beforeFrame()
 {
-  if(fResetRequest)
-  {
-    reset();
-    fResetRequest = false;
-  }
+  auto actions = std::move(fBeforeImGuiFrameActions);
+  for(auto &action: actions)
+    action();
 
   ImGuiWindow::beforeFrame();
 
@@ -1282,13 +1282,31 @@ void MainWindow::setStyle(bool iDarkStyle)
 //------------------------------------------------------------------------
 // MainWindow::setManualLayout
 //------------------------------------------------------------------------
-void MainWindow::setManualLayout(bool iManualLayout)
+void MainWindow::setManualLayout(bool iManualLayout, std::optional<Size> iLeftPaneSize, std::optional<Size> iRightPaneSize)
 {
   fManualLayout = iManualLayout;
-  JSSetManualLayout(iManualLayout);
+  auto leftPaneWidth = iLeftPaneSize ? iLeftPaneSize->width : getSize().width;
+  auto rightPaneWidth = iRightPaneSize ? iRightPaneSize->width : fFragmentShaderWindow->getSize().width;
+  JSSetLayout(iManualLayout, leftPaneWidth, rightPaneWidth);
 }
 
 
+//------------------------------------------------------------------------
+// MainWindow::switchToManualLayout
+//------------------------------------------------------------------------
+void MainWindow::switchToManualLayout()
+{
+  deferBeforeImGuiFrame([this] { setManualLayout(true); });
+}
+
+//------------------------------------------------------------------------
+// MainWindow::switchToAutomaticLayout
+//------------------------------------------------------------------------
+void MainWindow::switchToAutomaticLayout()
+{
+  // when switching to automatic, we use the same size for both panes to make it even split
+  deferBeforeImGuiFrame([this, size = getSize()] { setManualLayout(false, size, size); });
+}
 
 //------------------------------------------------------------------------
 // MainWindow::onClipboardString

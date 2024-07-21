@@ -11,15 +11,13 @@
       display: none;
     }
 
+    body {
+      margin: 8px;
+    }
+
     .canvas-container {
       position: relative;
       border: solid 1px #888888;
-    }
-
-    .canvas-container canvas {
-      margin: 0;
-      padding: 0;
-      display: block;
     }
 
     .canvas-container canvas:focus {
@@ -37,12 +35,56 @@
       width: 0;
       height: 0;
       cursor: nwse-resize;
+      transition: border-bottom-color 0.5s ease;
     }
 
-    #canvases {
+    .canvas-handle:hover {
+      border-bottom-color: rgba(102, 102, 102, 1);
+    }
+
+    .split-pane {
       display: flex;
       flex-wrap: nowrap;
+      width: calc(100vw - 16px);
+      height: calc(100vh - 3em);
+    }
+
+    .pane {
+      flex-grow: 1;
       overflow-x: auto;
+    }
+
+    .pane.manual-layout {
+      flex-grow: 0;
+      overflow-x: clip;
+    }
+
+    .separator {
+      width: 4px;
+      border-left: solid 1px;
+      border-right: solid 1px;
+      cursor: ew-resize;
+      transition: background-color 0.5s ease;
+    }
+
+    .separator:hover {
+      background-color: #888888;
+    }
+
+    .separator.manual-layout {
+      width: 0;
+      padding: 2px;
+      cursor: auto;
+    }
+
+    .separator.manual-layout:hover {
+      background-color: inherit;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
     #canvases {
@@ -52,27 +94,6 @@
 
     #canvases.highlight {
       border: 2px dashed purple;
-    }
-
-    #canvas1 {
-      width: 100%;
-      height: 100%;
-    }
-
-    #canvas1-container {
-      margin-right: 5px;
-      width: calc(50vw - 20px);
-      height: calc(100vh - 3em);
-    }
-
-    #canvas2-container {
-      width: calc(50vw - 20px);
-      height: calc(100vh - 3em);
-    }
-
-    #canvas2 {
-      width: 100%;
-      height: 100%;
     }
 
     #canvases #drop-zone {
@@ -280,12 +301,13 @@
   </div>
 </div>
 
-<div id="canvases">
-  <div id="canvas1-container" class="canvas-container">
+<div id="canvases" class="split-pane">
+  <div id="canvas1-container" class="canvas-container pane" style="width: 50%">
     <div id="canvas1-handle" class="canvas-handle hidden"></div>
     <canvas id="canvas1" oncontextmenu="event.preventDefault()"></canvas>
   </div>
-  <div id="canvas2-container" class="canvas-container">
+  <div class="separator" id="separator"></div>
+  <div id="canvas2-container" class="canvas-container pane" style="width: 50%">
     <div id="canvas2-handle" class="canvas-handle hidden"></div>
     <canvas id="canvas2" oncontextmenu="event.preventDefault()"></canvas>
   </div>
@@ -309,7 +331,7 @@
 <div id="footer"><a href="https://pongasoft.com" target="_blank">pongasoft</a> | <a href="?reset">Reset</a> | <a href="https://github.com/pongasoft/webgpu-shader-toy" target="_blank">v@wgpu-shader-toy_VERSION@</a></div>
 
 <script type='text/javascript'>
-  var Module = {};
+  var Module = {isResizing: false};
 
   // Detect reset: clean storage + reload the page
   {
@@ -388,30 +410,9 @@
         document.body.style.backgroundColor = darkStyle ? "black" : "white";
       };
 
-      // Module.wst_set_manual_layout
-      Module.wst_set_manual_layout = (manualLayout) => {
-        function set_manual_layout(canvasSelector) {
-          const containerSelector = `${canvasSelector}-container`;
-          const handleSelector = `${canvasSelector}-handle`;
-          if(manualLayout) {
-            // show the handle
-            show(handleSelector);
-            Module.glfwMakeCanvasResizable(canvasSelector, containerSelector, handleSelector);
-          } else {
-            // hide the handle
-            hide(handleSelector);
-            Module.glfwMakeCanvasResizable(canvasSelector, containerSelector, null);
-            // re-enable global css (bug #6 in emscripten-glfw)
-            const container = document.querySelector(containerSelector);
-            if(container) {
-              container.style.removeProperty('width');
-              container.style.removeProperty('height');
-            }
-          }
-        }
-
-        set_manual_layout('#canvas1');
-        set_manual_layout('#canvas2');
+      // Module.wst_set_layout
+      Module.wst_set_layout = (manualLayout, leftPaneWidth, rightPaneWidth) => {
+        SplitPaneMgr.setLayout(manualLayout, leftPaneWidth, rightPaneWidth);
       };
 
       // Module.wst_wait_for_continue
@@ -480,6 +481,9 @@
   setTimeout(showHiddenInitially, 1000);
 
   function handleDrop(e) {
+    if(Module.isResizing)
+      return;
+
     var dt = e.dataTransfer;
     var files = dt.files;
 
@@ -513,11 +517,13 @@
     }
 
     function highlight(e) {
-      dropZone.classList.add('highlight');
+      if(!Module.isResizing)
+        dropZone.classList.add('highlight');
     }
 
     function unhighlight(e) {
-      dropZone.classList.remove('highlight');
+      if(!Module.isResizing)
+        dropZone.classList.remove('highlight');
     }
   }
 
@@ -525,6 +531,139 @@
     makeDropZone(document.getElementById('canvases'));
   });
 
+  //------------------------------------------------------------------------
+  // SplitPaneMgr
+  //------------------------------------------------------------------------
+  const SplitPaneMgr = {
+    setLayout: (manualLayout, leftPaneWidth, rightPaneWidth) => {
+      if(manualLayout)
+        SplitPaneMgr.setManualLayout();
+      else
+        SplitPaneMgr.setAutomaticLayout(leftPaneWidth, rightPaneWidth);
+
+      function set_layout(canvasSelector) {
+        const containerSelector = `${canvasSelector}-container`;
+        const handleSelector = `${canvasSelector}-handle`;
+        if(manualLayout) {
+          // show the handle
+          show(handleSelector);
+          addClass(containerSelector, 'manual-layout');
+          addClass('.separator', 'manual-layout');
+          Module.glfwMakeCanvasResizable(canvasSelector, containerSelector, handleSelector);
+        } else {
+          // hide the handle
+          hide(handleSelector);
+          removeClass(containerSelector, 'manual-layout');
+          removeClass('.separator', 'manual-layout');
+          Module.glfwMakeCanvasResizable(canvasSelector, containerSelector, null);
+          const container = document.querySelector(containerSelector);
+          if(container) {
+            container.style.removeProperty('height'); // re-enable global css (bug #6 in emscripten-glfw)
+          }
+        }
+      }
+
+      set_layout('#canvas1');
+      set_layout('#canvas2');
+    },
+
+    // setManualLayout
+    setManualLayout: () => {
+      if(SplitPaneMgr.removeAutomaticLayout)
+        SplitPaneMgr.removeAutomaticLayout();
+    },
+
+    // setAutomaticLayout
+    setAutomaticLayout: (iLeftPaneWidth, iRightPaneWidth) => {
+      const separator = document.getElementById('separator');
+      const leftPane = document.getElementById('canvas1-container');
+      const rightPane = document.getElementById('canvas2-container');
+
+      separator.addEventListener('mousedown', startResize);
+      separator.addEventListener('dblclick', resetResize);
+      window.addEventListener('mouseup', stopResize);
+      window.addEventListener('mousemove', resizePane);
+      window.addEventListener('resize', resizeWindow);
+
+      function computeWidth(element) {
+        const style = getComputedStyle(element);
+        return parseFloat(style.width);
+      }
+
+      function setPanesWidth(leftPaneWidth) {
+        leftPane.style.width = `${leftPaneWidth}px`;
+        rightPane.style.width = `calc(100% - ${leftPaneWidth}px)`;
+      }
+
+      function splitPanesEvenly() {
+        leftPane.style.width = '50%';
+        rightPane.style.width = '50%';
+      }
+
+      if(iLeftPaneWidth === iRightPaneWidth)
+        splitPanesEvenly();
+      else
+        setPanesWidth(iLeftPaneWidth);
+
+      var lastDownX = 0;
+      var leftPaneWidth = computeWidth(leftPane);
+
+      function computeDownX(e) {
+        return e.clientX;
+      }
+
+      function startResize(e) {
+        e.preventDefault();
+        lastDownX = computeDownX(e);
+        leftPaneWidth = computeWidth(leftPane);
+        Module.isResizing = true;
+      }
+
+      function stopResize() {
+        lastDownX = 0;
+        Module.isResizing = false;
+      }
+
+      function resetResize(e) {
+        splitPanesEvenly();
+        leftPaneWidth = computeWidth(leftPane);
+      }
+
+      function resizePane(e) {
+        if (!Module.isResizing)
+          return;
+        let newDownX = computeDownX(e) + 3;
+        let offsetX = lastDownX - newDownX;
+        leftPaneWidth -= offsetX;
+        setPanesWidth(leftPaneWidth);
+        lastDownX = newDownX;
+      }
+
+      let previousWindowWidth = window.innerWidth;
+
+      function resizeWindow(e) {
+        const windowWith = window.innerWidth;
+        if(leftPane.style.width !== '50%') {
+          const previousRatio = leftPaneWidth / previousWindowWidth;
+          leftPaneWidth = previousRatio * windowWith;
+          setPanesWidth(leftPaneWidth);
+        } else {
+          leftPaneWidth = computeWidth(leftPane);
+        }
+
+        previousWindowWidth = windowWith;
+      }
+
+      SplitPaneMgr.removeAutomaticLayout = () => {
+        window.removeEventListener('resize', resizeWindow);
+        window.removeEventListener('mousemove', resizePane);
+        window.removeEventListener('mouseup', stopResize);
+        separator.removeEventListener('dblclick', resetResize);
+        separator.removeEventListener('mousedown', startResize);
+        SplitPaneMgr.removeAutomaticLayout = null;
+      }
+    }
+  };
 </script>
 </body>
 </html>

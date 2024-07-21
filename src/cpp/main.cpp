@@ -38,7 +38,9 @@ static void MainLoopForEmscripten()
 EM_JS(bool, wstDoneWaiting, (), { return Module.wst_done_waiting; })
 
 //! wstWaitForContinue()
-EM_JS(bool, wstWaitForContinue, (), { Module.wst_wait_for_continue(); })
+EM_JS(bool, wstWaitForContinue, (bool iManualLayout, int iLeftPaneSize, int iRightPaneSize), {
+  Module.wst_wait_for_continue(iManualLayout, iLeftPaneSize, iRightPaneSize);
+})
 
 /**
  * Wait loop: wait for the user to click continue to swap emscripten main loop
@@ -107,7 +109,7 @@ int main(int, char **)
                                                    })
       ->show();
 
-    wstWaitForContinue();
+    wstWaitForContinue(state.fManualLayout, state.fMainWindowSize.width, state.fFragmentShaderWindowSize.width);
 
     emscripten_set_main_loop(WaitLoopForEmscripten, 0, true);
   }
