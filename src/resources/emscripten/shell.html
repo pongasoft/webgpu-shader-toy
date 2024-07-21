@@ -480,55 +480,59 @@
 
   setTimeout(showHiddenInitially, 1000);
 
-  function handleDrop(e) {
-    if(Module.isResizing)
-      return;
 
-    var dt = e.dataTransfer;
-    var files = dt.files;
 
-    if (files.length > 0) {
-      Module.wgpuShaderToyLoadFile(files[0]);
+  const DragAndDropMgr = {
+    makeDropZone: (dropZone) => {
+      // Prevent default drag behaviors
+      ["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+      });
+
+      // Highlight drop area when item is dragged over it
+      ["dragenter", "dragover"].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+      });
+
+      ["dragleave", "drop"].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+      });
+
+      // Handle dropped files
+      dropZone.addEventListener("drop", handleDrop, false);
+
+      function handleDrop(e) {
+        if(Module.isResizing)
+          return;
+
+        var dt = e.dataTransfer;
+        var files = dt.files;
+
+        if (files.length > 0) {
+          Module.wgpuShaderToyLoadFile(files[0]);
+        }
+      }
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      function highlight(e) {
+        if(!Module.isResizing)
+          dropZone.classList.add('highlight');
+      }
+
+      function unhighlight(e) {
+        if(!Module.isResizing)
+          dropZone.classList.remove('highlight');
+      }
     }
-  }
-
-  function makeDropZone(dropZone) {
-    // Prevent default drag behaviors
-    ["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
-      dropZone.addEventListener(eventName, preventDefaults, false);
-      document.body.addEventListener(eventName, preventDefaults, false);
-    });
-
-    // Highlight drop area when item is dragged over it
-    ["dragenter", "dragover"].forEach(eventName => {
-      dropZone.addEventListener(eventName, highlight, false);
-    });
-
-    ["dragleave", "drop"].forEach(eventName => {
-      dropZone.addEventListener(eventName, unhighlight, false);
-    });
-
-    // Handle dropped files
-    dropZone.addEventListener("drop", handleDrop, false);
-
-    function preventDefaults(e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    function highlight(e) {
-      if(!Module.isResizing)
-        dropZone.classList.add('highlight');
-    }
-
-    function unhighlight(e) {
-      if(!Module.isResizing)
-        dropZone.classList.remove('highlight');
-    }
-  }
+  };
 
   document.addEventListener("DOMContentLoaded", function() {
-    makeDropZone(document.getElementById('canvases'));
+    DragAndDropMgr.makeDropZone(document.getElementById('canvases'));
   });
 
   //------------------------------------------------------------------------
