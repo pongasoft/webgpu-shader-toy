@@ -19,7 +19,7 @@ class IMGUI_API TextEditor
 public:
 	// ------------- Exposed API ------------- //
 
-  using keyboard_action_handler_t = std::function<void(TextEditor &)>;
+  using keyboard_action_handler_t = std::function<void()>;
 
   TextEditor();
   ~TextEditor();
@@ -88,7 +88,7 @@ public:
 
   void Copy();
   void Cut();
-  inline void OnKeyboardPaste() { mOnKeyboardPasteHandler(*this); }
+  inline void OnKeyboardPaste() { mOnKeyboardPasteHandler(); }
   void Paste();
   void Paste(char const *aClipText);
   void Undo(int aSteps = 1);
@@ -453,7 +453,7 @@ private:
   LanguageDefinitionId mLanguageDefinitionId;
   const LanguageDefinition* mLanguageDefinition = nullptr;
   std::unordered_map<int, std::string> mErrorMarkers{};
-  keyboard_action_handler_t mOnKeyboardPasteHandler{[](TextEditor &aEditor) { aEditor.Paste(); }};
+  keyboard_action_handler_t mOnKeyboardPasteHandler{[this] { Paste(); }};
 
   inline bool IsHorizontalScrollbarVisible() const { return mCurrentSpaceWidth > mContentWidth; }
   inline bool IsVerticalScrollbarVisible() const { return mCurrentSpaceHeight > mContentHeight; }

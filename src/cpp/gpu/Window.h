@@ -68,7 +68,8 @@ public:
   bool isHiDPIAware() const;
   void toggleHiDPIAwareness();
   void requestFullscreen();
-  void makeCanvasResizable(char const *iCanvasResizeSelector, char const *iHandleSelector);
+  void makeCanvasResizable(std::string_view iCanvasResizeSelector,
+                           std::optional<std::string_view> iHandleSelector = std::nullopt);
   void setTitle(std::string const &iTitle);
   void saveScreenshot(std::string const &iFilename, std::string const &iType = "image/png", float iQuality = 0.85);
 

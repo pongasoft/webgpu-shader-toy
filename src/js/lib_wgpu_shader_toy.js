@@ -24,8 +24,6 @@ let wgpu_shader_toy = {
   $WGPU_SHADER_TOY: {
     fNewFileHandler: null, // {handler: <fn(userData, filename, content)>, userData: <ptr>}
     fBeforeUnloadHandler: null, // // {handler: <fn(userData)>, userData: <ptr>}
-    fClipboardStringHandler: null, // // {handler: <fn(userData, requestUserData, string)>, userData: <ptr>}
-
 
     // onNewFile
     onNewFile: (fragmentShaderFile, fragmentShaderContent) => {
@@ -60,17 +58,13 @@ let wgpu_shader_toy = {
   },
 
   // wgpu_shader_toy_install_handlers
-  wgpu_shader_toy_install_handlers: (new_file_handler, before_unload_handler, clipboard_string_handler, user_data) => {
+  wgpu_shader_toy_install_handlers: (new_file_handler, before_unload_handler, user_data) => {
     WGPU_SHADER_TOY.fNewFileHandler = {
       handler: new_file_handler,
       userData: user_data
     };
     WGPU_SHADER_TOY.fBeforeUnloadHandler = {
       handler: before_unload_handler,
-      userData: user_data
-    };
-    WGPU_SHADER_TOY.fClipboardStringHandler = {
-      handler: clipboard_string_handler,
       userData: user_data
     };
     window.addEventListener('beforeunload', function (event) {
@@ -86,7 +80,6 @@ let wgpu_shader_toy = {
   // wgpu_shader_toy_uninstall_handlers
   wgpu_shader_toy_uninstall_handlers: () => {
     delete WGPU_SHADER_TOY.fFragmentShaderFileDialog;
-    delete WGPU_SHADER_TOY.fClipboardStringHandler;
     delete WGPU_SHADER_TOY.fBeforeUnloadHandler;
     delete WGPU_SHADER_TOY.fNewFileHandler;
   },
@@ -115,24 +108,6 @@ let wgpu_shader_toy = {
     if(Module.onAbort) {
       Module.onAbort(message);
     }
-  },
-
-  // wgpu_shader_toy_get_clipboard_string
-  wgpu_shader_toy_get_clipboard_string: (user_data) => {
-    navigator.clipboard.readText()
-      .then(text => {
-        if(WGPU_SHADER_TOY.fClipboardStringHandler) {
-          const string = stringToNewUTF8(text);
-          {{{ makeDynCall('vppp', 'WGPU_SHADER_TOY.fClipboardStringHandler.handler') }}}(WGPU_SHADER_TOY.fClipboardStringHandler.userData, user_data, string);
-          _free(string);
-        }
-      })
-      .catch(err => {
-        GLFW3.onError('GLFW_PLATFORM_ERROR', `Cannot get clipboard string [${err}]`);
-        if(WGPU_SHADER_TOY.fClipboardStringHandler) {
-          {{{ makeDynCall('vppp', 'WGPU_SHADER_TOY.fClipboardStringHandler.handler') }}}(WGPU_SHADER_TOY.fClipboardStringHandler.userData, user_data, null);
-        }
-      })
   },
 
   // wgpu_shader_toy_export_content

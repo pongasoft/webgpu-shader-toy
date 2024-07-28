@@ -423,8 +423,11 @@ void FragmentShaderWindow::onMousePosChange(double xpos, double ypos)
   if(fCurrentFragmentShader && fCurrentFragmentShader->isEnabled())
   {
     auto pos = adjustSize({static_cast<float>(xpos), static_cast<float>(ypos)});
-    fCurrentFragmentShader->fInputs.mouse.x = pos.x;
-    fCurrentFragmentShader->fInputs.mouse.y = pos.y;
+    if(glfwGetWindowAttrib(fWindow, GLFW_HOVERED) == GLFW_TRUE)
+    {
+      fCurrentFragmentShader->fInputs.mouse.x = std::clamp(pos.x, 0.0f, fCurrentFragmentShader->fInputs.size.x);
+      fCurrentFragmentShader->fInputs.mouse.y = std::clamp(pos.y, 0.0f, fCurrentFragmentShader->fInputs.size.y);
+    }
   }
 }
 

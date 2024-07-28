@@ -26,6 +26,7 @@
 #include <optional>
 #include <string>
 #include <map>
+#include <GLFW/emscripten_glfw3.h>
 
 using namespace pongasoft::gpu;
 
@@ -78,7 +79,7 @@ public:
   void onNewFile(char const *iFilename, char const *iContent);
   void maybeNewFragmentShader(std::string const &iTitle, std::string const &iOkButton, Shader const &iShader);
   void saveState();
-  void onClipboardString(void *iRequestUserData, char const *iClipboardString);
+  void onClipboardString(std::string_view iValue);
 
 protected:
   void doRender() override;
@@ -157,12 +158,14 @@ private:
   std::map<std::string, std::shared_ptr<FragmentShader>> fFragmentShaders{};
   std::vector<std::string> fFragmentShaderTabs{};
   std::shared_ptr<FragmentShader>fCurrentFragmentShader{};
-  TextEditor fTextEditor{};
 
   std::vector<std::unique_ptr<gui::IDialog>> fDialogs{};
   std::unique_ptr<gui::IDialog> fCurrentDialog{};
 
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
+
+  std::future<emscripten::glfw3::ClipboardString> fClipboardString{};
+  TextEditor::keyboard_action_handler_t fKeyboardPasteHandler{[this]() { fClipboardString = emscripten::glfw3::GetClipboardString();}};
 };
 
 }

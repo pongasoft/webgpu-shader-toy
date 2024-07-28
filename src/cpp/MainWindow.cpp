@@ -35,16 +35,13 @@ namespace shader_toy {
 extern "C" {
 using OnNewFileHandler = void (*)(MainWindow *iMainWindow, char const *iFilename, char const *iContent);
 using OnBeforeUnloadHandler = void (*)(MainWindow *iMainWindow);
-using OnClipboardStringHandler = void (*)(MainWindow *iMainWindow, void *iRequestUserData, char const *iClipboardString);
 
 void wgpu_shader_toy_install_handlers(OnNewFileHandler iOnNewFileHandler,
                                       OnBeforeUnloadHandler iOnBeforeUnloadHandler,
-                                      OnClipboardStringHandler iOnClipboardStringHandler,
                                       MainWindow *iMainWindow);
 
 void wgpu_shader_toy_uninstall_handlers();
 void wgpu_shader_toy_open_file_dialog();
-void wgpu_shader_toy_get_clipboard_string(void *iUserData);
 void wgpu_shader_toy_export_content(char const *iFilename, char const *iContent);
 
 void wgpu_shader_toy_print_stack_trace(char const *iMessage);
@@ -66,14 +63,6 @@ void OnNewFileCallback(MainWindow *iMainWindow, char const *iFilename, char cons
 void OnBeforeUnload(MainWindow *iMainWindow)
 {
   iMainWindow->saveState();
-}
-
-//------------------------------------------------------------------------
-// callbacks::OnClipboardStringCallback
-//------------------------------------------------------------------------
-void OnClipboardStringCallback(MainWindow *iMainWindow, void *iRequestUserData, char const *iClipboardString)
-{
-  iMainWindow->onClipboardString(iRequestUserData, iClipboardString);
 }
 
 }
@@ -163,7 +152,6 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
 
   wgpu_shader_toy_install_handlers(callbacks::OnNewFileCallback,
                                    callbacks::OnBeforeUnload,
-                                   callbacks::OnClipboardStringCallback,
                                    this);
 }
 
@@ -870,7 +858,7 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
       ImGui::PopStyleColor(hasCompilationError ? 2 : 1);
 
       // [Editor] Render
-      editor.SetOnKeyboardPasteHandler([](TextEditor &iEditor) { wgpu_shader_toy_get_clipboard_string(&iEditor); });
+      editor.SetOnKeyboardPasteHandler(fKeyboardPasteHandler);
       editor.Render("Code", iEditorHasFocus, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar);
 
       ImGui::EndTabItem();
@@ -1137,6 +1125,14 @@ void MainWindow::beforeFrame()
 //    fAspectRatioRequest = std::nullopt;
 //  }
   fFragmentShaderWindow->beforeFrame();
+
+  // handling asynchronous clipboard
+  if(fClipboardString.valid() &&
+     fClipboardString.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+  {
+    onClipboardString(glfwGetClipboardString(fWindow));
+    fClipboardString = {};
+  }
 }
 
 //------------------------------------------------------------------------
@@ -1311,18 +1307,11 @@ void MainWindow::switchToAutomaticLayout()
 //------------------------------------------------------------------------
 // MainWindow::onClipboardString
 //------------------------------------------------------------------------
-void MainWindow::onClipboardString(void *iRequestUserData, char const *iClipboardString)
+void MainWindow::onClipboardString(std::string_view iValue)
 {
   if(fCurrentFragmentShader)
   {
-    auto &editor = fCurrentFragmentShader->edit();
-    if(&editor == iRequestUserData)
-    {
-      if(iClipboardString)
-        editor.Paste(iClipboardString);
-      else
-        editor.Paste();
-    }
+    fCurrentFragmentShader->edit().Paste(iValue.data());
   }
 }
 
