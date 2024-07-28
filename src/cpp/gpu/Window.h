@@ -73,6 +73,8 @@ public:
   void setTitle(std::string const &iTitle);
   void saveScreenshot(std::string const &iFilename, std::string const &iType = "image/png", float iQuality = 0.85);
 
+  inline GLFWwindow *asOpaquePtr() const { return fWindow; }
+
   static double getCurrentTime();
 
 protected:

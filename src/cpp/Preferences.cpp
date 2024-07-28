@@ -82,7 +82,8 @@ std::string Preferences::serialize(State const &iState)
     {"fMainWindowSize", { {"width", iState.fMainWindowSize.width}, {"height", iState.fMainWindowSize.height} } },
     {"fFragmentShaderWindowSize", { {"width", iState.fFragmentShaderWindowSize.width}, {"height", iState.fFragmentShaderWindowSize.height} } },
     {"fDarkStyle", iState.fDarkStyle},
-    {"fManualLayout", iState.fManualLayout},
+    {"fLayoutManual", iState.fLayoutManual},
+    {"fLayoutSwapped", iState.fLayoutSwapped},
     {"fHiDPIAware", iState.fHiDPIAware},
     {"fFontSize", iState.fFontSize},
     {"fLineSpacing", iState.fLineSpacing},
@@ -110,7 +111,8 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
   if(data.is_object())
   {
     state.fDarkStyle = data.value("fDarkStyle", state.fDarkStyle);
-    state.fManualLayout = data.value("fManualLayout", state.fManualLayout);
+    state.fLayoutManual = data.value("fLayoutManual", state.fLayoutManual);
+    state.fLayoutSwapped = data.value("fLayoutSwapped", state.fLayoutSwapped);
     state.fHiDPIAware = data.value("fHiDPIAware", state.fHiDPIAware);
     state.fFontSize = data.value("fFontSize", state.fFontSize);
     state.fLineSpacing = data.value("fLineSpacing", state.fLineSpacing);

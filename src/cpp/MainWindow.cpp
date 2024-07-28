@@ -119,9 +119,7 @@ static void mergeFontAwesome(float iSize)
 //------------------------------------------------------------------------
 // JSSetStyle
 //------------------------------------------------------------------------
-EM_JS(void, JSSetStyle, (bool iDarkStyle), {
-  Module.wst_set_style(iDarkStyle);
-})
+EM_JS(void, JSSetStyle, (bool iDarkStyle), { Module.wst_set_style(iDarkStyle); })
 
 //------------------------------------------------------------------------
 // JSSetLayout
@@ -130,6 +128,14 @@ EM_JS(void, JSSetLayout, (bool iManualLayout, int iLeftPaneWidth, int iRightPane
   Module.wst_set_layout(iManualLayout, iLeftPaneWidth, iRightPaneWidth);
 })
 
+//------------------------------------------------------------------------
+// JSSetWindowOrder
+//------------------------------------------------------------------------
+EM_JS(void, JSSetWindowOrder, (GLFWwindow *iLeftWindow, GLFWwindow *iRightWindow), {
+  Module.wst_set_window_order(iLeftWindow, iRightWindow);}
+)
+
+// wst_set_window_order
 
 //------------------------------------------------------------------------
 // MainWindow::MainWindow
@@ -301,16 +307,19 @@ void MainWindow::renderSettingsMenu()
   }
   if(ImGui::BeginMenu("Layout"))
   {
-    if(ImGui::MenuItem("Manual", nullptr, fManualLayout))
+    if(ImGui::MenuItem("Manual", nullptr, fLayoutManual))
     {
-      if(!fManualLayout)
+      if(!fLayoutManual)
         switchToManualLayout();
     }
-    if(ImGui::MenuItem("Automatic", nullptr, !fManualLayout))
+    if(ImGui::MenuItem("Automatic", nullptr, !fLayoutManual))
     {
-      if(fManualLayout)
+      if(fLayoutManual)
         switchToAutomaticLayout();
     }
+    ImGui::Separator();
+    if(ImGui::MenuItem("Swap"))
+      swapLayout();
     ImGui::EndMenu();
   }
 }
@@ -581,7 +590,7 @@ void MainWindow::promptShaderName(std::string const &iTitle,
 void MainWindow::resizeShader(Renderable::Size const &iSize, bool iApplyToAll)
 {
   deferBeforeImGuiFrame([this, iSize, iApplyToAll]() {
-    if(!fManualLayout)
+    if(!fLayoutManual)
       setManualLayout(true);
     fFragmentShaderWindow->resize(iSize);
     if(iApplyToAll)
@@ -1092,7 +1101,7 @@ std::shared_ptr<FragmentShader> MainWindow::deleteFragmentShader(std::string con
 void MainWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
 {
   fCurrentFragmentShader = std::move(iFragmentShader);
-  if(!fManualLayout)
+  if(!fLayoutManual)
     fCurrentFragmentShader->setWindowSize(fFragmentShaderWindow->getSize());
   fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
   auto title = fmt::printf("WebGPU Shader Toy | %s", fCurrentFragmentShader->getName());
@@ -1193,7 +1202,8 @@ State MainWindow::computeState() const
     .fFragmentShaderWindowSize = fFragmentShaderWindow->getSize(),
     .fDarkStyle = fDarkStyle,
     .fHiDPIAware = fFragmentShaderWindow->isHiDPIAware(),
-    .fManualLayout = fManualLayout,
+    .fLayoutManual = fLayoutManual,
+    .fLayoutSwapped = fLayoutSwapped,
     .fFontSize = fFontSize,
     .fLineSpacing = fLineSpacing,
     .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
@@ -1221,7 +1231,9 @@ void MainWindow::initFromState(State const &iState)
 {
   requestFontSize(iState.fFontSize);
   setStyle(iState.fDarkStyle);
-  setManualLayout(iState.fManualLayout);
+  setManualLayout(iState.fLayoutManual);
+  fLayoutSwapped = iState.fLayoutSwapped;
+  setWindowOrder();
   resize(iState.fMainWindowSize);
   if(fFragmentShaderWindow->isHiDPIAware() != iState.fHiDPIAware)
     fFragmentShaderWindow->toggleHiDPIAwareness();
@@ -1280,7 +1292,7 @@ void MainWindow::setStyle(bool iDarkStyle)
 //------------------------------------------------------------------------
 void MainWindow::setManualLayout(bool iManualLayout, std::optional<Size> iLeftPaneSize, std::optional<Size> iRightPaneSize)
 {
-  fManualLayout = iManualLayout;
+  fLayoutManual = iManualLayout;
   auto leftPaneWidth = iLeftPaneSize ? iLeftPaneSize->width : getSize().width;
   auto rightPaneWidth = iRightPaneSize ? iRightPaneSize->width : fFragmentShaderWindow->getSize().width;
   JSSetLayout(iManualLayout, leftPaneWidth, rightPaneWidth);
@@ -1302,6 +1314,29 @@ void MainWindow::switchToAutomaticLayout()
 {
   // when switching to automatic, we use the same size for both panes to make it even split
   deferBeforeImGuiFrame([this, size = getSize()] { setManualLayout(false, size, size); });
+}
+
+//------------------------------------------------------------------------
+// MainWindow::swapLayout
+//------------------------------------------------------------------------
+void MainWindow::swapLayout()
+{
+  fLayoutSwapped = !fLayoutSwapped;
+  setWindowOrder();
+}
+
+//------------------------------------------------------------------------
+// MainWindow::setWindowOrder
+//------------------------------------------------------------------------
+void MainWindow::setWindowOrder()
+{
+  auto leftWindow = asOpaquePtr();
+  auto rightWindow = fFragmentShaderWindow->asOpaquePtr();
+
+  if(fLayoutSwapped)
+    std::swap(leftWindow, rightWindow);
+
+  deferBeforeImGuiFrame([leftWindow, rightWindow] { JSSetWindowOrder(leftWindow, rightWindow); });
 }
 
 //------------------------------------------------------------------------

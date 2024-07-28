@@ -109,7 +109,7 @@ int main(int, char **)
                                                    })
       ->show();
 
-    wstWaitForContinue(state.fManualLayout, state.fMainWindowSize.width, state.fFragmentShaderWindowSize.width);
+    wstWaitForContinue(state.fLayoutManual, state.fMainWindowSize.width, state.fFragmentShaderWindowSize.width);
 
     emscripten_set_main_loop(WaitLoopForEmscripten, 0, true);
   }

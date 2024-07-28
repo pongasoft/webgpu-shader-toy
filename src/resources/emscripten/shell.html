@@ -60,12 +60,21 @@
       overflow-x: clip;
     }
 
+    .left-pane {
+      order: 0;
+    }
+
     .separator {
       width: 4px;
       border-left: solid 1px;
       border-right: solid 1px;
       cursor: ew-resize;
       transition: background-color 0.5s ease;
+      order: 1;
+    }
+
+    .right-pane {
+      order: 2;
     }
 
     .separator:hover {
@@ -303,12 +312,12 @@
 </div>
 
 <div id="canvases" class="split-pane">
-  <div id="canvas1-container" class="canvas-container pane" style="width: 50%">
+  <div id="canvas1-container" class="canvas-container pane left-pane" style="width: 50%">
     <div id="canvas1-handle" class="canvas-handle hidden"></div>
     <canvas id="canvas1" oncontextmenu="event.preventDefault()"></canvas>
   </div>
   <div class="separator" id="separator"></div>
-  <div id="canvas2-container" class="canvas-container pane" style="width: 50%">
+  <div id="canvas2-container" class="canvas-container pane right-pane" style="width: 50%">
     <div id="canvas2-handle" class="canvas-handle hidden"></div>
     <canvas id="canvas2" oncontextmenu="event.preventDefault()"></canvas>
   </div>
@@ -414,6 +423,11 @@
       // Module.wst_set_layout
       Module.wst_set_layout = (manualLayout, leftPaneWidth, rightPaneWidth) => {
         SplitPaneMgr.setLayout(manualLayout, leftPaneWidth, rightPaneWidth);
+      };
+
+      // Module.wst_set_window_order
+      Module.wst_set_window_order = (leftWindow, rightWindow) => {
+        SplitPaneMgr.setWindowOrder(leftWindow, rightWindow);
       };
 
       // Module.wst_wait_for_continue
@@ -578,11 +592,36 @@
         SplitPaneMgr.removeAutomaticLayout();
     },
 
+    // getContainer
+    getContainer: (w) => {
+      const canvas = Module.glfwGetCanvas(w);
+      return document.querySelector(`#${canvas.id}-container`);
+    },
+
+    // setWindowOrder
+    setWindowOrder: (leftWindow, rightWindow) => {
+      SplitPaneMgr.setPaneOrder(SplitPaneMgr.getContainer(leftWindow), SplitPaneMgr.getContainer(rightWindow));
+    },
+
+    // setPaneOrder
+    setPaneOrder: (leftPane, rightPane) => {
+      leftPane.classList.replace('right-pane', 'left-pane');
+      rightPane.classList.replace('left-pane', 'right-pane');
+    },
+
+    // getLeftPane
+    getLeftPane: () => {
+      return document.querySelector('.left-pane');
+    },
+
+    // getRightPane
+    getRightPane: () => {
+      return document.querySelector('.right-pane');
+    },
+
     // setAutomaticLayout
     setAutomaticLayout: (iLeftPaneWidth, iRightPaneWidth) => {
       const separator = document.getElementById('separator');
-      const leftPane = document.getElementById('canvas1-container');
-      const rightPane = document.getElementById('canvas2-container');
 
       separator.addEventListener('mousedown', startResize);
       separator.addEventListener('dblclick', resetResize);
@@ -596,13 +635,13 @@
       }
 
       function setPanesWidth(leftPaneWidth) {
-        leftPane.style.width = `${leftPaneWidth}px`;
-        rightPane.style.width = `calc(100% - ${leftPaneWidth}px)`;
+        SplitPaneMgr.getLeftPane().style.width = `${leftPaneWidth}px`;
+        SplitPaneMgr.getRightPane().style.width = `calc(100% - ${leftPaneWidth}px)`;
       }
 
       function splitPanesEvenly() {
-        leftPane.style.width = '50%';
-        rightPane.style.width = '50%';
+        SplitPaneMgr.getLeftPane().style.width = '50%';
+        SplitPaneMgr.getRightPane().style.width = '50%';
       }
 
       if(iLeftPaneWidth === iRightPaneWidth)
@@ -611,7 +650,7 @@
         setPanesWidth(iLeftPaneWidth);
 
       var lastDownX = 0;
-      var leftPaneWidth = computeWidth(leftPane);
+      var leftPaneWidth = computeWidth(SplitPaneMgr.getLeftPane());
 
       function computeDownX(e) {
         return e.clientX;
@@ -620,7 +659,7 @@
       function startResize(e) {
         e.preventDefault();
         lastDownX = computeDownX(e);
-        leftPaneWidth = computeWidth(leftPane);
+        leftPaneWidth = computeWidth(SplitPaneMgr.getLeftPane());
         Module.isResizing = true;
       }
 
@@ -631,7 +670,7 @@
 
       function resetResize(e) {
         splitPanesEvenly();
-        leftPaneWidth = computeWidth(leftPane);
+        leftPaneWidth = computeWidth(SplitPaneMgr.getLeftPane());
       }
 
       function resizePane(e) {
@@ -648,12 +687,12 @@
 
       function resizeWindow(e) {
         const windowWith = window.innerWidth;
-        if(leftPane.style.width !== '50%') {
+        if(SplitPaneMgr.getLeftPane().style.width !== '50%') {
           const previousRatio = leftPaneWidth / previousWindowWidth;
           leftPaneWidth = previousRatio * windowWith;
           setPanesWidth(leftPaneWidth);
         } else {
-          leftPaneWidth = computeWidth(leftPane);
+          leftPaneWidth = computeWidth(SplitPaneMgr.getLeftPane());
         }
 
         previousWindowWidth = windowWith;

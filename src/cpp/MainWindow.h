@@ -100,6 +100,8 @@ private:
   void setManualLayout(bool iManualLayout, std::optional<Size> iLeftPaneSize = std::nullopt, std::optional<Size> iRightPaneSize = std::nullopt);
   void switchToManualLayout();
   void switchToAutomaticLayout();
+  void swapLayout();
+  void setWindowOrder();
   State computeState() const;
   void renderDialog();
   void renderMainMenuBar();
@@ -140,7 +142,8 @@ private:
   std::string fLastComputedState;
   double fLastComputedStateTime;
   bool fDarkStyle{true};
-  bool fManualLayout{false};
+  bool fLayoutManual{false};
+  bool fLayoutSwapped{false};
   float fLineSpacing{1.0f};
   float fFontSize{};
   bool fCodeShowWhiteSpace{false};
