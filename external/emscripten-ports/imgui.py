@@ -32,16 +32,18 @@ DISTRIBUTIONS = {
     }
 }
 
-
 # contrib port information (required)
 URL = 'https://github.com/ocornut/imgui'
 DESCRIPTION = f'Dear ImGui ({TAG}): Bloat-free Graphical User interface for C++ with minimal dependencies'
 LICENSE = 'MIT License'
 
 VALID_OPTION_VALUES = {
-    'renderer': {'opengl3', 'wgpu'},
-    'backend': {'sdl2', 'glfw'},
-    'branch': DISTRIBUTIONS.keys()
+    'renderer': ['opengl3', 'wgpu'],
+    'backend': ['sdl2', 'glfw'],
+    'branch': DISTRIBUTIONS.keys(),
+    'disableDemo': ['true', 'false'],
+    'disableImGuiStdLib': ['true', 'false'],
+    'optimizationLevel': ['0', '1', '2', '3', 'g', 's', 'z']  # all -OX possibilities
 }
 
 # key is backend, value is set of possible renderers
@@ -56,6 +58,7 @@ OPTIONS = {
     'branch': 'Which branch to use: master (default) or docking',
     'disableDemo': 'A boolean to disable ImGui demo (enabled by default)',
     'disableImGuiStdLib': 'A boolean to disable misc/cpp/imgui_stdlib.cpp (enabled by default)',
+    'optimizationLevel': f'Optimization level: {VALID_OPTION_VALUES["optimizationLevel"]} (default to 2)',
 }
 
 # user options (from --use-port)
@@ -64,7 +67,8 @@ opts: Dict[str, Union[Optional[str], bool]] = {
     'backend': None,
     'branch': 'master',
     'disableDemo': False,
-    'disableImGuiStdLib': False
+    'disableImGuiStdLib': False,
+    'optimizationLevel': '2'
 }
 
 deps = []
@@ -81,8 +85,9 @@ def get_zip_url():
 
 
 def get_lib_name(settings):
-    return (f'lib_{name}_{get_tag()}-{opts["backend"]}-{opts["renderer"]}' +
+    return (f'lib_{name}_{get_tag()}-{opts["backend"]}-{opts["renderer"]}-O{opts["optimizationLevel"]}' +
             ('-nd' if opts['disableDemo'] else '') +
+            ('-nl' if opts['disableImGuiStdLib'] else '') +
             '.a')
 
 
@@ -115,6 +120,7 @@ def get(ports, settings, shared):
         srcs.append(os.path.join('backends', f'imgui_impl_{opts["renderer"]}.cpp'))
 
         flags = [f'--use-port={value}' for value in build_deps.values()]
+        flags.append(f'-O{opts["optimizationLevel"]}')
         flags.append('-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3')
 
         ports.build_port(source_path, final, name, srcs=srcs, flags=flags)
@@ -148,6 +154,8 @@ def linker_setup(ports, settings):
 def check_option(option, value, error_handler):
     if value not in VALID_OPTION_VALUES[option]:
         error_handler(f'[{option}] can be {list(VALID_OPTION_VALUES[option])}, got [{value}]')
+    if isinstance(opts[option], bool):
+        value = value == 'true'
     return value
 
 
@@ -162,13 +170,8 @@ def handle_options(options, error_handler):
         value = value.lower()
         if option == 'renderer' or option == 'backend':
             opts[option] = check_required_option(option, value, error_handler)
-        elif option == 'branch':
+        else:
             opts[option] = check_option(option, value, error_handler)
-        elif option == 'disableDemo':
-            if value in {'true', 'false'}:
-                opts[option] = value == 'true'
-            else:
-                error_handler(f'{option} is expecting a boolean, got {value}')
 
     if opts['backend'] is None or opts['renderer'] is None:
         error_handler(f'both backend and renderer options must be defined')
@@ -179,8 +182,8 @@ def handle_options(options, error_handler):
     if opts['backend'] == 'glfw':
         deps.append('emscripten-glfw3')
         patch_src_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-        build_deps['emscripten-glfw3'] = os.path.join(patch_src_directory, 'emscripten-glfw3.py')
+        build_deps[
+            'emscripten-glfw3'] = f"{os.path.join(patch_src_directory, 'emscripten-glfw3.py')}:optimizationLevel={opts['optimizationLevel']}"
     else:
         deps.append('sdl2')
         build_deps['sdl2'] = 'sdl2'
-
