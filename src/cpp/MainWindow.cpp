@@ -1101,7 +1101,9 @@ std::shared_ptr<FragmentShader> MainWindow::deleteFragmentShader(std::string con
 void MainWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
 {
   fCurrentFragmentShader = std::move(iFragmentShader);
-  if(!fLayoutManual)
+  if(fLayoutManual)
+    fFragmentShaderWindow->resize(fCurrentFragmentShader->getWindowSize());
+  else
     fCurrentFragmentShader->setWindowSize(fFragmentShaderWindow->getSize());
   fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
   auto title = fmt::printf("WebGPU Shader Toy | %s", fCurrentFragmentShader->getName());
@@ -1231,27 +1233,20 @@ void MainWindow::initFromState(State const &iState)
 {
   requestFontSize(iState.fFontSize);
   setStyle(iState.fDarkStyle);
-  setManualLayout(iState.fLayoutManual);
+
+  // important to do this first as it changes the sizes
   fLayoutSwapped = iState.fLayoutSwapped;
   setWindowOrder();
+  setManualLayout(iState.fLayoutManual);
+
   resize(iState.fMainWindowSize);
+  fFragmentShaderWindow->resize(iState.fFragmentShaderWindowSize);
   if(fFragmentShaderWindow->isHiDPIAware() != iState.fHiDPIAware)
     fFragmentShaderWindow->toggleHiDPIAwareness();
   fLineSpacing = iState.fLineSpacing;
   fCodeShowWhiteSpace = iState.fCodeShowWhiteSpace;
   fScreenshotFormat = image::format::getFormatFromMimeType(iState.fScreenshotMimeType);
   fScreenshotQualityPercent = iState.fScreenshotQualityPercent;
-//  if(fCurrentAspectRatio != iState.fAspectRatio)
-//  {
-//    auto iter = std::find_if(kAspectRatios.begin(), kAspectRatios.end(),
-//                             [ar = iState.fAspectRatio](auto const &p) { return p.first == ar; });
-//    if(iter != kAspectRatios.end())
-//    {
-//      fCurrentAspectRatio = iState.fAspectRatio;
-//      fAspectRatioRequest = iter->second;
-//    }
-//  }
-  fFragmentShaderWindow->resize(iState.fFragmentShaderWindowSize);
   fFragmentShaders.clear();
   fFragmentShaderTabs.clear();
   fCurrentFragmentShader = nullptr;
