@@ -17,18 +17,17 @@
 import os
 from typing import Union, Dict, Optional
 from tools import utils
-import shutil
 
-TAG = '1.90.9'
+TAG = '1.91.0'
 
 DISTRIBUTIONS = {
     'master': {
         # curl -sfL https://github.com/ocornut/imgui/archive/refs/tags/v{TAG}.zip | shasum -a 512
-        'hash': 'ea7df9888a8bea41b13af7ca9b895209583e03d19f06ff444921d8081495ebaf600b35a41e6febae5bf4f7f59004b04860cafe313675afe2e777d8d80027eb06'
+        'hash': '09cdd91537b9e7daf45fc075641940d6358697947ae6da3f16d5b41936352ca1a3598db206509eab6ca8987eb3702c1424214a479f2fec87c67947b015a85502'
     },
     'docking': {
         # curl -sfL https://github.com/ocornut/imgui/archive/refs/tags/v{TAG}-docking.zip | shasum -a 512
-        'hash': '5d64076b62a3d9c0a647190cbcea6f5749ae6b126bab2e99d5df35bc4c997567c141be8a7deaeda26d46067c82c036700ce8d8cce88a5d7e06898e357f9eab12'
+        'hash': '99f5618b163d7b1841c566ebe156d8e596b2932c34316ab3978ff2d4fbe68ad09fce8417faac689434ba87f2d3cfd9324a9e24cf492e6abb9811be0c0e18e5aa'
     }
 }
 
@@ -75,6 +74,7 @@ deps = []
 
 build_deps = {}
 
+port_name = 'imgui'
 
 def get_tag():
     return TAG if opts['branch'] == 'master' else f'{TAG}-{opts["branch"]}'
@@ -85,7 +85,7 @@ def get_zip_url():
 
 
 def get_lib_name(settings):
-    return (f'lib_{name}_{get_tag()}-{opts["backend"]}-{opts["renderer"]}-O{opts["optimizationLevel"]}' +
+    return (f'lib_{port_name}_{get_tag()}-{opts["backend"]}-{opts["renderer"]}-O{opts["optimizationLevel"]}' +
             ('-nd' if opts['disableDemo'] else '') +
             ('-nl' if opts['disableImGuiStdLib'] else '') +
             '.a')
@@ -95,17 +95,11 @@ def get(ports, settings, shared):
     if opts['backend'] is None or opts['renderer'] is None:
         utils.exit_with_error(f'imgui port requires both backend and renderer options to be defined')
 
-    ports.fetch_project(name, get_zip_url(), sha512hash=DISTRIBUTIONS[opts['branch']]['hash'])
+    ports.fetch_project(port_name, get_zip_url(), sha512hash=DISTRIBUTIONS[opts['branch']]['hash'])
 
     def create(final):
-        root_path = os.path.join(ports.get_dir(), name, f'imgui-{get_tag()}')
+        root_path = os.path.join(ports.get_dir(), port_name, f'imgui-{get_tag()}')
         source_path = root_path
-
-        # patching ImGui to use contrib.glfw3 (until ImGui is updated)
-        patch_src_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-        patch_dst_directory = os.path.join(root_path, 'backends')
-        for patch_file in ['imgui_impl_glfw.cpp']:
-            shutil.copy(os.path.join(patch_src_directory, patch_file), patch_dst_directory)
 
         # this port does not install the headers on purpose (see process_args)
         # a) there is no need (simply refer to the unzipped content)
@@ -123,7 +117,7 @@ def get(ports, settings, shared):
         flags.append(f'-O{opts["optimizationLevel"]}')
         flags.append('-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3')
 
-        ports.build_port(source_path, final, name, srcs=srcs, flags=flags)
+        ports.build_port(source_path, final, port_name, srcs=srcs, flags=flags)
 
     lib = shared.cache.get_lib(get_lib_name(settings), create, what='port')
     if os.path.getmtime(lib) < os.path.getmtime(__file__):
@@ -138,7 +132,7 @@ def clear(ports, settings, shared):
 
 def process_args(ports):
     # makes the imgui files accessible directly (ex: #include <imgui.h>)
-    args = ['-I', os.path.join(ports.get_dir(), name, f'imgui-{get_tag()}')]
+    args = ['-I', os.path.join(ports.get_dir(), port_name, f'imgui-{get_tag()}')]
     if opts['branch'] == 'docking':
         args += ['-DIMGUI_ENABLE_DOCKING=1']
     if opts['disableDemo']:
@@ -182,8 +176,8 @@ def handle_options(options, error_handler):
     if opts['backend'] == 'glfw':
         deps.append('emscripten-glfw3')
         patch_src_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-        build_deps[
-            'emscripten-glfw3'] = f"{os.path.join(patch_src_directory, 'emscripten-glfw3.py')}:optimizationLevel={opts['optimizationLevel']}"
+        build_deps['emscripten-glfw3'] = \
+            f"{os.path.join(patch_src_directory, 'emscripten-glfw3.py')}:optimizationLevel={opts['optimizationLevel']}"
     else:
         deps.append('sdl2')
         build_deps['sdl2'] = 'sdl2'

@@ -412,7 +412,7 @@ void MainWindow::renderTimeControls()
   // Previous frame
   ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0);
   {
-    ImGui::PushButtonRepeat(true);
+    ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
     auto button = ImGui::Button(isKeyAlt ? fa::kBackward : fa::kBackwardFast);
     if(ImGui::IsItemDeactivated())
       fCurrentFragmentShader->stopManualTime(getCurrentTime());
@@ -421,7 +421,7 @@ void MainWindow::renderTimeControls()
       if(button || ImGui::IsItemActivated())
         fCurrentFragmentShader->previousFrame(getCurrentTime(), frameCount);
     }
-    ImGui::PopButtonRepeat();
+    ImGui::PopItemFlag();
   }
   ImGui::EndDisabled();
 
@@ -434,7 +434,7 @@ void MainWindow::renderTimeControls()
   ImGui::SameLine();
 
   // Next frame
-  ImGui::PushButtonRepeat(true);
+  ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
   {
     auto button = ImGui::Button(isKeyAlt ? fa::kForward : fa::kForwardFast);
     if(ImGui::IsItemDeactivated())
@@ -445,7 +445,7 @@ void MainWindow::renderTimeControls()
         fCurrentFragmentShader->nextFrame(getCurrentTime(), frameCount);
     }
   }
-  ImGui::PopButtonRepeat();
+  ImGui::PopItemFlag();
 }
 
 //------------------------------------------------------------------------
@@ -498,6 +498,17 @@ void MainWindow::renderControlsSection()
               fCurrentFragmentShader->getStatus(),
               1000.0f / ImGui::GetIO().Framerate,
               ImGui::GetIO().Framerate);
+
+  if(ImGui::Button("Test Dialog"))
+  {
+    newDialog("test")
+      .content([] {
+        static std::string s;
+        ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_None);
+        ImGui::InputText("test_string", &s);
+      })
+      .buttonOk();
+  }
 }
 
 
@@ -1138,11 +1149,9 @@ void MainWindow::beforeFrame()
   fFragmentShaderWindow->beforeFrame();
 
   // handling asynchronous clipboard
-  if(fClipboardString.valid() &&
-     fClipboardString.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+  if(fClipboardString)
   {
-    onClipboardString(glfwGetClipboardString(fWindow));
-    fClipboardString = {};
+    onClipboardString(fClipboardString.fetchValue());
   }
 }
 
@@ -1151,6 +1160,14 @@ void MainWindow::beforeFrame()
 //------------------------------------------------------------------------
 void MainWindow::afterFrame()
 {
+  if(!fClipboardString)
+  {
+    if(ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V))
+    {
+      printf("detected global paste\n");
+      emscripten::glfw3::GetClipboardString();
+    }
+  }
   Renderable::afterFrame();
   auto time = glfwGetTime();
   // check every 10s

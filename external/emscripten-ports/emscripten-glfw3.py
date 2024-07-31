@@ -17,8 +17,8 @@
 import os
 from typing import Union, Dict
 
-TAG = '3.4.0.20240727'
-HASH = 'aa90c76e0d87166c1db13d5219a47af6bd2e690d30e3528d4d8993b45e5f699c4f94ad3f0ca77be096807d68efe3189ffd21985dae072b46c9039060e186a58c'
+TAG = '3.4.0.20240731'
+HASH = '1d348f2a6423def537bc11ba5a67347d23696f623e0155e315711d0e23e9b4e6f623019c24c699b6dd5b727322f7093af804d58fc48488f37888ba17300c3aa8'
 ZIP_URL = f'https://github.com/pongasoft/emscripten-glfw/releases/download/v{TAG}/emscripten-glfw3-{TAG}.zip'
 
 # contrib port information (required)
@@ -48,9 +48,10 @@ opts: Dict[str, Union[str, bool]] = {
     'optimizationLevel': '2'
 }
 
+port_name = 'emscripten-glfw3'
 
 def get_lib_name(settings):
-    return (f'lib_{name}_{TAG}-O{opts["optimizationLevel"]}' +
+    return (f'lib_{port_name}_{TAG}-O{opts["optimizationLevel"]}' +
             ('-nw' if opts['disableWarning'] else '') +
             ('-nj' if opts['disableJoystick'] else '') +
             ('-sw' if opts['disableMultiWindow'] else '') +
@@ -59,13 +60,13 @@ def get_lib_name(settings):
 
 def get(ports, settings, shared):
     # get the port
-    ports.fetch_project(name, ZIP_URL, sha512hash=HASH)
+    ports.fetch_project(port_name, ZIP_URL, sha512hash=HASH)
 
     def create(final):
-        root_path = os.path.join(ports.get_dir(), name)
+        root_path = os.path.join(ports.get_dir(), port_name)
         source_path = os.path.join(root_path, 'src', 'cpp')
         source_include_paths = [os.path.join(root_path, 'external'), os.path.join(root_path, 'include')]
-        target = os.path.join(name, 'GLFW')
+        target = os.path.join(port_name, 'GLFW')
         for source_include_path in source_include_paths:
             ports.install_headers(os.path.join(source_include_path, 'GLFW'), target=target)
 
@@ -80,7 +81,7 @@ def get(ports, settings, shared):
         if opts['disableMultiWindow']:
             flags += ['-DEMSCRIPTEN_GLFW3_DISABLE_MULTI_WINDOW_SUPPORT']
 
-        ports.build_port(source_path, final, name, includes=source_include_paths, flags=flags)
+        ports.build_port(source_path, final, port_name, includes=source_include_paths, flags=flags)
 
     lib = shared.cache.get_lib(get_lib_name(settings), create, what='port')
     if os.path.getmtime(lib) < os.path.getmtime(__file__):
@@ -94,7 +95,7 @@ def clear(ports, settings, shared):
 
 
 def linker_setup(ports, settings):
-    root_path = os.path.join(ports.get_dir(), name)
+    root_path = os.path.join(ports.get_dir(), port_name)
     source_js_path = os.path.join(root_path, 'src', 'js', 'lib_emscripten_glfw3.js')
     settings.JS_LIBRARIES += [source_js_path]
 
@@ -103,7 +104,7 @@ def linker_setup(ports, settings):
 # so that we don't conflict with the builtin GLFW headers that emscripten
 # includes
 def process_args(ports):
-    return ['-isystem', ports.get_include_dir(name), '-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3']
+    return ['-isystem', ports.get_include_dir(port_name), '-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3']
 
 
 def check_option(option, value, error_handler):

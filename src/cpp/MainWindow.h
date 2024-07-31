@@ -167,7 +167,7 @@ private:
 
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
 
-  std::future<emscripten::glfw3::ClipboardString> fClipboardString{};
+  emscripten::glfw3::FutureClipboardString fClipboardString{};
   TextEditor::keyboard_action_handler_t fKeyboardPasteHandler{[this]() { fClipboardString = emscripten::glfw3::GetClipboardString();}};
 };
 
