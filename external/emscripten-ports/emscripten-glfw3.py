@@ -50,6 +50,7 @@ opts: Dict[str, Union[str, bool]] = {
 
 port_name = 'emscripten-glfw3'
 
+
 def get_lib_name(settings):
     return (f'lib_{port_name}_{TAG}-O{opts["optimizationLevel"]}' +
             ('-nw' if opts['disableWarning'] else '') +
