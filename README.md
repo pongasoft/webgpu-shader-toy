@@ -10,7 +10,7 @@ Tool
 
 The tool is free and live [WebGPU Shader Toy](https://pongasoft.github.io/webgpu-shader-toy/)!
 
-<a href="https://pongasoft.github.io/webgpu-shader-toy/"><img width="1393" alt="Screenshot 2024-07-04 at 11 12 06" src="https://github.com/pongasoft/webgpu-shader-toy/assets/357116/168f5e58-dc7e-4b02-8e53-3023151d61f0"></a>
+<a href="https://pongasoft.github.io/webgpu-shader-toy/"><img width="1269" alt="webgpu-shader-toy-v2024 07 29" src="https://github.com/user-attachments/assets/1365457f-d82d-467f-8519-116ce8529e63"></a>
 
 No ads. No Tracking. No server-side component.
 
