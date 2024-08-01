@@ -498,17 +498,6 @@ void MainWindow::renderControlsSection()
               fCurrentFragmentShader->getStatus(),
               1000.0f / ImGui::GetIO().Framerate,
               ImGui::GetIO().Framerate);
-
-  if(ImGui::Button("Test Dialog"))
-  {
-    newDialog("test")
-      .content([] {
-        static std::string s;
-        ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_None);
-        ImGui::InputText("test_string", &s);
-      })
-      .buttonOk();
-  }
 }
 
 
@@ -1160,14 +1149,6 @@ void MainWindow::beforeFrame()
 //------------------------------------------------------------------------
 void MainWindow::afterFrame()
 {
-  if(!fClipboardString)
-  {
-    if(ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V))
-    {
-      printf("detected global paste\n");
-      emscripten::glfw3::GetClipboardString();
-    }
-  }
   Renderable::afterFrame();
   auto time = glfwGetTime();
   // check every 10s
