@@ -116,7 +116,7 @@ def get(ports, settings, shared):
 
         flags = [f'--use-port={value}' for value in build_deps.values()]
         flags.append(f'-O{opts["optimizationLevel"]}')
-        flags.append('-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3')
+        flags.append(f'-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3=34020240817')
 
         ports.build_port(source_path, final, port_name, srcs=srcs, flags=flags)
 
