@@ -17,8 +17,8 @@
 import os
 from typing import Union, Dict
 
-TAG = '3.4.0.20240731'
-HASH = '1d348f2a6423def537bc11ba5a67347d23696f623e0155e315711d0e23e9b4e6f623019c24c699b6dd5b727322f7093af804d58fc48488f37888ba17300c3aa8'
+TAG = '3.4.0.20240817'
+HASH = 'f75e711ec47c5eb04cff7fef5f2ef6788445bb86ed570a884ccb0e839744c3ed38b5f94808d1fac1417f356177e753e4ac8cafed9ad808d24d8fd08d23ca07f0'
 ZIP_URL = f'https://github.com/pongasoft/emscripten-glfw/releases/download/v{TAG}/emscripten-glfw3-{TAG}.zip'
 
 # contrib port information (required)
@@ -104,7 +104,7 @@ def process_args(ports):
     args = [
         '-I', os.path.join(root_path, 'external'),  # <GLFW/glfw3.h>
         '-I', os.path.join(root_path, 'include'),   # <GLFW/emscripten_glfw3.h>
-        '-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3'
+        f'-DEMSCRIPTEN_USE_PORT_CONTRIB_GLFW3={TAG.replace(".", "")}'
     ]
     return args
 

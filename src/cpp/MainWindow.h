@@ -133,6 +133,7 @@ private:
   template<typename State>
   gui::Dialog<State> &newDialog(std::string iTitle, State const &iState);
   gui::DialogNoState &newDialog(std::string iTitle);
+  char const *getShortcutString(char const *iKey, char const *iFormat = "%s + %s");
 
   void deferBeforeImGuiFrame(gui_action_t iAction) { if(iAction) fBeforeImGuiFrameActions.emplace_back(std::move(iAction)); }
 
@@ -167,8 +168,8 @@ private:
 
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
 
-  emscripten::glfw3::FutureClipboardString fClipboardString{};
-  TextEditor::keyboard_action_handler_t fKeyboardPasteHandler{[this]() { fClipboardString = emscripten::glfw3::GetClipboardString();}};
+  // UI
+  ImVec2 fIconButtonSize{};
 };
 
 }

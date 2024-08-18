@@ -26,6 +26,8 @@ constexpr auto kCirclePlay = "\xef\x85\x84";	// U+f144
 constexpr auto kClockRotateLeft = "\xef\x87\x9a";	// U+f1da
 #define ICON_FA_Expand "\xef\x81\xa5"	// U+f065
 constexpr auto kExpand = "\xef\x81\xa5";	// U+f065
+#define ICON_FA_ExpandWide "\xef\x8c\xa0"	// U+f320
+constexpr auto kExpandWide = "\xef\x8c\xa0";	// U+f320
 #define ICON_FA_Forward "\xef\x81\x8e"	// U+f04e
 constexpr auto kForward = "\xef\x81\x8e";	// U+f04e
 #define ICON_FA_ForwardFast "\xef\x81\x90"	// U+f050

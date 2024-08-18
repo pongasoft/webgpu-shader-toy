@@ -43,7 +43,9 @@ void onFrameBufferSizeChange(GLFWwindow *window, int width, int height)
 //------------------------------------------------------------------------
 // Window::Window
 //------------------------------------------------------------------------
-Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) : Renderable(std::move(iGPU))
+Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) :
+  Renderable(std::move(iGPU)),
+  fIsRuntimePlatformApple{emscripten::glfw3::IsRuntimePlatformApple()}
 {
   emscripten::glfw3::SetNextWindowCanvasSelector(iArgs.canvas.selector);
 
@@ -219,9 +221,9 @@ double Window::getCurrentTime()
 //------------------------------------------------------------------------
 // Window::requestFullscreen
 //------------------------------------------------------------------------
-void Window::requestFullscreen()
+void Window::requestFullscreen(bool iResizeCanvas)
 {
-  emscripten::glfw3::RequestFullscreen(fWindow, false, true);
+  emscripten::glfw3::RequestFullscreen(fWindow, false, iResizeCanvas);
 }
 
 //------------------------------------------------------------------------

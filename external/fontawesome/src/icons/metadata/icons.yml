@@ -14,6 +14,7 @@ backward:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Backward
   search:
     terms:
@@ -43,6 +44,7 @@ backward-fast:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Backward Fast
   search:
     terms:
@@ -77,6 +79,7 @@ bars:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Bars
   search:
     terms:
@@ -117,6 +120,7 @@ camera:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Camera
   search:
     terms:
@@ -144,6 +148,7 @@ camera-polaroid:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Camera Polaroid
   search:
     terms:
@@ -177,6 +182,7 @@ circle-pause:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Circle Pause
   search:
     terms:
@@ -205,6 +211,7 @@ circle-play:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Circle Play
   search:
     terms:
@@ -235,6 +242,7 @@ clock-rotate-left:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Clock Rotate Left
   search:
     terms:
@@ -262,6 +270,7 @@ expand:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Expand
   search:
     terms:
@@ -280,6 +289,37 @@ expand:
     - solid
   unicode: f065
   voted: false
+expand-wide:
+  aliases:
+    unicodes:
+      secondary:
+        - 10f320
+  changes:
+    - 5.0.0
+    - 6.0.0-beta1
+    - 6.2.0
+    - 6.3.0
+    - 6.4.0
+    - 6.5.0
+    - 6.6.0
+  label: Expand Wide
+  search:
+    terms:
+      -   maximize
+      -   resize
+      -   scale
+      -  arrows
+      -  bigger
+      -  enlarge
+      -  fullscreen
+      -  resize
+      -  size
+      - expand
+      - viewfinder
+  styles:
+    - solid
+  unicode: f320
+  voted: false
 forward:
   aliases:
     unicodes:
@@ -295,6 +335,7 @@ forward:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Forward
   search:
     terms:
@@ -326,6 +367,7 @@ forward-fast:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Forward Fast
   search:
     terms:
@@ -356,6 +398,7 @@ hammer:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Hammer
   search:
     terms:
@@ -390,6 +433,7 @@ power-off:
     - 6.3.0
     - 6.4.0
     - 6.5.0
+    - 6.6.0
   label: Power Off
   search:
     terms:

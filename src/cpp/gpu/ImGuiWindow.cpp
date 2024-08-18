@@ -18,6 +18,7 @@
 
 #include <backends/imgui_impl_wgpu.h>
 #include <backends/imgui_impl_glfw.h>
+#include <GLFW/emscripten_glfw3.h>
 #include "ImGuiWindow.h"
 
 namespace pongasoft::gpu {
@@ -41,6 +42,11 @@ ImGuiWindow::ImGuiWindow(std::shared_ptr<GPU> iGPU, Args const &iArgs) :
   init_info.RenderTargetFormat = static_cast<WGPUTextureFormat>(fPreferredFormat);
   ImGui_ImplWGPU_Init(&init_info);
 
+  ImGuiIO& io = ImGui::GetIO();
+  io.ConfigMacOSXBehaviors = fIsRuntimePlatformApple;
+
+  // essentially disable repeat on Meta + Key
+  emscripten::glfw3::SetSuperPlusKeyTimeouts(10, 10);
 }
 
 //------------------------------------------------------------------------

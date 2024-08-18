@@ -67,7 +67,7 @@ public:
   void setAspectRatio(AspectRatio const &iAspectRatio);
   bool isHiDPIAware() const;
   void toggleHiDPIAwareness();
-  void requestFullscreen();
+  void requestFullscreen(bool iResizeCanvas);
   void makeCanvasResizable(std::string_view iCanvasResizeSelector,
                            std::optional<std::string_view> iHandleSelector = std::nullopt);
   void setTitle(std::string const &iTitle);
@@ -85,6 +85,7 @@ private:
 
 protected:
   GLFWwindow *fWindow{};
+  bool fIsRuntimePlatformApple;
 
 private:
   std::optional<Size> fNewFrameBufferSize{};

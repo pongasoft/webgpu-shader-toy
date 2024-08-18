@@ -401,7 +401,7 @@ void MainWindow::renderMainMenuBar()
 void MainWindow::renderTimeControls()
 {
   // Reset time
-  if(ImGui::Button(fa::kClockRotateLeft))
+  if(ImGui::Button(fa::kClockRotateLeft, fIconButtonSize))
     fCurrentFragmentShader->setStartTime(getCurrentTime());
 
   ImGui::SameLine();
@@ -413,7 +413,7 @@ void MainWindow::renderTimeControls()
   ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0);
   {
     ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
-    auto button = ImGui::Button(isKeyAlt ? fa::kBackward : fa::kBackwardFast);
+    auto button = ImGui::Button(isKeyAlt ? fa::kBackward : fa::kBackwardFast, fIconButtonSize);
     if(ImGui::IsItemDeactivated())
       fCurrentFragmentShader->stopManualTime(getCurrentTime());
     else
@@ -428,7 +428,7 @@ void MainWindow::renderTimeControls()
   ImGui::SameLine();
 
   // Play / Pause
-  if(ImGui::Button(fCurrentFragmentShader->isRunning() ? fa::kCirclePause : fa::kCirclePlay))
+  if(ImGui::Button(fCurrentFragmentShader->isRunning() ? fa::kCirclePause : fa::kCirclePlay, fIconButtonSize))
     fCurrentFragmentShader->toggleRunning(getCurrentTime());
 
   ImGui::SameLine();
@@ -436,7 +436,7 @@ void MainWindow::renderTimeControls()
   // Next frame
   ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
   {
-    auto button = ImGui::Button(isKeyAlt ? fa::kForward : fa::kForwardFast);
+    auto button = ImGui::Button(isKeyAlt ? fa::kForward : fa::kForwardFast, fIconButtonSize);
     if(ImGui::IsItemDeactivated())
       fCurrentFragmentShader->stopManualTime(getCurrentTime());
     else
@@ -463,23 +463,25 @@ void MainWindow::renderControlsSection()
 
     ImGui::SameLine();
 
+    auto const isKeyAlt = gui::WstGui::IsKeyAlt();
+
     // Screenshot
-    if(gui::WstGui::IsKeyAlt())
+    if(isKeyAlt)
     {
-      if(ImGui::Button(fa::kCamera))
+      if(ImGui::Button(fa::kCamera, fIconButtonSize))
         promptSaveCurrentFragmentShaderScreenshot();
     }
     else
     {
-      if(ImGui::Button(fa::kCameraPolaroid))
+      if(ImGui::Button(fa::kCameraPolaroid, fIconButtonSize))
         saveCurrentFragmentShaderScreenshot(fCurrentFragmentShader->getName());
     }
 
     ImGui::SameLine();
 
     // Fullscreen
-    if(ImGui::Button(fa::kExpand))
-      fFragmentShaderWindow->requestFullscreen();
+    if(ImGui::Button(isKeyAlt ? fa::kExpand : fa::kExpandWide, fIconButtonSize))
+      fFragmentShaderWindow->requestFullscreen(!isKeyAlt);
   }
   ImGui::EndDisabled();
 
@@ -489,7 +491,7 @@ void MainWindow::renderControlsSection()
 
   ImGui::SameLine();
 
-  if(ImGui::Button(fa::kPowerOff))
+  if(ImGui::Button(fa::kPowerOff, fIconButtonSize))
     fCurrentFragmentShader->toggleEnabled();
 
   ImGui::SameLine();
@@ -759,7 +761,7 @@ void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewCo
     // -- Code ------
     ImGui::SeparatorText("Shader");
 
-    if(ImGui::MenuItem(ICON_FA_Hammer " Compile", "Ctrl + SPACE", false, iEdited))
+    if(ImGui::MenuItem(ICON_FA_Hammer " Compile", getShortcutString("D"), false, iEdited))
       compile(iNewCode);
     if(ImGui::MenuItem("Rename"))
       promptRenameCurrentShader();
@@ -771,19 +773,12 @@ void MainWindow::renderShaderMenu(TextEditor &iEditor, std::string const &iNewCo
     // -- Edit ------
     ImGui::SeparatorText("Edit");
 
-    if(ImGui::MenuItem("Copy", "Ctrl + C"))
-      iEditor.Copy();
-    if(ImGui::MenuItem("Cut", "Ctrl + X"))
-      iEditor.Cut();
-    if(ImGui::MenuItem("Paste", "Ctrl + V"))
-      iEditor.OnKeyboardPaste();
-    ImGui::Separator();
-    if(ImGui::MenuItem("Undo", "Ctrl + Z"))
+    if(ImGui::MenuItem("Undo", getShortcutString("Z")))
       iEditor.Undo();
-    if(ImGui::MenuItem("Redo", "Shift + Ctrl + Z"))
+    if(ImGui::MenuItem("Redo", getShortcutString("Z", "Shift + %s + %s")))
       iEditor.Redo();
     ImGui::Separator();
-    if(ImGui::MenuItem("Select All", "Shift + Ctrl + A"))
+    if(ImGui::MenuItem("Select All", getShortcutString("A", "Shift + %s + %s")))
       iEditor.SelectAll();
 
     // -- Frame ------
@@ -819,7 +814,7 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
     auto edited = newCode != fCurrentFragmentShader->getCode();
 
     // [Keyboard shortcut]
-    if(iEditorHasFocus && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Space))
+    if(iEditorHasFocus && ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_D))
     {
       if(edited)
         compile(newCode);
@@ -867,7 +862,6 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
       ImGui::PopStyleColor(hasCompilationError ? 2 : 1);
 
       // [Editor] Render
-      editor.SetOnKeyboardPasteHandler(fKeyboardPasteHandler);
       editor.Render("Code", iEditorHasFocus, {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar);
 
       ImGui::EndTabItem();
@@ -915,6 +909,8 @@ void MainWindow::renderDialog()
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
+  fIconButtonSize = {ImGui::CalcTextSize(fa::kCameraPolaroid).x + 2 * ImGui::GetStyle().ItemInnerSpacing.x, 0};
+
   renderMainMenuBar();
 
   bool isDialogOpen = hasDialog();
@@ -1136,12 +1132,6 @@ void MainWindow::beforeFrame()
 //    fAspectRatioRequest = std::nullopt;
 //  }
   fFragmentShaderWindow->beforeFrame();
-
-  // handling asynchronous clipboard
-  if(fClipboardString)
-  {
-    onClipboardString(fClipboardString.fetchValue());
-  }
 }
 
 //------------------------------------------------------------------------
@@ -1409,20 +1399,21 @@ void MainWindow::help() const
     {ICON_FA_CirclePause " / " ICON_FA_CirclePlay, {"Pause/Play time/frame"}},
     {fa::kForwardFast, {"Steps forward in time (+12 frames) | Hold to repeat"}},
     {fa::kCameraPolaroid, {"Take an instant screenshot"}},
-    {fa::kExpand, {"Enter fullscreen (ESC to exit)"}},
+    {fa::kExpandWide, {"Enter fullscreen (widescreen) (ESC to exit)"}},
+    {fa::kPowerOff, {"Disable/Enable shader rendering"}},
   };
 
   static const help_t kAltIcons = {
     {fa::kBackward, {"Steps backward in time (-1 frames) | Hold to repeat"}},
     {fa::kForward, {"Steps forward in time (+1 frame) | Hold to repeat"}},
     {fa::kCamera, {"Open the menu to take a screenshot (choose format)"}},
-    {fa::kPowerOff, {"Disable/Enable shader rendering"}},
+    {fa::kExpand, {"Enter fullscreen (ESC to exit)"}},
   };
 
   // for the time being we support only Windows shortcuts because the Command key does not work properly in
   // browsers
   static const help_t kShortcuts = {
-    {"Ctrl + SPACE", {"Compile the shader"}},
+    {"Ctrl + D", {"Compile the shader"}},
     {"Ctrl + C", {"Copy selection"}},
     {"Ctrl + X", {"Cut selection / Cut Line (no selection)"}},
     {"Ctrl + V", {"Paste"}},
@@ -1431,9 +1422,26 @@ void MainWindow::help() const
     {"Ctrl + Shift + A", {"Select All"}},
     {"Ctrl + [ or ]", {"Indentation change"}},
     {"Ctrl + /", {"Toggle line comment"}},
-    {"Home or End", {"Beginning or End of line"}},
     {"Ctrl + A", {"Beginning of line"}},
     {"Ctrl + E", {"End of line"}},
+    {"Home or End", {"Beginning or End of line"}},
+    {"<Nav. Key>", {"Arrows, Home, End, PgUp, PgDn: move cursor"}},
+    {"Shift + <Nav. Key>", {"Select text"}},
+  };
+
+  static const help_t kAppleShortcuts = {
+    {"Cmd + D", {"Compile the shader"}},
+    {"Cmd + C", {"Copy selection"}},
+    {"Cmd + X", {"Cut selection / Cut Line (no selection)"}},
+    {"Cmd + V", {"Paste"}},
+    {"Cmd + Z", {"Undo"}},
+    {"Cmd + Shift + Z", {"Redo"}},
+    {"Cmd + Shift + A", {"Select All"}},
+    {"Cmd + [ or ]", {"Indentation change"}},
+    {"Cmd + /", {"Toggle line comment"}},
+    {"Cmd|Ctrl + A", {"Beginning of line"}},
+    {"Cmd|Ctrl + E", {"End of line"}},
+    {"Home or End", {"Beginning or End of line"}},
     {"<Nav. Key>", {"Arrows, Home, End, PgUp, PgDn: move cursor"}},
     {"Shift + <Nav. Key>", {"Select text"}},
   };
@@ -1446,7 +1454,8 @@ void MainWindow::help() const
                           "  time:  f32,",
                           "  frame: i32,",
                           "};",
-                          "@group(0) @binding(0) var<uniform> inputs: ShaderToyInputs;"
+                          "@group(0) @binding(0)",
+                          "var<uniform> inputs: ShaderToyInputs;"
                         }},
     {"inputs.size.xy", {"size of the viewport (in pixels)"}},
     {"inputs.size.zw", {"scale ((1.0,1.0) for low res)"}},
@@ -1482,9 +1491,19 @@ void MainWindow::help() const
 
   renderHelp(kIcons, "Icons", "Icons");
   renderHelp(kAltIcons, "Alternative Icons (Hold Alt Key)", "Icons");
-  renderHelp(kShortcuts, "Keyboard Shortcuts", "Shortcuts");
+  renderHelp(fIsRuntimePlatformApple ? kAppleShortcuts : kShortcuts, "Editor Keyboard Shortcuts", "Shortcuts");
   renderHelp(kShaderInputs, "Shader Inputs", "Inputs");
 
+}
+
+//------------------------------------------------------------------------
+// MainWindow::getShortcutString
+//------------------------------------------------------------------------
+char const *MainWindow::getShortcutString(char const *iKey, char const *iFormat)
+{
+  static char kShortcut[256]{};
+  snprintf(kShortcut, 256, iFormat, fIsRuntimePlatformApple ? "Cmd" : "Ctrl", iKey);
+  return kShortcut;
 }
 
 //------------------------------------------------------------------------

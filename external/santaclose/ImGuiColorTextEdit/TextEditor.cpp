@@ -258,10 +258,6 @@ void TextEditor::Paste()
   if(mReadOnly)
     return;
 
-  auto clipboard = ImGui::GetClipboardText();
-  if(!clipboard)
-    return;
-
   Paste(ImGui::GetClipboardText());
 }
 
@@ -2031,23 +2027,20 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
   {
     if(ImGui::IsWindowHovered())
       ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
-    //ImGui::CaptureKeyboardFromApp(true);
 
-    ImGuiIO &io = ImGui::GetIO();
-    auto alt = io.KeyAlt;
-    auto ctrl = io.KeyCtrl;
-    auto shift = io.KeyShift;
+    // YP Note: ImGui automatically swaps Ctrl and Super so no need to handle it!
+    ImGuiIO& io = ImGui::GetIO();
+    const auto alt = io.KeyAlt;
+    const auto ctrl = io.KeyCtrl;
+    const auto shift = io.KeyShift;
+    const auto super = io.KeySuper;
 
-    // In a web browser context, using Super is not working well on macOS, so using Windows no matter what
-    constexpr auto isOSX = false;
-    constexpr auto super = false;
-
-    auto isShortcut = (isOSX ? (super && !ctrl) : (ctrl && !super)) && !alt && !shift;
-    auto isShiftShortcut = (isOSX ? (super && !ctrl) : (ctrl && !super)) && shift && !alt;
-    auto isWordmoveKey = isOSX ? alt : ctrl;
-    auto isAltOnly = alt && !ctrl && !shift && !super;
-    auto isCtrlOnly = ctrl && !alt && !shift && !super;
-    auto isShiftOnly = shift && !alt && !ctrl && !super;
+    const auto isShortcut = (ctrl && !super) && !alt && !shift;
+    const auto isShiftShortcut = (ctrl && !super) && shift && !alt;
+    const auto isWordmoveKey = ctrl;
+    const auto isAltOnly = alt && !ctrl && !shift && !super;
+    const auto isCtrlOnly = ctrl && !alt && !shift && !super;
+    const auto isShiftOnly = shift && !alt && !ctrl && !super;
 
     io.WantCaptureKeyboard = true;
     io.WantTextInput = true;
@@ -2064,9 +2057,9 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
       MoveUp(1, shift);
     else if(!alt && !ctrl && !super && ImGui::IsKeyPressed(ImGuiKey_DownArrow))
       MoveDown(1, shift);
-    else if((isOSX ? !ctrl : !alt) && !super && ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
+    else if(!alt && !super && ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
       MoveLeft(shift, isWordmoveKey);
-    else if((isOSX ? !ctrl : !alt) && !super && ImGui::IsKeyPressed(ImGuiKey_RightArrow))
+    else if(!alt && !super && ImGui::IsKeyPressed(ImGuiKey_RightArrow))
       MoveRight(shift, isWordmoveKey);
     else if(!alt && !ctrl && !super && ImGui::IsKeyPressed(ImGuiKey_PageUp))
       MoveUp(mVisibleLineCount - 2, shift);
@@ -2098,21 +2091,15 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
       ToggleLineComment();
     else if(!alt && !ctrl && !shift && !super && ImGui::IsKeyPressed(ImGuiKey_Insert))
       mOverwrite ^= true;
-    else if(isCtrlOnly && ImGui::IsKeyPressed(ImGuiKey_Insert))
-      Copy();
-    else if(isCtrlOnly && ImGui::IsKeyPressed(ImGuiKey_A))
+    else if(!alt && !shift && (super || ctrl) && ImGui::IsKeyPressed(ImGuiKey_A))
       MoveHome(false);
-    else if(isCtrlOnly && ImGui::IsKeyPressed(ImGuiKey_E))
+    else if(!alt && !shift && (super || ctrl) && ImGui::IsKeyPressed(ImGuiKey_E))
       MoveEnd(false);
     else if(isShortcut && ImGui::IsKeyPressed(ImGuiKey_C))
       Copy();
-    else if(!mReadOnly && isShiftOnly && ImGui::IsKeyPressed(ImGuiKey_Insert))
-      OnKeyboardPaste();
     else if(!mReadOnly && isShortcut && ImGui::IsKeyPressed(ImGuiKey_V))
-      OnKeyboardPaste();
+      Paste();
     else if(isShortcut && ImGui::IsKeyPressed(ImGuiKey_X))
-      Cut();
-    else if(isShiftOnly && ImGui::IsKeyPressed(ImGuiKey_Delete))
       Cut();
     else if(isShiftShortcut && ImGui::IsKeyPressed(ImGuiKey_A))
       SelectAll();
