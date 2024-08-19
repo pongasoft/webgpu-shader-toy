@@ -109,6 +109,12 @@ int main(int, char **)
                                                    })
       ->show();
 
+#ifndef NDEBUG
+    emscripten::glfw3::AddBrowserKeyCallback([](GLFWwindow* window, int key, int scancode, int action, int mods) {
+      return mods == 0 && action == GLFW_PRESS && key == GLFW_KEY_F12;
+    });
+#endif
+
     wstWaitForContinue(state.fLayoutManual, state.fMainWindowSize.width, state.fFragmentShaderWindowSize.width);
 
     emscripten_set_main_loop(WaitLoopForEmscripten, 0, true);

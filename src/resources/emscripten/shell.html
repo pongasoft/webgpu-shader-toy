@@ -297,7 +297,7 @@
         <div class="info">
           <p>WebGPU Shader Toy is a free tool developed by pongasoft for experimenting with WebGPU fragment shaders and the <a href="https://www.w3.org/TR/WGSL/">WebGPU Shading Language</a> (WGSL).</p>
           <p>This tool has no tracking, ads or server-side component: it is running 100% in your browser. It uses <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">localStorage</a> to store information across browser sessions. </p>
-          <p>If you are having issues, try to <a href="?reset">reset</a>. You can provide feedback or report issues on <a href="https://github.com/pongasoft/webgpu-shader-toy">GitHub</a>.</p>
+          <p>If you are having issues, try to <a href="#" onclick="return reset();">reset</a>. You can provide feedback or report issues on <a href="https://github.com/pongasoft/webgpu-shader-toy">GitHub</a>.</p>
           <p>This project originated from my interest in learning about WebGPU. It also served as a platform for developing a more comprehensive application for my library: <a href="https://github.com/pongasoft/emscripten-glfw">emscripten-glfw</a>.</p>
           <p>This tool is using <a href="https://emscripten.org/">emscripten</a> (web assembly) for the compiler, <a href="https://github.com/ocornut/imgui">ImGui</a> and GLFW for the GUI (<a href="https://github.com/pongasoft/emscripten-glfw">emscripten-glfw</a> for the backend and WebGPU for the renderer.)</p>
           <p>It has been inspired by the popular project <a href="https://www.shadertoy.com/">Shadertoy</a>.</p>
@@ -333,27 +333,21 @@
     <li>An unexpected problem has happened. Please check the console for more details.</li>
     <li>Message (if any): <span class="message"></span></li>
     <li>You can try to <a href="">reload</a> the tool.</li>
-    <li>If it doesn't work, you can try to <a href="?reset">reset</a> the tool.</li>
+    <li>If it doesn't work, you can try to <a href="#" onclick="return reset();">reset</a> the tool.</li>
     <li>You can <a href="https://github.com/pongasoft/webgpu-shader-toy/issues" target="_blank">report</a> this problem.</li>
   </ul>
 </div>
 
-<div id="footer"><a href="https://pongasoft.com" target="_blank">pongasoft</a> | <a href="?reset">Reset</a> | <a href="https://github.com/pongasoft/webgpu-shader-toy" target="_blank">v@wgpu-shader-toy_VERSION@</a></div>
+<div id="footer"><a href="https://pongasoft.com" target="_blank">pongasoft</a> | <a href="https://github.com/pongasoft/webgpu-shader-toy" target="_blank">v@wgpu-shader-toy_VERSION@</a></div>
 
 <script type='text/javascript'>
   var Module = {isResizing: false};
 
-  // Detect reset: clean storage + reload the page
-  {
-    let urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has("reset")) {
-      localStorage.removeItem('shader_toy::State');
-      Module.resetRequested = true;
-      urlParams.delete("reset");
-      let newUrl = window.location.pathname + (urlParams.size > 0 ? ('?' + urlParams.toString()) : '');
-      window.history.replaceState({}, '', newUrl);
-      location.reload();
-    }
+  function reset() {
+    localStorage.removeItem('shader_toy::State');
+    Module.resetRequested = true;
+    location.reload(true);
+    return false;
   }
 
   function addClass(cssSelector, c) {
