@@ -23,6 +23,7 @@
 #include "gui/Dialog.h"
 #include "Preferences.h"
 #include "FragmentShaderWindow.h"
+#include "utils/UndoManager.h"
 #include <optional>
 #include <string>
 #include <map>
@@ -51,6 +52,24 @@ constexpr Format kAll[] = {kPNG, kJPG, kWEBP};
 Format getFormatFromMimeType(std::string const &iMimeType);
 
 }
+
+class MainWindow;
+
+template<typename R>
+class MainWindowAction : public pongasoft::utils::ExecutableAction<R>
+{
+public:
+  void initTarget(MainWindow *iMainWindow) { fMainWindow = iMainWindow; }
+
+protected:
+  MainWindow *fMainWindow;
+};
+
+template<typename T>
+concept IsMainWindowAction = requires {
+  typename T::result_t;
+  requires std::is_base_of_v<MainWindowAction<typename T::result_t>, T>;
+};
 
 class MainWindow : public ImGuiWindow
 {
@@ -81,6 +100,11 @@ public:
   void saveState();
   void onClipboardString(std::string_view iValue);
 
+  State computeState() const;
+
+  void addFragmentShaderAction(std::unique_ptr<FragmentShader> iFragmentShader, int iPosition = -1);
+  std::pair<std::shared_ptr<FragmentShader>, int> deleteFragmentShaderAction(std::string const &iName);
+
 protected:
   void doRender() override;
 
@@ -88,8 +112,12 @@ private:
   using gui_action_t = std::function<void()>;
 
 private:
+
+  template<IsMainWindowAction T, class... Args >
+  typename T::result_t executeAction(Args&&... args);
+
   void onNewFragmentShader(Shader const &iShader);
-  void onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
+  void onNewFragmentShader(std::unique_ptr<FragmentShader> iFragmentShader);
   std::shared_ptr<FragmentShader> deleteFragmentShader(std::string const &iName);
   void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
   void reset();
@@ -102,7 +130,6 @@ private:
   void switchToAutomaticLayout();
   void swapLayout();
   void setWindowOrder();
-  State computeState() const;
   void renderDialog();
   void renderMainMenuBar();
   void renderShaderMenu(TextEditor &iEditor, std::string const &iNewCode, bool iEdited);
@@ -110,6 +137,7 @@ private:
   void renderControlsSection();
   void renderTimeControls();
   void renderShaderSection(bool iEditorHasFocus);
+  void renderHistory();
   void compile(std::string const &iNewCode);
   void promptNewEmtpyShader();
   void promptRenameCurrentShader();
@@ -167,6 +195,8 @@ private:
   std::unique_ptr<gui::IDialog> fCurrentDialog{};
 
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
+
+  pongasoft::utils::UndoManager fUndoManager{};
 
   // UI
   ImVec2 fIconButtonSize{};

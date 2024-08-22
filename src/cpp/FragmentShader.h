@@ -172,6 +172,12 @@ public:
     fState = State::NotCompiled{};
   }
 
+  std::unique_ptr<FragmentShader> clone() const {
+    auto res = std::make_unique<FragmentShader>(*this);
+    res->fState = State::NotCompiled{};
+    return res;
+  }
+
   friend class FragmentShaderWindow;
 
 private:

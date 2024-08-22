@@ -27,6 +27,8 @@
 #include "Errors.h"
 #include "utils/DataManager.h"
 #include <iostream>
+#include <ranges>
+#include <utility>
 #include <emscripten.h>
 #include <version.h>
 
@@ -153,8 +155,10 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
 {
   initFromState(iMainWindowArgs.state);
 
+  fUndoManager.disable();
   setFontSize(iMainWindowArgs.state.fFontSize);
   fSetFontSizeRequest = std::nullopt;
+  fUndoManager.enable();
 
   wgpu_shader_toy_install_handlers(callbacks::OnNewFileCallback,
                                    callbacks::OnBeforeUnload,
@@ -370,6 +374,12 @@ void MainWindow::renderMainMenuBar()
         // defined later...
         ImGui::EndMenu();
       }
+    }
+
+    if(ImGui::BeginMenu("History"))
+    {
+      renderHistory();
+      ImGui::EndMenu();
     }
 
     if(ImGui::BeginMenu("Examples"))
@@ -692,12 +702,12 @@ void MainWindow::promptExportProject()
 //------------------------------------------------------------------------
 void MainWindow::renameShader(std::string const &iOldName, std::string const &iNewName)
 {
-  auto oldShader = deleteFragmentShader(iOldName);
-  if(oldShader)
-  {
-    oldShader->setName(iNewName);
-    onNewFragmentShader(std::move(oldShader));
-  }
+//  auto oldShader = deleteFragmentShader(iOldName);
+//  if(oldShader)
+//  {
+//    oldShader->setName(iNewName);
+//    onNewFragmentShader(std::move(oldShader));
+//  }
 }
 
 //------------------------------------------------------------------------
@@ -1017,20 +1027,6 @@ void MainWindow::doRender()
 //------------------------------------------------------------------------
 // MainWindow::onNewFragmentShader
 //------------------------------------------------------------------------
-void MainWindow::onNewFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
-{
-  setCurrentFragmentShader(std::move(iFragmentShader));
-  fFragmentShaders[fCurrentFragmentShader->getName()] = fCurrentFragmentShader;
-  if(std::ranges::find(fFragmentShaderTabs, fCurrentFragmentShader->getName()) == fFragmentShaderTabs.end())
-  {
-    fFragmentShaderTabs.emplace_back(fCurrentFragmentShader->getName());
-  }
-  fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();
-}
-
-//------------------------------------------------------------------------
-// MainWindow::onNewFragmentShader
-//------------------------------------------------------------------------
 void MainWindow::onNewFragmentShader(Shader const &iShader)
 {
   auto shader = iShader;
@@ -1038,7 +1034,7 @@ void MainWindow::onNewFragmentShader(Shader const &iShader)
     shader.fWindowSize = fFragmentShaders[iShader.fName]->getWindowSize();
   else
     shader.fWindowSize = fFragmentShaderWindow->getSize();
-  onNewFragmentShader(std::make_shared<FragmentShader>(shader));
+  onNewFragmentShader(std::make_unique<FragmentShader>(shader));
 }
 
 
@@ -1058,38 +1054,6 @@ void MainWindow::maybeNewFragmentShader(std::string const &iTitle, std::string c
   else
     onNewFragmentShader(iShader);
 }
-
-//------------------------------------------------------------------------
-// MainWindow::deleteFragmentShader
-//------------------------------------------------------------------------
-std::shared_ptr<FragmentShader> MainWindow::deleteFragmentShader(std::string const &iName)
-{
-  fFragmentShaderTabs.erase(std::remove(fFragmentShaderTabs.begin(), fFragmentShaderTabs.end(), iName),
-                            fFragmentShaderTabs.end());
-  std::shared_ptr<FragmentShader> oldShader{};
-  auto iter = fFragmentShaders.find(iName);
-  if(iter != fFragmentShaders.end())
-  {
-    oldShader = iter->second;
-    fFragmentShaders.erase(iter);
-  }
-  if(!fFragmentShaders.empty())
-  {
-    if(!fCurrentFragmentShader || fCurrentFragmentShader->getName() != iName)
-    {
-      setCurrentFragmentShader(fFragmentShaders[fFragmentShaderTabs[0]]);
-    }
-  }
-  else
-  {
-    fCurrentFragmentShader = nullptr;
-    setTitle("WebGPU Shader Toy");
-    fFragmentShaderWindow->setTitle("WebGPU Shader Toy");
-  }
-
-  return oldShader;
-}
-
 
 //------------------------------------------------------------------------
 // MainWindow::setCurrentFragmentShader
@@ -1219,6 +1183,7 @@ State MainWindow::computeState() const
 //------------------------------------------------------------------------
 void MainWindow::initFromState(State const &iState)
 {
+  fUndoManager.disable();
   requestFontSize(iState.fFontSize);
   setStyle(iState.fDarkStyle);
 
@@ -1253,6 +1218,7 @@ void MainWindow::initFromState(State const &iState)
       }
     }
   }
+  fUndoManager.enable();
 }
 
 //------------------------------------------------------------------------
@@ -1504,6 +1470,87 @@ char const *MainWindow::getShortcutString(char const *iKey, char const *iFormat)
   static char kShortcut[256]{};
   snprintf(kShortcut, 256, iFormat, fIsRuntimePlatformApple ? "Cmd" : "Ctrl", iKey);
   return kShortcut;
+}
+
+namespace impl {
+//------------------------------------------------------------------------
+// impl::RenderUndoAction
+//------------------------------------------------------------------------
+bool RenderUndoAction(pongasoft::utils::Action const *iAction, bool iSelected)
+{
+  bool res = false;
+
+  ImGui::PushID(iAction);
+  if(ImGui::Selectable(iAction->fDescription.c_str(), iSelected))
+    res = true;
+  ImGui::PopID();
+
+//  if(ReGui::ShowQuickView())
+//  {
+//    if(auto c = dynamic_cast<const CompositeAction *>(iAction))
+//    {
+//      ReGui::ToolTip([c] { RenderUndoAction(c); });
+//    }
+//    else
+//    {
+//      ReGui::ToolTip([] { ImGui::TextUnformatted("No details"); });
+//    }
+//  }
+
+
+  return res;
+}
+
+}
+
+//------------------------------------------------------------------------
+// MainWindow::renderHistory
+//------------------------------------------------------------------------
+void MainWindow::renderHistory()
+{
+  if(ImGui::MenuItem("Undo", nullptr, nullptr, fUndoManager.getLastUndoAction() != nullptr))
+    deferBeforeImGuiFrame([mgr = &fUndoManager] { mgr->undoLastAction(); });
+  if(ImGui::MenuItem("Redo", nullptr, nullptr, fUndoManager.getLastRedoAction() != nullptr))
+    deferBeforeImGuiFrame([mgr = &fUndoManager] { mgr->redoLastAction(); });
+  ImGui::SeparatorText("History");
+  auto const &undoHistory = fUndoManager.getUndoHistory();
+  auto const &redoHistory = fUndoManager.getRedoHistory();
+  if(redoHistory.empty() && undoHistory.empty())
+  {
+    ImGui::TextUnformatted("<empty>");
+  }
+  else
+  {
+    pongasoft::utils::Action *undoAction = nullptr;
+    pongasoft::utils::Action *redoAction = nullptr;
+    if(!redoHistory.empty())
+    {
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+      for(const auto &i : redoHistory)
+      {
+        auto action = i.get();
+        if(impl::RenderUndoAction(action, false))
+          redoAction = action;
+      }
+      ImGui::PopStyleVar();
+    }
+    if(!undoHistory.empty())
+    {
+      auto currentUndoAction = fUndoManager.getLastUndoAction();
+      for(const auto &i : std::ranges::reverse_view(undoHistory))
+      {
+        auto action = i.get();
+        if(impl::RenderUndoAction(action, currentUndoAction == action))
+          undoAction = action;
+      }
+    }
+    if(ImGui::Selectable("<empty>"))
+      deferBeforeImGuiFrame([mgr = &fUndoManager] { mgr->undoAll(); });
+    if(undoAction)
+      deferBeforeImGuiFrame([mgr = &fUndoManager, undoAction] { mgr->undoUntil(undoAction); });
+    if(redoAction)
+      deferBeforeImGuiFrame([mgr = &fUndoManager, redoAction] { mgr->redoUntil(redoAction); });
+  }
 }
 
 //------------------------------------------------------------------------

@@ -29,6 +29,7 @@ set(wgpu_shader_toy_sources
     src/cpp/Errors.h
     src/cpp/MainWindow.h
     src/cpp/MainWindow.cpp
+    src/cpp/MainWindowActions.cpp
     src/cpp/Preferences.h
     src/cpp/Preferences.cpp
     src/cpp/State.h
@@ -51,8 +52,10 @@ set(wgpu_shader_toy_sources
 
     src/cpp/utils/DataManager.h
     src/cpp/utils/DataManager.cpp
-    src/cpp/utils/Storage.h
     src/cpp/utils/JSStorage.cpp
+    src/cpp/utils/Storage.h
+    src/cpp/utils/UndoManager.h
+    src/cpp/utils/UndoManager.cpp
 
     external/santaclose/ImGuiColorTextEdit/TextEditor.cpp
 )
