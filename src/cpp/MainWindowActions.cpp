@@ -100,7 +100,18 @@ std::shared_ptr<FragmentShader> MainWindow::addFragmentShaderAction(std::unique_
 //------------------------------------------------------------------------
 void MainWindow::onNewFragmentShader(std::unique_ptr<FragmentShader> iFragmentShader)
 {
-  executeAction<AddFragmentShaderAction>(std::move(iFragmentShader), -1);
+  auto existingShader = findFragmentShaderByName(iFragmentShader->getName());
+  if(existingShader)
+  {
+    fUndoManager.beginTx(fmt::printf("Replace Shader %s", iFragmentShader->getName()));
+    auto position = removeFragmentShader(existingShader->getName());
+    executeAction<AddFragmentShaderAction>(std::move(iFragmentShader), position);
+    fUndoManager.commitTx();
+  }
+  else
+  {
+    executeAction<AddFragmentShaderAction>(std::move(iFragmentShader), -1);
+  }
 }
 
 //------------------------------------------------------------------------
