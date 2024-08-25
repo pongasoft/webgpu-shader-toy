@@ -102,8 +102,9 @@ public:
 
   State computeState() const;
 
-  void addFragmentShaderAction(std::unique_ptr<FragmentShader> iFragmentShader, int iPosition = -1);
-  std::pair<std::shared_ptr<FragmentShader>, int> deleteFragmentShaderAction(std::string const &iName);
+  std::shared_ptr<FragmentShader> addFragmentShaderAction(std::unique_ptr<FragmentShader> iFragmentShader, int iPosition = -1);
+  std::pair<std::shared_ptr<FragmentShader>, int> removeFragmentShaderAction(std::string const &iName);
+  void renameShaderAction(std::string const &iOldName, std::string const &iNewName);
 
 protected:
   void doRender() override;
@@ -118,7 +119,7 @@ private:
 
   void onNewFragmentShader(Shader const &iShader);
   void onNewFragmentShader(std::unique_ptr<FragmentShader> iFragmentShader);
-  std::shared_ptr<FragmentShader> deleteFragmentShader(std::string const &iName);
+  int removeFragmentShader(std::string const &iName);
   void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
   void reset();
   void initFromState(State const &iState);
@@ -165,6 +166,8 @@ private:
 
   void deferBeforeImGuiFrame(gui_action_t iAction) { if(iAction) fBeforeImGuiFrameActions.emplace_back(std::move(iAction)); }
 
+  std::shared_ptr<FragmentShader> findFragmentShaderByName(std::string const &iName) const;
+
 private:
   std::shared_ptr<Preferences> fPreferences;
   State fDefaultState;
@@ -187,8 +190,7 @@ private:
 
   std::vector<gui_action_t> fBeforeImGuiFrameActions{};
 
-  std::map<std::string, std::shared_ptr<FragmentShader>> fFragmentShaders{};
-  std::vector<std::string> fFragmentShaderTabs{};
+  std::vector<std::shared_ptr<FragmentShader>> fFragmentShaders{};
   std::shared_ptr<FragmentShader>fCurrentFragmentShader{};
 
   std::vector<std::unique_ptr<gui::IDialog>> fDialogs{};

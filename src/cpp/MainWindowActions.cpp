@@ -18,6 +18,7 @@
 
 #include "MainWindow.h"
 #include "fmt.h"
+#include "Errors.h"
 
 namespace shader_toy {
 
@@ -38,47 +39,60 @@ typename T::result_t MainWindow::executeAction(Args &&... args)
 //------------------------------------------------------------------------
 // AddFragmentShaderAction
 //------------------------------------------------------------------------
-class AddFragmentShaderAction : public MainWindowAction<void>
+template<typename R>
+class AddOrRemoveFragmentShaderAction : public MainWindowAction<R>
+{
+protected:
+  void add()
+  {
+    fName = this->fMainWindow->addFragmentShaderAction(std::move(fFragmentShaderToAdd), fPosition)->getName();
+  }
+
+  int remove()
+  {
+    auto [oldShader, position] = this->fMainWindow->removeFragmentShaderAction(fName);
+    fFragmentShaderToAdd = oldShader->clone();
+    fPosition = position;
+    return fPosition;
+  }
+
+protected:
+  std::unique_ptr<FragmentShader> fFragmentShaderToAdd{};
+  std::string fName{};
+  int fPosition{-1};
+};
+
+
+//------------------------------------------------------------------------
+// AddFragmentShaderAction
+//------------------------------------------------------------------------
+class AddFragmentShaderAction : public AddOrRemoveFragmentShaderAction<void>
 {
 public:
   void init(std::unique_ptr<FragmentShader> iFragmentShader, int iPosition)
   {
-    fFragmentShader = std::move(iFragmentShader);
+    fFragmentShaderToAdd = std::move(iFragmentShader);
     fPosition = iPosition;
-    fDescription = fmt::printf("Add Shader %s", fFragmentShader->getName());
+    fDescription = fmt::printf("Add Shader %s", fFragmentShaderToAdd->getName());
   }
 
-  result_t execute() override
-  {
-    fMainWindow->addFragmentShaderAction(fFragmentShader->clone(), fPosition);
-  }
-
-  void undo() override
-  {
-    auto [_, position] = fMainWindow->deleteFragmentShaderAction(fFragmentShader->getName());
-    fPosition = position;
-  }
-
-private:
-  std::unique_ptr<FragmentShader> fFragmentShader{};
-  int fPosition{-1};
+  result_t execute() override { return add(); }
+  void undo() override { remove(); }
 };
 
 //------------------------------------------------------------------------
 // MainWindow::addFragmentShaderAction
 //------------------------------------------------------------------------
-void MainWindow::addFragmentShaderAction(std::unique_ptr<FragmentShader> iFragmentShader, int iPosition)
+std::shared_ptr<FragmentShader> MainWindow::addFragmentShaderAction(std::unique_ptr<FragmentShader> iFragmentShader, int iPosition)
 {
+  WST_INTERNAL_ASSERT(iFragmentShader != nullptr);
   setCurrentFragmentShader(std::move(iFragmentShader));
-  fFragmentShaders[fCurrentFragmentShader->getName()] = fCurrentFragmentShader;
-  if(std::ranges::find(fFragmentShaderTabs, fCurrentFragmentShader->getName()) == fFragmentShaderTabs.end())
-  {
-    if(iPosition >= 0 && iPosition <= fFragmentShaderTabs.size())
-      fFragmentShaderTabs.insert(fFragmentShaderTabs.begin() + iPosition, fCurrentFragmentShader->getName());
-    else
-      fFragmentShaderTabs.emplace_back(fCurrentFragmentShader->getName());
-  }
+  if(iPosition >= 0 && iPosition <= fFragmentShaders.size())
+    fFragmentShaders.insert(fFragmentShaders.begin() + iPosition, fCurrentFragmentShader);
+  else
+    fFragmentShaders.emplace_back(fCurrentFragmentShader);
   fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();
+  return fCurrentFragmentShader;
 }
 
 //------------------------------------------------------------------------
@@ -90,63 +104,35 @@ void MainWindow::onNewFragmentShader(std::unique_ptr<FragmentShader> iFragmentSh
 }
 
 //------------------------------------------------------------------------
-// DeleteFragmentShaderAction
+// RemoveFragmentShaderAction
 //------------------------------------------------------------------------
-class DeleteFragmentShaderAction : public MainWindowAction<std::shared_ptr<FragmentShader>>
+class RemoveFragmentShaderAction : public AddOrRemoveFragmentShaderAction<int>
 {
 public:
   void init(std::string iName)
   {
     fName = std::move(iName);
-    fDescription = fmt::printf("Delete Shader %s", fName);
+    fDescription = fmt::printf("Remove Shader %s", fName);
   }
 
-  result_t execute() override
-  {
-    auto [oldShader, position] = fMainWindow->deleteFragmentShaderAction(fName);
-    if(oldShader)
-      fFragmentShader = oldShader->clone();
-    fPosition = position;
-    return oldShader;
-  }
-
-  void undo() override
-  {
-    if(fFragmentShader)
-      fMainWindow->addFragmentShaderAction(fFragmentShader->clone(), fPosition);
-  }
-
-private:
-  std::string fName{};
-  std::unique_ptr<FragmentShader> fFragmentShader{};
-  int fPosition{-1};
+  result_t execute() override { return remove(); }
+  void undo() override { add(); }
 };
 
 //------------------------------------------------------------------------
-// MainWindow::deleteFragmentShaderAction
+// MainWindow::removeFragmentShaderAction
 //------------------------------------------------------------------------
-std::pair<std::shared_ptr<FragmentShader>, int> MainWindow::deleteFragmentShaderAction(std::string const &iName)
+std::pair<std::shared_ptr<FragmentShader>, int> MainWindow::removeFragmentShaderAction(std::string const &iName)
 {
-  auto position = -1;
-  auto iterTab = std::find(fFragmentShaderTabs.begin(), fFragmentShaderTabs.end(), iName);
-  if(iterTab != fFragmentShaderTabs.end())
-  {
-    position = std::distance(fFragmentShaderTabs.begin(), iterTab);
-    fFragmentShaderTabs.erase(iterTab);
-  }
-  std::shared_ptr<FragmentShader> oldShader{};
-  auto iter = fFragmentShaders.find(iName);
-  if(iter != fFragmentShaders.end())
-  {
-    oldShader = iter->second;
-    fFragmentShaders.erase(iter);
-  }
+  auto shader = findFragmentShaderByName(iName);
+  WST_INTERNAL_ASSERT(shader != nullptr);
+  auto iter = std::find(fFragmentShaders.begin(), fFragmentShaders.end(), shader);
+  auto position = std::distance(fFragmentShaders.begin(), iter);
+  fFragmentShaders.erase(iter);
   if(!fFragmentShaders.empty())
   {
     if(!fCurrentFragmentShader || fCurrentFragmentShader->getName() != iName)
-    {
-      setCurrentFragmentShader(fFragmentShaders[fFragmentShaderTabs[0]]);
-    }
+      setCurrentFragmentShader(fFragmentShaders[0]);
   }
   else
   {
@@ -155,15 +141,72 @@ std::pair<std::shared_ptr<FragmentShader>, int> MainWindow::deleteFragmentShader
     fFragmentShaderWindow->setTitle("WebGPU Shader Toy");
   }
 
-  return {oldShader, position};
+  return {shader, position};
 }
 
 //------------------------------------------------------------------------
-// MainWindow::deleteFragmentShader
+// MainWindow::removeFragmentShader
 //------------------------------------------------------------------------
-std::shared_ptr<FragmentShader> MainWindow::deleteFragmentShader(std::string const &iName)
+int MainWindow::removeFragmentShader(std::string const &iName)
 {
-  return executeAction<DeleteFragmentShaderAction>(iName);
+  return executeAction<RemoveFragmentShaderAction>(iName);
+}
+
+//------------------------------------------------------------------------
+// MainWindow::RenameFragmentShaderAction
+//------------------------------------------------------------------------
+class RenameFragmentShaderAction : public MainWindowAction<void>
+{
+public:
+  void init(std::string iOldName, std::string iNewName)
+  {
+    fOldName = std::move(iOldName);
+    fNewName = std::move(iNewName);
+    fDescription = fmt::printf("Rename Shader %s -> %s", fOldName, fNewName);
+  }
+
+  result_t execute() override
+  {
+    fMainWindow->renameShaderAction(fOldName, fNewName);
+  }
+
+  void undo() override
+  {
+    fMainWindow->renameShaderAction(fNewName, fOldName);
+  }
+
+protected:
+  std::string fOldName{};
+  std::string fNewName{};
+};
+
+//------------------------------------------------------------------------
+// MainWindow::renameShader
+//------------------------------------------------------------------------
+void MainWindow::renameShader(std::string const &iOldName, std::string const &iNewName)
+{
+  auto existingShader = findFragmentShaderByName(iNewName);
+  if(existingShader)
+  {
+    fUndoManager.beginTx(fmt::printf("Rename Shader %s -> %s", iOldName, iNewName));
+    removeFragmentShader(iNewName);
+    executeAction<RenameFragmentShaderAction>(iOldName, iNewName);
+    fUndoManager.commitTx();
+  }
+  else
+  {
+    executeAction<RenameFragmentShaderAction>(iOldName, iNewName);
+  }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::renameShaderAction
+//------------------------------------------------------------------------
+void MainWindow::renameShaderAction(std::string const &iOldName, std::string const &iNewName)
+{
+  auto shader = findFragmentShaderByName(iOldName);
+  WST_INTERNAL_ASSERT(shader != nullptr);
+  shader->setName(iNewName);
 }
 
 }

@@ -166,6 +166,20 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
 }
 
 //------------------------------------------------------------------------
+// MainWindow::findFragmentShaderByName
+//------------------------------------------------------------------------
+std::shared_ptr<FragmentShader> MainWindow::findFragmentShaderByName(std::string const &iName) const
+{
+  auto it = std::find_if(fFragmentShaders.begin(),
+                         fFragmentShaders.end(),
+                         [&iName](auto &f) { return f->getName() == iName; });
+  if(it != fFragmentShaders.end())
+    return *it;
+  else
+    return nullptr;
+}
+
+//------------------------------------------------------------------------
 // MainWindow::setFontSize
 //------------------------------------------------------------------------
 void MainWindow::setFontSize(float iFontSize)
@@ -556,11 +570,11 @@ void MainWindow::promptRenameCurrentShader()
 //------------------------------------------------------------------------
 void MainWindow::promptDuplicateShader(std::string const &iShaderName)
 {
-  if(fFragmentShaders.contains(iShaderName))
+  if(auto shader = findFragmentShaderByName(iShaderName); shader)
   {
     maybeNewFragmentShader(fmt::printf("Duplicate %s", iShaderName),
                            "Duplicate",
-                           {"", fFragmentShaders[iShaderName]->getCode()});
+                           {"", shader->getCode()});
   }
 }
 
@@ -578,7 +592,7 @@ void MainWindow::promptShaderName(std::string const &iTitle,
       auto &newShaderName = iDialog.state();
       iDialog.initKeyboardFocusHere();
       ImGui::InputText("###name", &newShaderName);
-      if(fFragmentShaders.contains(newShaderName) && fFragmentShaders[newShaderName] != shader)
+      if(auto oldShader = findFragmentShaderByName(newShaderName); oldShader && oldShader != shader)
       {
         ImGui::SeparatorText("!!! Warning !!!");
         ImGui::Text("Duplicate name detected.");
@@ -607,7 +621,7 @@ void MainWindow::resizeShader(Renderable::Size const &iSize, bool iApplyToAll)
     fFragmentShaderWindow->resize(iSize);
     if(iApplyToAll)
     {
-      for(auto &[_, shader]: fFragmentShaders)
+      for(auto &shader: fFragmentShaders)
         shader->setWindowSize(iSize);
     }
   });
@@ -695,19 +709,6 @@ void MainWindow::promptExportProject()
     }, true)
     .buttonCancel()
     ;
-}
-
-//------------------------------------------------------------------------
-// MainWindow::renameShader
-//------------------------------------------------------------------------
-void MainWindow::renameShader(std::string const &iOldName, std::string const &iNewName)
-{
-//  auto oldShader = deleteFragmentShader(iOldName);
-//  if(oldShader)
-//  {
-//    oldShader->setName(iNewName);
-//    onNewFragmentShader(std::move(oldShader));
-//  }
 }
 
 //------------------------------------------------------------------------
@@ -937,18 +938,19 @@ void MainWindow::doRender()
     // [TabBar] One tab per shader
     if(ImGui::BeginTabBar("Fragment Shaders"))
     {
-      if(!fFragmentShaderTabs.empty())
+      if(!fFragmentShaders.empty())
       {
-        std::string selectedFragmentShader = fFragmentShaderTabs[0];
-        std::optional<std::string> fragmentShaderToDelete{};
-        for(auto &fragmentShaderName: fFragmentShaderTabs)
+        auto selectedFragmentShader = fFragmentShaders[0];
+        std::shared_ptr<FragmentShader> fragmentShaderToRemove{};
+        for(auto &shader: fFragmentShaders)
         {
+          auto const &fragmentShaderName = shader->getName();
           bool open = true;
           auto flags = ImGuiTabItemFlags_None;
           if(fCurrentFragmentShaderNameRequest && *fCurrentFragmentShaderNameRequest == fragmentShaderName)
           {
             flags = ImGuiTabItemFlags_SetSelected;
-            selectedFragmentShader = fragmentShaderName;
+            selectedFragmentShader = shader;
           }
           if(ImGui::BeginTabItem(fragmentShaderName.c_str(), &open, flags))
           {
@@ -962,20 +964,20 @@ void MainWindow::doRender()
               ImGui::EndPopup();
             }
             if(!fCurrentFragmentShaderNameRequest)
-              selectedFragmentShader = fragmentShaderName;
+              selectedFragmentShader = shader;
             ImGui::EndTabItem();
           }
           if(!open)
-            fragmentShaderToDelete = fragmentShaderName;
+            fragmentShaderToRemove = shader;
         }
         fCurrentFragmentShaderNameRequest = std::nullopt;
-        if(fragmentShaderToDelete)
-          deleteFragmentShader(*fragmentShaderToDelete);
+        if(fragmentShaderToRemove)
+          removeFragmentShader(fragmentShaderToRemove->getName());
         else
         {
           WST_INTERNAL_ASSERT(fCurrentFragmentShader != nullptr);
-          if(fCurrentFragmentShader->getName() != selectedFragmentShader)
-            setCurrentFragmentShader(fFragmentShaders[selectedFragmentShader]);
+          if(fCurrentFragmentShader != selectedFragmentShader)
+            setCurrentFragmentShader(selectedFragmentShader);
         }
       }
       // + to add a new shader (from file)
@@ -1030,8 +1032,8 @@ void MainWindow::doRender()
 void MainWindow::onNewFragmentShader(Shader const &iShader)
 {
   auto shader = iShader;
-  if(fFragmentShaders.contains(iShader.fName))
-    shader.fWindowSize = fFragmentShaders[iShader.fName]->getWindowSize();
+  if(auto fs = findFragmentShaderByName(iShader.fName); fs)
+    shader.fWindowSize = fs->getWindowSize();
   else
     shader.fWindowSize = fFragmentShaderWindow->getSize();
   onNewFragmentShader(std::make_unique<FragmentShader>(shader));
@@ -1043,7 +1045,7 @@ void MainWindow::onNewFragmentShader(Shader const &iShader)
 //------------------------------------------------------------------------
 void MainWindow::maybeNewFragmentShader(std::string const &iTitle, std::string const &iOkButton, Shader const &iShader)
 {
-  if(iShader.fName.empty() || fFragmentShaders.contains(iShader.fName))
+  if(iShader.fName.empty() || findFragmentShaderByName(iShader.fName))
   {
     promptShaderName(iTitle, iOkButton, iShader.fName,
                      [shader = iShader, this] (std::string const &iShaderName) mutable {
@@ -1169,10 +1171,9 @@ State MainWindow::computeState() const
                       : std::nullopt
   };
 
-  for(auto &shaderName: fFragmentShaderTabs)
+  for(auto const &shader: fFragmentShaders)
   {
-    auto const &shader = fFragmentShaders.at(shaderName);
-    state.fShaders.emplace_back(Shader{.fName = shaderName, .fCode = shader->getCode(), .fWindowSize = shader->getWindowSize()});
+    state.fShaders.emplace_back(Shader{.fName = shader->getName(), .fCode = shader->getCode(), .fWindowSize = shader->getWindowSize()});
   }
 
   return state;
@@ -1201,16 +1202,14 @@ void MainWindow::initFromState(State const &iState)
   fScreenshotFormat = image::format::getFormatFromMimeType(iState.fScreenshotMimeType);
   fScreenshotQualityPercent = iState.fScreenshotQualityPercent;
   fFragmentShaders.clear();
-  fFragmentShaderTabs.clear();
   fCurrentFragmentShader = nullptr;
 
   for(auto &shader: iState.fShaders)
   {
     auto fragmentShader = std::make_shared<FragmentShader>(shader);
-    if(!fFragmentShaders.contains(shader.fName))
+    if(findFragmentShaderByName(shader.fName) == nullptr)
     {
-      fFragmentShaders[shader.fName] = fragmentShader;
-      fFragmentShaderTabs.emplace_back(shader.fName);
+      fFragmentShaders.emplace_back(fragmentShader);
       if(iState.fCurrentShader && iState.fCurrentShader.value() == shader.fName)
       {
         setCurrentFragmentShader(fragmentShader);
