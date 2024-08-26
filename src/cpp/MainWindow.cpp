@@ -1138,6 +1138,7 @@ void MainWindow::render()
 void MainWindow::reset()
 {
   initFromState(fDefaultState);
+  fUndoManager.clear();
 }
 
 //------------------------------------------------------------------------
@@ -1173,7 +1174,12 @@ State MainWindow::computeState() const
 
   for(auto const &shader: fFragmentShaders)
   {
-    state.fShaders.emplace_back(Shader{.fName = shader->getName(), .fCode = shader->getCode(), .fWindowSize = shader->getWindowSize()});
+    state.fShaders.emplace_back(Shader{
+      .fName = shader->getName(),
+      .fCode = shader->getCode(),
+      .fEditedCode = shader->getEditedCode(),
+      .fWindowSize = shader->getWindowSize()}
+    );
   }
 
   return state;

@@ -73,6 +73,8 @@ std::string Preferences::serialize(State const &iState)
       {"fCode", shader.fCode},
       {"fWindowSize", { {"width", shader.fWindowSize.width}, {"height", shader.fWindowSize.height} } },
     };
+    if(shader.fEditedCode)
+      s["fEditedCode"] = shader.fEditedCode.value();
     shaders.emplace_back(s);
   }
 
@@ -132,12 +134,20 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
         {
           if(shader.is_object())
           {
-            Shader s{};
-            // TODO: this will throw exception if format is not right...
-            s.fName = shader.at("fName");
-            s.fCode = shader.at("fCode");
-            s.fWindowSize = impl::value(shader, "fWindowSize", state.fFragmentShaderWindowSize);
-            state.fShaders.emplace_back(s);
+            try
+            {
+              Shader s{};
+              s.fName = shader.at("fName");
+              s.fCode = shader.at("fCode");
+              if(shader.contains("fEditedCode"))
+                s.fEditedCode = shader.at("fEditedCode");
+              s.fWindowSize = impl::value(shader, "fWindowSize", state.fFragmentShaderWindowSize);
+              state.fShaders.emplace_back(s);
+            }
+            catch(...)
+            {
+              printf("Warning: Invalid syntax detected [ignored]\n");
+            }
           }
         }
       }

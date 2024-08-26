@@ -33,6 +33,7 @@ struct Shader
 {
   std::string fName;
   std::string fCode;
+  std::optional<std::string> fEditedCode;
   gpu::Renderable::Size fWindowSize;
 };
 

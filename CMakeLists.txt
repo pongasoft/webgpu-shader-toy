@@ -23,6 +23,7 @@ set(wgpu_shader_toy_sources
     src/cpp/Application.h
     src/cpp/Application.cpp
     src/cpp/FragmentShader.h
+    src/cpp/FragmentShader.cpp
     src/cpp/FragmentShaderWindow.h
     src/cpp/FragmentShaderExamples.cpp
     src/cpp/FragmentShaderWindow.cpp

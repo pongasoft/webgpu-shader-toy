@@ -25,6 +25,7 @@
 #include <optional>
 #include <webgpu/webgpu_cpp.h>
 #include "TextEditor.h"
+#include "State.h"
 
 namespace pongasoft::gpu {
 using vec2f = ImVec2;
@@ -78,13 +79,14 @@ struct ShaderToyInputs {
   using state_t = std::variant<State::NotCompiled, State::Compiling, State::CompiledInError, State::Compiled>;
 
 public:
-  explicit FragmentShader(Shader const &iShader) : fName{iShader.fName}, fCode{iShader.fCode}, fWindowSize{iShader.fWindowSize} {}
+  explicit FragmentShader(Shader const &iShader);
 
   inline ShaderToyInputs const &getInputs() const { return fInputs; }
 
   std::string const &getName() const { return fName; }
   void setName(std::string iName) { fName = std::move(iName); }
   std::string const &getCode() const { return fCode; }
+  std::optional<std::string> getEditedCode() const;
   gpu::Renderable::Size const &getWindowSize() const { return fWindowSize; }
   void setWindowSize(gpu::Renderable::Size const &iSize) { fWindowSize = iSize; }
 
@@ -94,89 +96,27 @@ public:
   constexpr bool isCompiled() const { return std::holds_alternative<FragmentShader::State::Compiled>(fState); }
 
   void setStartTime(double iTime) { fStartTime = iTime; fInputs.time = 0; fInputs.frame = 0; }
-  void toggleRunning(double iCurrentTime) {
-    if(fRunning)
-      fInputs.time = static_cast<gpu::f32>(iCurrentTime - fStartTime);
-    else
-      fStartTime = iCurrentTime - fInputs.time;
-    fRunning = ! fRunning;
-  }
+  void toggleRunning(double iCurrentTime);
   constexpr bool isRunning() const { return fRunning; }
 
   constexpr bool isEnabled() const { return fEnabled; }
   constexpr void toggleEnabled() { fEnabled = !fEnabled; }
 
-  constexpr char const* getStatus() const
-  {
-    if(isCompiled())
-    {
-      if(isEnabled())
-        return isRunning() ? "Running" : "Paused";
-      else
-        return "Disabled";
-    }
-    else
-    {
-      if(hasCompilationError())
-        return "Error";
-      else
-        return "Compiling...";
-    }
-  }
+  char const* getStatus() const;
 
-  void nextFrame(double iCurrentTime, int frameCount = 1)
-  {
-    fManualTime = true;
+  void nextFrame(double iCurrentTime, int frameCount = 1);
 
-    fStartTime = iCurrentTime - fInputs.time;
-    fInputs.frame += frameCount;
-    fInputs.time = static_cast<gpu::f32>(iCurrentTime - fStartTime) + static_cast<float>(frameCount) / 60.0f;
-  }
+  void previousFrame(double iCurrentTime, int frameCount = 1);
 
-  void previousFrame(double iCurrentTime, int frameCount = 1)
-  {
-    fManualTime = true;
-
-    fStartTime = iCurrentTime - fInputs.time;
-    fInputs.frame = std::max(0, fInputs.frame - frameCount);
-    fInputs.time =
-      std::max(0.0f, static_cast<gpu::f32>(iCurrentTime - fStartTime) - static_cast<float>(frameCount) / 60.0f);
-  }
-
-  void stopManualTime(double iCurrentTime)
-  {
-    if(fManualTime)
-    {
-      if(fRunning)
-        fStartTime = iCurrentTime - fInputs.time;
-      fManualTime = false;
-    }
-  }
+  void stopManualTime(double iCurrentTime);
 
   constexpr bool isTimeEnabled() const { return fRunning && !fManualTime; }
 
-  TextEditor &edit() {
-    if(!fTextEditor)
-    {
-      fTextEditor = TextEditor{};
-      fTextEditor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::None);
-      fTextEditor->SetText(fCode);
-      fTextEditor->SetShowWhitespacesEnabled(false);
-    }
-    return fTextEditor.value();
-  }
+  TextEditor &edit();
 
-  void updateCode(std::string iCode)
-  {
-    fCode = std::move(iCode);
-    fState = State::NotCompiled{};
-  }
+  void updateCode(std::string iCode);
 
-  std::unique_ptr<FragmentShader> clone() const {
-    auto res = std::make_unique<FragmentShader>(*this);
-    res->fState = State::NotCompiled{};
-    return res;
-  }
+  std::unique_ptr<FragmentShader> clone() const;
 
   friend class FragmentShaderWindow;
 
