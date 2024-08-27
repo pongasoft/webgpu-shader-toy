@@ -1504,10 +1504,12 @@ bool RenderUndoAction(pongasoft::utils::Action const *iAction, bool iSelected)
 //------------------------------------------------------------------------
 void MainWindow::renderHistory()
 {
-  if(ImGui::MenuItem("Undo", nullptr, nullptr, fUndoManager.getLastUndoAction() != nullptr))
+  if(ImGui::MenuItem("Undo", nullptr, nullptr, fUndoManager.hasUndoHistory()))
     deferBeforeImGuiFrame([mgr = &fUndoManager] { mgr->undoLastAction(); });
-  if(ImGui::MenuItem("Redo", nullptr, nullptr, fUndoManager.getLastRedoAction() != nullptr))
+  if(ImGui::MenuItem("Redo", nullptr, nullptr, fUndoManager.hasRedoHistory()))
     deferBeforeImGuiFrame([mgr = &fUndoManager] { mgr->redoLastAction(); });
+  if(ImGui::MenuItem("Clear", nullptr, nullptr, fUndoManager.hasHistory()))
+    fUndoManager.clear();
   ImGui::SeparatorText("History");
   auto const &undoHistory = fUndoManager.getUndoHistory();
   auto const &redoHistory = fUndoManager.getRedoHistory();
@@ -1540,7 +1542,7 @@ void MainWindow::renderHistory()
           undoAction = action;
       }
     }
-    if(ImGui::Selectable("<empty>"))
+    if(ImGui::Selectable("<empty>", fUndoManager.getLastUndoAction() == nullptr))
       deferBeforeImGuiFrame([mgr = &fUndoManager] { mgr->undoAll(); });
     if(undoAction)
       deferBeforeImGuiFrame([mgr = &fUndoManager, undoAction] { mgr->undoUntil(undoAction); });
