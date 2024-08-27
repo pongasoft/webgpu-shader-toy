@@ -105,7 +105,6 @@ public:
   std::shared_ptr<FragmentShader> addFragmentShaderAction(std::unique_ptr<FragmentShader> iFragmentShader, int iPosition = -1);
   std::pair<std::shared_ptr<FragmentShader>, int> removeFragmentShaderAction(std::string const &iName);
   void renameShaderAction(std::string const &iOldName, std::string const &iNewName);
-  void resetAction();
 
 protected:
   void doRender() override;
@@ -121,6 +120,7 @@ private:
   void onNewFragmentShader(Shader const &iShader);
   void onNewFragmentShader(std::unique_ptr<FragmentShader> iFragmentShader);
   int removeFragmentShader(std::string const &iName);
+  void removeAllFragmentShaders();
   void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
   void reset();
   void initFromState(State const &iState);

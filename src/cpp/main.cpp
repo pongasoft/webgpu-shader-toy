@@ -90,6 +90,8 @@ int main(int, char **)
 
     auto defaultState = computeDefaultState();
     auto state = preferences->loadState(shader_toy::Preferences::kStateKey, defaultState);
+    defaultState.fShaders.clear();
+    defaultState.fCurrentShader = std::nullopt;
 
     kApplication
       ->registerRenderable<shader_toy::MainWindow>(Window::Args{

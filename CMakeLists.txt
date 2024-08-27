@@ -17,7 +17,7 @@ endif()
 
 set(CMAKE_WARN_UNUSED OFF)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 set(wgpu_shader_toy_sources
     src/cpp/Application.h

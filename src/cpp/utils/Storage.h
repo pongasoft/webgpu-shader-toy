@@ -20,6 +20,7 @@
 #define WGPU_SHADER_TOY_UTILS_STORAGE_H
 
 #include <string>
+#include <optional>
 
 namespace pongasoft::utils {
 

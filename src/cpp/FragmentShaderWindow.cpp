@@ -24,9 +24,9 @@
 
 #include <utility>
 
-extern "C" {
-void wgpu_shader_toy_print_stack_trace(char const *iMessage);
-}
+//extern "C" {
+//void wgpu_shader_toy_print_stack_trace(char const *iMessage);
+//}
 
 namespace shader_toy {
 
@@ -48,8 +48,8 @@ struct FragmentShaderCompilationRequest
   wgpu::ShaderModule fShaderModule{};
 };
 
-static auto kLastCompilationKey = 0;
-static std::map<void *, std::shared_ptr<FragmentShaderCompilationRequest>> kFragmentShaderCompilationRequests{};
+// Only one at a time...
+static std::unique_ptr<FragmentShaderCompilationRequest> kFragmentShaderCompilationRequest{};
 
 //------------------------------------------------------------------------
 // callbacks::onFrameBufferSizeChange
@@ -75,18 +75,16 @@ void onContentScaleChange(GLFWwindow *window, float xScale, float yScale)
 // callbacks::onShaderCompilationResult
 // implementation note: API is using webgpu.h style, not wegpu_cpp.h
 //------------------------------------------------------------------------
-void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus, struct WGPUCompilationInfo const *iCompilationInfo, void *iUserdata)
+void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus,
+                               struct WGPUCompilationInfo const *iCompilationInfo,
+                               void *iUserData)
 {
-  if(kFragmentShaderCompilationRequests.find(iUserdata) != kFragmentShaderCompilationRequests.end())
-  {
-    auto request = kFragmentShaderCompilationRequests[iUserdata];
-//    printf("onShaderCompilation [%s] %d\n", request->fFragmentShader->getName().c_str(), iStatus);
-    kFragmentShaderCompilationRequests.erase(iUserdata);
-    request->fFragmentShaderWindow->onShaderCompilationResult(request->fFragmentShader,
-                                                              request->fShaderModule,
-                                                              static_cast<wgpu::CompilationInfoRequestStatus>(iStatus),
-                                                              iCompilationInfo);
-  }
+  WST_INTERNAL_ASSERT(kFragmentShaderCompilationRequest && iUserData == kFragmentShaderCompilationRequest.get());
+  auto request = std::move(kFragmentShaderCompilationRequest);
+  request->fFragmentShaderWindow->onShaderCompilationResult(request->fFragmentShader,
+                                                            request->fShaderModule,
+                                                            static_cast<wgpu::CompilationInfoRequestStatus>(iStatus),
+                                                            iCompilationInfo);
 }
 
 }
@@ -109,7 +107,7 @@ FragmentShaderWindow::FragmentShaderWindow(std::shared_ptr<gpu::GPU> iGPU, Windo
 //------------------------------------------------------------------------
 FragmentShaderWindow::~FragmentShaderWindow()
 {
-  callbacks::kFragmentShaderCompilationRequests.clear();
+  callbacks::kFragmentShaderCompilationRequest = nullptr;
 }
 
 #define MEMALIGN(_SIZE,_ALIGN)        (((_SIZE) + ((_ALIGN) - 1)) & ~((_ALIGN) - 1))    // Memory align (copied from IM_ALIGN() macro).
@@ -170,9 +168,15 @@ void FragmentShaderWindow::initGPU()
 //------------------------------------------------------------------------
 // FragmentShaderWindow::compile
 //------------------------------------------------------------------------
-void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> const &iFragmentShader)
+void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> iFragmentShader)
 {
-//  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::compile");
+  if(callbacks::kFragmentShaderCompilationRequest)
+  {
+    // detected a pending compilation request... delay compilation until complete
+    fPendingCompilationRequests.emplace_back(std::move(iFragmentShader));
+    return;
+  }
+
   auto shader = std::string(FragmentShader::kHeader) + iFragmentShader->getCode();
 
   // fragment shader
@@ -187,16 +191,15 @@ void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> const &iFragm
 
   auto shaderModule = fGPU->getDevice().CreateShaderModule(&fragmentShaderModuleDescriptor);
 
-  auto key = reinterpret_cast<void *>(callbacks::kLastCompilationKey++);
-
-  callbacks::kFragmentShaderCompilationRequests[key] =
+  callbacks::kFragmentShaderCompilationRequest =
     std::make_unique<callbacks::FragmentShaderCompilationRequest>(callbacks::FragmentShaderCompilationRequest{
       .fFragmentShaderWindow = shared_from_this(),
-      .fFragmentShader = iFragmentShader,
+      .fFragmentShader = std::move(iFragmentShader),
       .fShaderModule = shaderModule
     });
 
-  shaderModule.GetCompilationInfo(callbacks::onShaderCompilationResult, key);
+  shaderModule.GetCompilationInfo(callbacks::onShaderCompilationResult,
+                                  callbacks::kFragmentShaderCompilationRequest.get());
 }
 
 namespace impl {
@@ -265,59 +268,68 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
   if(fGPU->hasError())
   {
     iFragmentShader->fState = impl::computeState(fGPU->consumeError().value());
-    return;
+  }
+  else
+  {
+    auto device = fGPU->getDevice();
+
+    wgpu::BlendState blendState {
+      .color {
+        .operation = wgpu::BlendOperation::Add,
+        .srcFactor = wgpu::BlendFactor::SrcAlpha,
+        .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
+      },
+      // note: copied from imgui (!= from learn webgpu)
+      .alpha {
+        .operation = wgpu::BlendOperation::Add,
+        .srcFactor = wgpu::BlendFactor::SrcAlpha,
+        .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
+      }
+    };
+
+    wgpu::ColorTargetState colorTargetState{.format = fPreferredFormat, .blend = &blendState};
+
+    wgpu::FragmentState fragmentState{
+      .module = std::move(iShaderModule),
+      .entryPoint = "fragmentMain",
+      .constantCount = 0,
+      .constants = nullptr,
+      .targetCount = 1,
+      .targets = &colorTargetState
+    };
+
+    wgpu::PipelineLayoutDescriptor pipeLineLayoutDescriptor = {
+      .label = "Fragment Shader Pipeline Layout",
+      .bindGroupLayoutCount = 1,
+      .bindGroupLayouts = &fGroup0BindGroupLayout
+    };
+
+    wgpu::RenderPipelineDescriptor renderPipelineDescriptor{
+      .label = "Fragment Shader Pipeline",
+      .layout = device.CreatePipelineLayout(&pipeLineLayoutDescriptor),
+      .vertex{
+        .module = fVertexShaderModule,
+        .entryPoint = "vertexMain"
+      },
+      .primitive = wgpu::PrimitiveState{},
+      .multisample = wgpu::MultisampleState{},
+      .fragment = &fragmentState,
+    };
+
+    auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
+    WST_INTERNAL_ASSERT(pipeline != nullptr, "Cannot create render pipeline");
+
+    iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
+    initFragmentShader(iFragmentShader);
   }
 
-  auto device = fGPU->getDevice();
-
-  wgpu::BlendState blendState {
-    .color {
-      .operation = wgpu::BlendOperation::Add,
-      .srcFactor = wgpu::BlendFactor::SrcAlpha,
-      .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-    },
-    // note: copied from imgui (!= from learn webgpu)
-    .alpha {
-      .operation = wgpu::BlendOperation::Add,
-      .srcFactor = wgpu::BlendFactor::SrcAlpha,
-      .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-    }
-  };
-
-  wgpu::ColorTargetState colorTargetState{.format = fPreferredFormat, .blend = &blendState};
-
-  wgpu::FragmentState fragmentState{
-    .module = std::move(iShaderModule),
-    .entryPoint = "fragmentMain",
-    .constantCount = 0,
-    .constants = nullptr,
-    .targetCount = 1,
-    .targets = &colorTargetState
-  };
-
-  wgpu::PipelineLayoutDescriptor pipeLineLayoutDescriptor = {
-    .label = "Fragment Shader Pipeline Layout",
-    .bindGroupLayoutCount = 1,
-    .bindGroupLayouts = &fGroup0BindGroupLayout
-  };
-
-  wgpu::RenderPipelineDescriptor renderPipelineDescriptor{
-    .label = "Fragment Shader Pipeline",
-    .layout = device.CreatePipelineLayout(&pipeLineLayoutDescriptor),
-    .vertex{
-      .module = fVertexShaderModule,
-      .entryPoint = "vertexMain"
-    },
-    .primitive = wgpu::PrimitiveState{},
-    .multisample = wgpu::MultisampleState{},
-    .fragment = &fragmentState,
-  };
-
-  auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
-  WST_INTERNAL_ASSERT(pipeline != nullptr, "Cannot create render pipeline");
-
-  iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
-  initFragmentShader(iFragmentShader);
+  // scheduling the next one if there is a pending one
+  if(!fPendingCompilationRequests.empty())
+  {
+    auto shader = fPendingCompilationRequests.front();
+    fPendingCompilationRequests.erase(fPendingCompilationRequests.begin());
+    compile(std::move(shader));
+  }
 }
 
 //------------------------------------------------------------------------
@@ -326,9 +338,12 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
 void FragmentShaderWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
 {
   fCurrentFragmentShader = std::move(iFragmentShader);
-  resize(fCurrentFragmentShader->getWindowSize());
-  if(fCurrentFragmentShader->isNotCompiled())
-    compile(fCurrentFragmentShader);
+  if(fCurrentFragmentShader)
+  {
+    resize(fCurrentFragmentShader->getWindowSize());
+    if(fCurrentFragmentShader->isNotCompiled())
+      compile(fCurrentFragmentShader);
+  }
 }
 
 

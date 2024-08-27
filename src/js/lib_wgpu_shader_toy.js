@@ -86,9 +86,7 @@ let wgpu_shader_toy = {
 
   // wgpu_shader_toy_open_file_dialog
   wgpu_shader_toy_open_file_dialog: () => {
-    console.log('wgpu_shader_toy_open_file_dialog()');
     if(WGPU_SHADER_TOY.fFragmentShaderFileDialog) {
-      console.log('wgpu_shader_toy_open_file_dialog.click()');
       WGPU_SHADER_TOY.fFragmentShaderFileDialog.click();
     }
   },

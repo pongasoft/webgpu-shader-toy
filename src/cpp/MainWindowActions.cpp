@@ -19,6 +19,8 @@
 #include "MainWindow.h"
 #include "fmt.h"
 #include "Errors.h"
+#include <ranges>
+#include <algorithm>
 
 namespace shader_toy {
 
@@ -150,6 +152,7 @@ std::pair<std::shared_ptr<FragmentShader>, int> MainWindow::removeFragmentShader
     fCurrentFragmentShader = nullptr;
     setTitle("WebGPU Shader Toy");
     fFragmentShaderWindow->setTitle("WebGPU Shader Toy");
+    fFragmentShaderWindow->setCurrentFragmentShader(nullptr);
   }
 
   return {shader, position};
@@ -161,6 +164,23 @@ std::pair<std::shared_ptr<FragmentShader>, int> MainWindow::removeFragmentShader
 int MainWindow::removeFragmentShader(std::string const &iName)
 {
   return executeAction<RemoveFragmentShaderAction>(iName);
+}
+
+//------------------------------------------------------------------------
+// MainWindow::removeAllFragmentShaders
+//------------------------------------------------------------------------
+void MainWindow::removeAllFragmentShaders()
+{
+  if(fFragmentShaders.empty())
+    return;
+
+  fUndoManager.beginTx("Remove All Shaders");
+  auto names = fFragmentShaders
+               | std::views::transform([](auto &shader) { return shader->getName(); })
+               | std::ranges::to<std::vector>();
+  for(auto &name: names)
+    removeFragmentShader(name);
+  fUndoManager.commitTx();
 }
 
 //------------------------------------------------------------------------
@@ -190,6 +210,15 @@ protected:
   std::string fOldName{};
   std::string fNewName{};
 };
+
+//------------------------------------------------------------------------
+// MainWindow::reset
+//------------------------------------------------------------------------
+void MainWindow::reset()
+{
+  removeAllFragmentShaders();
+  initFromState(fDefaultState);
+}
 
 //------------------------------------------------------------------------
 // MainWindow::renameShader

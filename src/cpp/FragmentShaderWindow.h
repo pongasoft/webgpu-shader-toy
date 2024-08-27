@@ -45,7 +45,7 @@ public:
 
   void beforeFrame() override;
 
-  void compile(std::shared_ptr<FragmentShader> const &iFragmentShader);
+  void compile(std::shared_ptr<FragmentShader> iFragmentShader);
   void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
 
 protected:
@@ -75,6 +75,8 @@ private:
   wgpu::ShaderModule fVertexShaderModule{};
 
   std::shared_ptr<FragmentShader> fCurrentFragmentShader{};
+
+  std::vector<std::shared_ptr<FragmentShader>> fPendingCompilationRequests{};
 
   ImVec2 fContentScale{1.0, 1.0};
   ImVec2 fMouseClick{-1, -1};
