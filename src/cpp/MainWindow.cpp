@@ -597,7 +597,6 @@ void MainWindow::promptShaderName(std::string const &iTitle,
         ImGui::SeparatorText("!!! Warning !!!");
         ImGui::Text("Duplicate name detected.");
         ImGui::Text("Continuing will override the content of the shader.");
-        ImGui::Text("This operation cannot be undone.");
         iDialog.button(0).fLabel = "Override";
       }
       else

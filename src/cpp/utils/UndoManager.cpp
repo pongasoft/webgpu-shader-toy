@@ -80,40 +80,6 @@ void UndoManager::addOrMerge(std::unique_ptr<Action> iAction)
     fNextUndoActionDescription.reset();
   }
 
-  if(!iAction->getMergeKey().empty())
-  {
-    if(fUndoTx)
-    {
-      fUndoTx->addAction(std::move(iAction));
-      return;
-    }
-    auto last = getLastUndoAction();
-    if(last && last->fMergeKey == iAction->getMergeKey())
-    {
-      iAction = last->merge(std::move(iAction));
-      if(iAction)
-      {
-        if(dynamic_cast<NoOpAction *>(iAction.get()))
-        {
-          // merge resulted in a noop => discard last
-          popLastUndoAction();
-          return;
-        }
-        else
-        {
-          // merge did not happen => new undo
-          addAction(std::move(iAction));
-          return;
-        }
-      }
-      else
-      {
-        // merge was successful => last was updated so no need to do anything
-        return;
-      }
-    }
-  }
-
   if(fUndoTx)
     fUndoTx->addAction(std::move(iAction));
   else
@@ -121,25 +87,11 @@ void UndoManager::addOrMerge(std::unique_ptr<Action> iAction)
 }
 
 //------------------------------------------------------------------------
-// UndoManager::resetMergeKey
-//------------------------------------------------------------------------
-void UndoManager::resetMergeKey()
-{
-  auto last = getLastUndoAction();
-  if(last)
-    last->resetMergeKey();
-}
-
-//------------------------------------------------------------------------
 // UndoManager::addAction
 //------------------------------------------------------------------------
 void UndoManager::addAction(std::unique_ptr<Action> iAction)
 {
-  auto last = stl::last(fUndoHistory);
-  if(last)
-    last->resetMergeKey();
   fUndoHistory.emplace_back(std::move(iAction));
-
   fRedoHistory.clear();
 }
 
@@ -151,7 +103,6 @@ void UndoManager::undoLastAction()
   auto action = popLastUndoAction();
   if(action)
   {
-    action->resetMergeKey();
     action->undo();
     fRedoHistory.emplace_back(std::move(action));
   }
@@ -237,12 +188,12 @@ void UndoManager::redoUntil(Action const *iAction)
 //------------------------------------------------------------------------
 // UndoManager::beginTx
 //------------------------------------------------------------------------
-void UndoManager::beginTx(std::string iDescription, MergeKey const &iMergeKey)
+void UndoManager::beginTx(std::string iDescription)
 {
   if(fUndoTx)
     fNestedUndoTxs.emplace_back(std::move(fUndoTx));
 
-  fUndoTx = std::make_unique<UndoTx>(std::move(iDescription), iMergeKey);
+  fUndoTx = std::make_unique<UndoTx>(std::move(iDescription));
 
   if(fNextUndoActionDescription)
   {
@@ -308,22 +259,6 @@ void UndoManager::setNextActionDescription(std::string iDescription)
 }
 
 //------------------------------------------------------------------------
-// Action::merge
-//------------------------------------------------------------------------
-std::unique_ptr<Action> Action::merge(std::unique_ptr<Action> iAction)
-{
-  if(fMergeKey.empty() ||
-     iAction->getMergeKey().empty() ||
-     fMergeKey != iAction->getMergeKey() ||
-     !canMergeWith(iAction.get()))
-  {
-    return std::move(iAction);
-  }
-
-  return doMerge(std::move(iAction));
-}
-
-//------------------------------------------------------------------------
 // CompositeAction::undo
 //------------------------------------------------------------------------
 void CompositeAction::undo()
@@ -347,10 +282,9 @@ void CompositeAction::redo()
 //------------------------------------------------------------------------
 // UndoTx::UndoTx
 //------------------------------------------------------------------------
-UndoTx::UndoTx(std::string iDescription, MergeKey const &iMergeKey)
+UndoTx::UndoTx(std::string iDescription)
 {
   fDescription = std::move(iDescription);
-  fMergeKey = iMergeKey;
 }
 
 //------------------------------------------------------------------------

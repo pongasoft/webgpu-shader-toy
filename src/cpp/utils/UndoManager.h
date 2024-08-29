@@ -26,55 +26,18 @@
 
 namespace pongasoft::utils {
 
-namespace stl {
-template<class T>
-struct is_shared_ptr : std::false_type {};
-template<class T>
-struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
-}
-
-
-struct MergeKey {
-  void *fKey{};
-
-  constexpr void reset() { fKey = nullptr; }
-  constexpr bool empty() const { return fKey == nullptr; }
-
-  constexpr bool operator==(MergeKey const &rhs) const { return fKey == rhs.fKey; }
-  constexpr bool operator!=(MergeKey const &rhs) const { return !(rhs == *this); }
-
-  constexpr static MergeKey none() { return {}; }
-  constexpr static MergeKey from(void *iKey) { return { iKey }; }
-};
-
 class Action
 {
 public:
   virtual ~Action() = default;
   virtual void undo() = 0;
   virtual void redo() = 0;
-  virtual std::unique_ptr<Action> merge(std::unique_ptr<Action> iAction);
-
-  inline MergeKey getMergeKey() const { return fMergeKey; }
-  inline void setMergeKey(MergeKey iMergeKey) { fMergeKey = iMergeKey; }
-  inline void resetMergeKey() { fMergeKey.reset(); }
 
   std::string const &getDescription() const { return fDescription; }
   void setDescription(std::string iDescription) { fDescription = std::move(iDescription); }
 
-protected:
-  virtual bool canMergeWith(Action const *iAction) const { return false; }
-
-  /**
-   * Actually processes the merge. Should return:
-   * - if no merge possible then `std::move(iAction)`
-   * - if merge successful then `nullptr` (iAction is consumed)
-   * - if merge leads to a no op, then `NoOpAction::create()` */
-  virtual std::unique_ptr<Action> doMerge(std::unique_ptr<Action> iAction) { return std::move(iAction); }
-
 public:
   std::string fDescription{};
-  MergeKey fMergeKey{};
 };
 
 
@@ -107,7 +70,7 @@ protected:
 class UndoTx : public CompositeAction
 {
 public:
-  UndoTx(std::string iDescription, MergeKey const &iMergeKey);
+  UndoTx(std::string iDescription);
   std::unique_ptr<Action> single();
   void addAction(std::unique_ptr<Action> iAction);
 };
@@ -133,75 +96,6 @@ protected:
 };
 
 
-//------------------------------------------------------------------------
-// class ValueAction<T>
-//------------------------------------------------------------------------
-template<typename Target, typename T, IsAction A = Action>
-class ValueAction : public ExecutableAction<void, A>
-{
-public:
-  using update_function_t = std::function<T(Target *, T const &)>;
-
-public:
-  void init(update_function_t iUpdateFunction, T iValue, std::string iDescription, MergeKey const &iMergeKey)
-  {
-    fUpdateFunction = std::move(iUpdateFunction);
-    fValue = std::move(iValue);
-    this->fDescription = std::move(iDescription);
-    this->fMergeKey = iMergeKey;
-  }
-
-  virtual Target *getTarget() const = 0;
-
-  void execute() override
-  {
-    fPreviousValue = fUpdateFunction(getTarget(), fValue);
-    this->fUndoEnabled = fPreviousValue != fValue;
-  }
-
-  void undo() override
-  {
-    fUpdateFunction(getTarget(), fPreviousValue);
-  }
-
-  T const &getValue() const { return fValue; }
-  T const &getPreviousValue() const { return fValue; }
-
-protected:
-
-  virtual void updateDescriptionOnSuccessfulMerge() {}
-
-  bool canMergeWith(Action const *iAction) const override
-  {
-    if(typeid(*this) != typeid(*iAction))
-      return false;
-    auto action = dynamic_cast<ValueAction const *>(iAction);
-    if constexpr(stl::is_shared_ptr<T>::value)
-      return action && *action->fPreviousValue == *fValue;
-    else
-      return action && action->fPreviousValue == fValue;
-  }
-
-  std::unique_ptr<Action> doMerge(std::unique_ptr<Action> iAction) override
-  {
-    auto action = dynamic_cast<ValueAction const *>(iAction.get());
-    fValue = action->fValue;
-    this->fDescription = action->getDescription();
-    if(fValue == fPreviousValue)
-      return NoOpAction::create();
-    else
-    {
-      updateDescriptionOnSuccessfulMerge();
-      return nullptr;
-    }
-  }
-
-protected:
-  update_function_t fUpdateFunction;
-  T fValue;
-  T fPreviousValue{};
-};
-
 class UndoManager
 {
 public:
@@ -209,8 +103,7 @@ public:
   constexpr void enable() { fEnabled = true; }
   constexpr void disable() { fEnabled = false; }
   void addOrMerge(std::unique_ptr<Action> iAction);
-  void resetMergeKey();
-  void beginTx(std::string iDescription, MergeKey const &iMergeKey = MergeKey::none());
+  void beginTx(std::string iDescription);
   void commitTx();
   void rollbackTx();
   void setNextActionDescription(std::string iDescription);
