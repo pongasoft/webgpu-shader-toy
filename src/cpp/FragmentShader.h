@@ -71,12 +71,13 @@ struct ShaderToyInputs {
 
   struct State {
     enum class NotCompiled {};
+    enum class CompilationPending{};
     enum class Compiling{};
     struct CompiledInError { std::string fErrorMessage; int fErrorLine{-1}; int fErrorColumn{}; };
     struct Compiled { wgpu::RenderPipeline fRenderPipeline; };
   };
 
-  using state_t = std::variant<State::NotCompiled, State::Compiling, State::CompiledInError, State::Compiled>;
+  using state_t = std::variant<State::NotCompiled, State::CompilationPending, State::Compiling, State::CompiledInError, State::Compiled>;
 
 public:
   explicit FragmentShader(Shader const &iShader);
@@ -121,6 +122,7 @@ public:
   friend class FragmentShaderWindow;
 
 private:
+  constexpr bool isCompilationPending() const { return std::holds_alternative<FragmentShader::State::CompilationPending>(fState); }
   constexpr bool isCompiling() const { return std::holds_alternative<FragmentShader::State::Compiling>(fState); }
   constexpr bool isNotCompiled() const { return std::holds_alternative<FragmentShader::State::NotCompiled>(fState); }
   inline wgpu::RenderPipeline getRenderPipeline() const { return std::get<FragmentShader::State::Compiled>(fState).fRenderPipeline; }

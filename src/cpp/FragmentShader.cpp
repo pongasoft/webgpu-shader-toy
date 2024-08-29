@@ -142,7 +142,8 @@ void FragmentShader::stopManualTime(double iCurrentTime)
 void FragmentShader::updateCode(std::string iCode)
 {
   fCode = std::move(iCode);
-  fState = State::NotCompiled{};
+  if(!isCompilationPending())
+    fState = State::NotCompiled{};
 }
 
 //------------------------------------------------------------------------

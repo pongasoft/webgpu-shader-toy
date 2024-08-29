@@ -172,8 +172,12 @@ void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> iFragmentShad
 {
   if(callbacks::kFragmentShaderCompilationRequest)
   {
-    // detected a pending compilation request... delay compilation until complete
-    fPendingCompilationRequests.emplace_back(std::move(iFragmentShader));
+    // there is already a shader being compiled... enqueuing until it completes
+    if(!iFragmentShader->isCompilationPending())
+    {
+      iFragmentShader->fState = FragmentShader::State::CompilationPending{};
+      fPendingCompilationRequests.emplace_back(std::move(iFragmentShader));
+    }
     return;
   }
 
@@ -245,12 +249,12 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
                                                      wgpu::CompilationInfoRequestStatus iStatus,
                                                      WGPUCompilationInfo const *iCompilationInfo)
 {
-//  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::onShaderCompilationResult");
+  //  wgpu_shader_toy_print_stack_trace("FragmentShaderWindow::onShaderCompilationResult");
 
-  // sanity check
-  WST_INTERNAL_ASSERT(iFragmentShader->isCompiling());
-
-  // at this time, it always returns success even when failure...
+  // it is possible (rare) that compile() was called again before this async callback is called
+  if(iFragmentShader->isCompiling())
+  {
+    // at this time, it always returns success even when failure...
 //  if(iStatus != wgpu::CompilationInfoRequestStatus::Success)
 //  {
 //    printf("Fragment shader compilation error\n");
@@ -264,63 +268,64 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
 //    return;
 //  }
 
-  // compilation resulted in error
-  if(fGPU->hasError())
-  {
-    iFragmentShader->fState = impl::computeState(fGPU->consumeError().value());
-  }
-  else
-  {
-    auto device = fGPU->getDevice();
+    // compilation resulted in error
+    if(fGPU->hasError())
+    {
+      iFragmentShader->fState = impl::computeState(fGPU->consumeError().value());
+    }
+    else
+    {
+      auto device = fGPU->getDevice();
 
-    wgpu::BlendState blendState {
-      .color {
-        .operation = wgpu::BlendOperation::Add,
-        .srcFactor = wgpu::BlendFactor::SrcAlpha,
-        .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-      },
-      // note: copied from imgui (!= from learn webgpu)
-      .alpha {
-        .operation = wgpu::BlendOperation::Add,
-        .srcFactor = wgpu::BlendFactor::SrcAlpha,
-        .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-      }
-    };
+      wgpu::BlendState blendState {
+        .color {
+          .operation = wgpu::BlendOperation::Add,
+          .srcFactor = wgpu::BlendFactor::SrcAlpha,
+          .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
+        },
+        // note: copied from imgui (!= from learn webgpu)
+        .alpha {
+          .operation = wgpu::BlendOperation::Add,
+          .srcFactor = wgpu::BlendFactor::SrcAlpha,
+          .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
+        }
+      };
 
-    wgpu::ColorTargetState colorTargetState{.format = fPreferredFormat, .blend = &blendState};
+      wgpu::ColorTargetState colorTargetState{.format = fPreferredFormat, .blend = &blendState};
 
-    wgpu::FragmentState fragmentState{
-      .module = std::move(iShaderModule),
-      .entryPoint = "fragmentMain",
-      .constantCount = 0,
-      .constants = nullptr,
-      .targetCount = 1,
-      .targets = &colorTargetState
-    };
+      wgpu::FragmentState fragmentState{
+        .module = std::move(iShaderModule),
+        .entryPoint = "fragmentMain",
+        .constantCount = 0,
+        .constants = nullptr,
+        .targetCount = 1,
+        .targets = &colorTargetState
+      };
 
-    wgpu::PipelineLayoutDescriptor pipeLineLayoutDescriptor = {
-      .label = "Fragment Shader Pipeline Layout",
-      .bindGroupLayoutCount = 1,
-      .bindGroupLayouts = &fGroup0BindGroupLayout
-    };
+      wgpu::PipelineLayoutDescriptor pipeLineLayoutDescriptor = {
+        .label = "Fragment Shader Pipeline Layout",
+        .bindGroupLayoutCount = 1,
+        .bindGroupLayouts = &fGroup0BindGroupLayout
+      };
 
-    wgpu::RenderPipelineDescriptor renderPipelineDescriptor{
-      .label = "Fragment Shader Pipeline",
-      .layout = device.CreatePipelineLayout(&pipeLineLayoutDescriptor),
-      .vertex{
-        .module = fVertexShaderModule,
-        .entryPoint = "vertexMain"
-      },
-      .primitive = wgpu::PrimitiveState{},
-      .multisample = wgpu::MultisampleState{},
-      .fragment = &fragmentState,
-    };
+      wgpu::RenderPipelineDescriptor renderPipelineDescriptor{
+        .label = "Fragment Shader Pipeline",
+        .layout = device.CreatePipelineLayout(&pipeLineLayoutDescriptor),
+        .vertex{
+          .module = fVertexShaderModule,
+          .entryPoint = "vertexMain"
+        },
+        .primitive = wgpu::PrimitiveState{},
+        .multisample = wgpu::MultisampleState{},
+        .fragment = &fragmentState,
+      };
 
-    auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
-    WST_INTERNAL_ASSERT(pipeline != nullptr, "Cannot create render pipeline");
+      auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
+      WST_INTERNAL_ASSERT(pipeline != nullptr, "Cannot create render pipeline");
 
-    iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
-    initFragmentShader(iFragmentShader);
+      iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
+      initFragmentShader(iFragmentShader);
+    }
   }
 
   // scheduling the next one if there is a pending one
@@ -328,6 +333,7 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
   {
     auto shader = fPendingCompilationRequests.front();
     fPendingCompilationRequests.erase(fPendingCompilationRequests.begin());
+    shader->fState = FragmentShader::State::NotCompiled{};
     compile(std::move(shader));
   }
 }
@@ -341,8 +347,6 @@ void FragmentShaderWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShad
   if(fCurrentFragmentShader)
   {
     resize(fCurrentFragmentShader->getWindowSize());
-    if(fCurrentFragmentShader->isNotCompiled())
-      compile(fCurrentFragmentShader);
   }
 }
 
@@ -378,23 +382,27 @@ void FragmentShaderWindow::beforeFrame()
   else
     fMouseClick = {-1, -1};
 
-
-  if(fCurrentFragmentShader && fCurrentFragmentShader->isEnabled() && fCurrentFragmentShader->isCompiled())
+  if(fCurrentFragmentShader && fCurrentFragmentShader->isEnabled())
   {
-    // TODO HIGH YP: fix content scale callback not working when dynamically switching
-    glfwGetWindowContentScale(fWindow, &fContentScale.x, &fContentScale.y);
-
-    if(fCurrentFragmentShader->isTimeEnabled())
+    if(fCurrentFragmentShader->isCompiled())
     {
-      fCurrentFragmentShader->fInputs.frame++;
-      fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(getCurrentTime() - fCurrentFragmentShader->fStartTime);
-    }
-    fCurrentFragmentShader->fInputs.size = {
-      static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height),
-      fContentScale.x, fContentScale.y
+      glfwGetWindowContentScale(fWindow, &fContentScale.x, &fContentScale.y);
+
+      if(fCurrentFragmentShader->isTimeEnabled())
+      {
+        fCurrentFragmentShader->fInputs.frame++;
+        fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(getCurrentTime() - fCurrentFragmentShader->fStartTime);
+      }
+      fCurrentFragmentShader->fInputs.size = {
+        static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height),
+        fContentScale.x, fContentScale.y
       };
-    fCurrentFragmentShader->fInputs.mouse.z = fMouseClick.x;
-    fCurrentFragmentShader->fInputs.mouse.w = fMouseClick.y;
+      fCurrentFragmentShader->fInputs.mouse.z = fMouseClick.x;
+      fCurrentFragmentShader->fInputs.mouse.w = fMouseClick.y;
+    }
+
+    if(fCurrentFragmentShader->isNotCompiled())
+      compile(fCurrentFragmentShader);
   }
 }
 
