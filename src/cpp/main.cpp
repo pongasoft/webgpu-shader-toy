@@ -67,13 +67,13 @@ shader_toy::State computeDefaultState()
   emscripten_get_element_css_size("#canvas1", &width1, &height1);
 
   shader_toy::State state{};
-  state.fMainWindowSize = {static_cast<int>(width1), static_cast<int>(height1)};
-  state.fFragmentShaderWindowSize = {static_cast<int>(width2), static_cast<int>(height2)};
+  state.fSettings.fMainWindowSize = {static_cast<int>(width1), static_cast<int>(height1)};
+  state.fSettings.fFragmentShaderWindowSize = {static_cast<int>(width2), static_cast<int>(height2)};
 
   auto defaultShader = shader_toy::kFragmentShaderExamples[0];
-  defaultShader.fWindowSize = state.fFragmentShaderWindowSize;
-  state.fShaders.emplace_back(defaultShader);
-  state.fCurrentShader = defaultShader.fName;
+  defaultShader.fWindowSize = state.fSettings.fFragmentShaderWindowSize;
+  state.fShaders.fList.emplace_back(defaultShader);
+  state.fShaders.fCurrent = defaultShader.fName;
 
   return state;
 }
@@ -90,18 +90,18 @@ int main(int, char **)
 
     auto defaultState = computeDefaultState();
     auto state = preferences->loadState(shader_toy::Preferences::kStateKey, defaultState);
-    defaultState.fShaders.clear();
-    defaultState.fCurrentShader = std::nullopt;
+    defaultState.fShaders.fList.clear();
+    defaultState.fShaders.fCurrent = std::nullopt;
 
     kApplication
       ->registerRenderable<shader_toy::MainWindow>(Window::Args{
-                                                     .size = state.fMainWindowSize,
+                                                     .size = state.fSettings.fMainWindowSize,
                                                      .title = "WebGPU Shader Toy",
                                                      .canvas = { .selector = "#canvas1" }
                                                    },
                                                    shader_toy::MainWindow::Args {
                                                      .fragmentShaderWindow = {
-                                                       .size = state.fFragmentShaderWindowSize,
+                                                       .size = state.fSettings.fFragmentShaderWindowSize,
                                                        .title = "WebGPU Shader Toy",
                                                        .canvas = { .selector = "#canvas2" }
                                                      },
@@ -117,7 +117,7 @@ int main(int, char **)
     });
 #endif
 
-    wstWaitForContinue(state.fLayoutManual, state.fMainWindowSize.width, state.fFragmentShaderWindowSize.width);
+    wstWaitForContinue(state.fSettings.fLayoutManual, state.fSettings.fMainWindowSize.width, state.fSettings.fFragmentShaderWindowSize.width);
 
     emscripten_set_main_loop(WaitLoopForEmscripten, 0, true);
   }

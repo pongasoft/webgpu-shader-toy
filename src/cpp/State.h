@@ -39,21 +39,30 @@ struct Shader
 
 struct State
 {
+  struct Settings
+  {
+    gpu::Renderable::Size fMainWindowSize{};
+    gpu::Renderable::Size fFragmentShaderWindowSize{};
+    bool fDarkStyle{true};
+    bool fHiDPIAware{true};
+    bool fLayoutManual{false};
+    bool fLayoutSwapped{false};
+    float fFontSize{13.0f};
+    float fLineSpacing{1.0f};
+    bool fCodeShowWhiteSpace{false};
+    std::string fScreenshotMimeType{"image/png"};
+    int fScreenshotQualityPercent{85};
+  };
+
+  struct Shaders
+  {
+    std::vector<Shader> fList{};
+    std::optional<std::string> fCurrent{};
+  };
+
   int fFormatVersion{1};
-  gpu::Renderable::Size fMainWindowSize{};
-  gpu::Renderable::Size fFragmentShaderWindowSize{};
-  bool fDarkStyle{true};
-  bool fHiDPIAware{true};
-  bool fLayoutManual{false};
-  bool fLayoutSwapped{false};
-  float fFontSize{13.0f};
-  float fLineSpacing{1.0f};
-  bool fCodeShowWhiteSpace{false};
-  std::string fScreenshotMimeType{"image/png"};
-  int fScreenshotQualityPercent{85};
-//  std::string fAspectRatio{"Free"};
-  std::vector<Shader> fShaders{};
-  std::optional<std::string> fCurrentShader{};
+  Settings fSettings{};
+  Shaders fShaders{};
 };
 
 }

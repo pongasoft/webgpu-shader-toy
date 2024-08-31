@@ -66,7 +66,7 @@ std::string Preferences::serialize(State const &iState)
 {
   auto shaders = json::array();
 
-  for(auto const &shader: iState.fShaders)
+  for(auto const &shader: iState.fShaders.fList)
   {
     json s{
       {"fName", shader.fName},
@@ -78,27 +78,28 @@ std::string Preferences::serialize(State const &iState)
     shaders.emplace_back(s);
   }
 
+  auto &settings = iState.fSettings;
+
   json data{
     {"fFormatVersion", iState.fFormatVersion},
     {"fType", "project"},
-    {"fMainWindowSize", { {"width", iState.fMainWindowSize.width}, {"height", iState.fMainWindowSize.height} } },
-    {"fFragmentShaderWindowSize", { {"width", iState.fFragmentShaderWindowSize.width}, {"height", iState.fFragmentShaderWindowSize.height} } },
-    {"fDarkStyle", iState.fDarkStyle},
-    {"fLayoutManual", iState.fLayoutManual},
-    {"fLayoutSwapped", iState.fLayoutSwapped},
-    {"fHiDPIAware", iState.fHiDPIAware},
-    {"fFontSize", iState.fFontSize},
-    {"fLineSpacing", iState.fLineSpacing},
-    {"fCodeShowWhiteSpace", iState.fCodeShowWhiteSpace},
-    {"fScreenshotMimeType", iState.fScreenshotMimeType},
-    {"fScreenshotQualityPercent", iState.fScreenshotQualityPercent},
-//    {"fAspectRatio", iState.fAspectRatio},
+    {"fMainWindowSize", { {"width", settings.fMainWindowSize.width}, {"height", settings.fMainWindowSize.height} } },
+    {"fFragmentShaderWindowSize", { {"width", settings.fFragmentShaderWindowSize.width}, {"height", settings.fFragmentShaderWindowSize.height} } },
+    {"fDarkStyle", settings.fDarkStyle},
+    {"fLayoutManual", settings.fLayoutManual},
+    {"fLayoutSwapped", settings.fLayoutSwapped},
+    {"fHiDPIAware", settings.fHiDPIAware},
+    {"fFontSize", settings.fFontSize},
+    {"fLineSpacing", settings.fLineSpacing},
+    {"fCodeShowWhiteSpace", settings.fCodeShowWhiteSpace},
+    {"fScreenshotMimeType", settings.fScreenshotMimeType},
+    {"fScreenshotQualityPercent", settings.fScreenshotQualityPercent},
     {"fShaders", shaders}
   };
 
 
-  if(iState.fCurrentShader)
-    data["fCurrentShader"] = *iState.fCurrentShader;
+  if(iState.fShaders.fCurrent)
+    data["fCurrentShader"] = *iState.fShaders.fCurrent;
 
   return data.dump();
 }
@@ -110,23 +111,24 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
 {
   auto state = iDefaultState; // we initialize with the default state in case some values are missing
   auto data = json::parse(iState);
+  auto &settings = state.fSettings;
   if(data.is_object())
   {
-    state.fDarkStyle = data.value("fDarkStyle", state.fDarkStyle);
-    state.fLayoutManual = data.value("fLayoutManual", state.fLayoutManual);
-    state.fLayoutSwapped = data.value("fLayoutSwapped", state.fLayoutSwapped);
-    state.fHiDPIAware = data.value("fHiDPIAware", state.fHiDPIAware);
-    state.fFontSize = data.value("fFontSize", state.fFontSize);
-    state.fLineSpacing = data.value("fLineSpacing", state.fLineSpacing);
-    state.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", state.fCodeShowWhiteSpace);
-    state.fScreenshotMimeType = data.value("fScreenshotMimeType", state.fScreenshotMimeType);
-    state.fScreenshotQualityPercent = data.value("fScreenshotQualityPercent", state.fScreenshotQualityPercent);
+    settings.fDarkStyle = data.value("fDarkStyle", settings.fDarkStyle);
+    settings.fLayoutManual = data.value("fLayoutManual", settings.fLayoutManual);
+    settings.fLayoutSwapped = data.value("fLayoutSwapped", settings.fLayoutSwapped);
+    settings.fHiDPIAware = data.value("fHiDPIAware", settings.fHiDPIAware);
+    settings.fFontSize = data.value("fFontSize", settings.fFontSize);
+    settings.fLineSpacing = data.value("fLineSpacing", settings.fLineSpacing);
+    settings.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", settings.fCodeShowWhiteSpace);
+    settings.fScreenshotMimeType = data.value("fScreenshotMimeType", settings.fScreenshotMimeType);
+    settings.fScreenshotQualityPercent = data.value("fScreenshotQualityPercent", settings.fScreenshotQualityPercent);
 //    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
-    state.fMainWindowSize = impl::value(data, "fMainWindowSize", state.fMainWindowSize);
-    state.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", state.fFragmentShaderWindowSize);
+    settings.fMainWindowSize = impl::value(data, "fMainWindowSize", settings.fMainWindowSize);
+    settings.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", settings.fFragmentShaderWindowSize);
     if(data.find("fShaders") != data.end())
     {
-      state.fShaders.clear();
+      state.fShaders.fList.clear();
       auto shaders = data.value("fShaders", json::array_t{});
       if(!shaders.empty())
       {
@@ -141,8 +143,8 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
               s.fCode = shader.at("fCode");
               if(shader.contains("fEditedCode"))
                 s.fEditedCode = shader.at("fEditedCode");
-              s.fWindowSize = impl::value(shader, "fWindowSize", state.fFragmentShaderWindowSize);
-              state.fShaders.emplace_back(s);
+              s.fWindowSize = impl::value(shader, "fWindowSize", state.fSettings.fFragmentShaderWindowSize);
+              state.fShaders.fList.emplace_back(s);
             }
             catch(...)
             {
@@ -154,7 +156,7 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
     }
     auto currentShader = data.value("fCurrentShader", "");
     if(!currentShader.empty())
-      state.fCurrentShader = currentShader;
+      state.fShaders.fCurrent = currentShader;
   }
   return state;
 }

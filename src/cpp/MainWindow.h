@@ -98,13 +98,17 @@ public:
   void onNewFile(char const *iFilename, char const *iContent);
   void maybeNewFragmentShader(std::string const &iTitle, std::string const &iOkButton, Shader const &iShader);
   void saveState();
-  void onClipboardString(std::string_view iValue);
 
   State computeState() const;
+  State::Settings computeStateSettings() const;
+  State::Shaders computeStateShaders() const;
 
   std::shared_ptr<FragmentShader> addFragmentShaderAction(std::unique_ptr<FragmentShader> iFragmentShader, int iPosition = -1);
   std::pair<std::shared_ptr<FragmentShader>, int> removeFragmentShaderAction(std::string const &iName);
   void renameShaderAction(std::string const &iOldName, std::string const &iNewName);
+  void initFromStateAction(State const &iState);
+  void initFromStateAction(State::Settings const &iSettings);
+  void initFromStateAction(State::Shaders const &iShaders);
 
 protected:
   void doRender() override;
@@ -122,8 +126,11 @@ private:
   int removeFragmentShader(std::string const &iName);
   void removeAllFragmentShaders();
   void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
-  void reset();
-  void initFromState(State const &iState);
+  void resetSettings();
+  void resetShaders();
+  void resetAll();
+  void initFromState(std::optional<State::Settings> iSettings, std::optional<State::Shaders> iShaders, std::string iDescription);
+  void loadFromState(std::string const &iFilename, State const &iState);
   void setStyle(bool iDarkStyle);
   void setFontSize(float iFontSize);
   void requestFontSize(float iFontSize);

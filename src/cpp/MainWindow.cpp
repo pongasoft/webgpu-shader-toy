@@ -153,12 +153,9 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
                                                                                                iMainWindowArgs.fragmentShaderWindow)
                                                       }
 {
-  initFromState(iMainWindowArgs.state);
-
-  fUndoManager.disable();
-  setFontSize(iMainWindowArgs.state.fFontSize);
+  initFromStateAction(iMainWindowArgs.state);
+  setFontSize(iMainWindowArgs.state.fSettings.fFontSize);
   fSetFontSizeRequest = std::nullopt;
-  fUndoManager.enable();
 
   wgpu_shader_toy_install_handlers(callbacks::OnNewFileCallback,
                                    callbacks::OnBeforeUnload,
@@ -369,8 +366,16 @@ void MainWindow::renderMainMenuBar()
       if(ImGui::MenuItem("Import (disk)"))
         wgpu_shader_toy_open_file_dialog();
       ImGui::Separator();
-      if(ImGui::MenuItem("Reset"))
-        deferBeforeImGuiFrame([this] { reset(); });
+      if(ImGui::BeginMenu("Reset"))
+      {
+        if(ImGui::MenuItem("Settings"))
+          deferBeforeImGuiFrame([this] { resetSettings(); });
+        if(ImGui::MenuItem("Shaders"))
+          deferBeforeImGuiFrame([this] { resetShaders(); });
+        if(ImGui::MenuItem("All"))
+          deferBeforeImGuiFrame([this] { resetAll(); });
+        ImGui::EndMenu();
+      }
 #ifndef NDEBUG
       ImGui::Separator();
       if(ImGui::MenuItem("Quit"))
@@ -381,14 +386,13 @@ void MainWindow::renderMainMenuBar()
 
     ImGui::Text("|");
 
-    if(fCurrentFragmentShader)
+    ImGui::BeginDisabled(fCurrentFragmentShader == nullptr);
+    if(ImGui::BeginMenu("Shader"))
     {
-      if(ImGui::BeginMenu("Shader"))
-      {
-        // defined later...
-        ImGui::EndMenu();
-      }
+      // defined later...
+      ImGui::EndMenu();
     }
+    ImGui::EndDisabled();
 
     if(ImGui::BeginMenu("History"))
     {
@@ -1140,11 +1144,11 @@ void MainWindow::saveState()
 }
 
 //------------------------------------------------------------------------
-// MainWindow::computeState
+// MainWindow::computeStateSettings
 //------------------------------------------------------------------------
-State MainWindow::computeState() const
+State::Settings MainWindow::computeStateSettings() const
 {
-  State state{
+  return {
     .fMainWindowSize = getSize(),
     .fFragmentShaderWindowSize = fFragmentShaderWindow->getSize(),
     .fDarkStyle = fDarkStyle,
@@ -1156,15 +1160,23 @@ State MainWindow::computeState() const
     .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
     .fScreenshotMimeType = fScreenshotFormat.fMimeType,
     .fScreenshotQualityPercent = fScreenshotQualityPercent,
-//    .fAspectRatio = fCurrentAspectRatio,
-    .fCurrentShader = fCurrentFragmentShader
-                      ? std::optional<std::string>(fCurrentFragmentShader->getName())
-                      : std::nullopt
+  };
+}
+
+//------------------------------------------------------------------------
+// MainWindow::computeStateShaders
+//------------------------------------------------------------------------
+State::Shaders MainWindow::computeStateShaders() const
+{
+  State::Shaders state{
+    .fCurrent = fCurrentFragmentShader
+                ? std::optional<std::string>(fCurrentFragmentShader->getName())
+                : std::nullopt
   };
 
   for(auto const &shader: fFragmentShaders)
   {
-    state.fShaders.emplace_back(Shader{
+    state.fList.emplace_back(Shader{
       .fName = shader->getName(),
       .fCode = shader->getCode(),
       .fEditedCode = shader->getEditedCode(),
@@ -1176,44 +1188,14 @@ State MainWindow::computeState() const
 }
 
 //------------------------------------------------------------------------
-// MainWindow::initFromState
+// MainWindow::computeState
 //------------------------------------------------------------------------
-void MainWindow::initFromState(State const &iState)
+State MainWindow::computeState() const
 {
-  fUndoManager.disable();
-  requestFontSize(iState.fFontSize);
-  setStyle(iState.fDarkStyle);
-
-  // important to do this first as it changes the sizes
-  fLayoutSwapped = iState.fLayoutSwapped;
-  setWindowOrder();
-  setManualLayout(iState.fLayoutManual);
-
-  resize(iState.fMainWindowSize);
-  fFragmentShaderWindow->resize(iState.fFragmentShaderWindowSize);
-  if(fFragmentShaderWindow->isHiDPIAware() != iState.fHiDPIAware)
-    fFragmentShaderWindow->toggleHiDPIAwareness();
-  fLineSpacing = iState.fLineSpacing;
-  fCodeShowWhiteSpace = iState.fCodeShowWhiteSpace;
-  fScreenshotFormat = image::format::getFormatFromMimeType(iState.fScreenshotMimeType);
-  fScreenshotQualityPercent = iState.fScreenshotQualityPercent;
-  fFragmentShaders.clear();
-  fCurrentFragmentShader = nullptr;
-
-  for(auto &shader: iState.fShaders)
-  {
-    auto fragmentShader = std::make_shared<FragmentShader>(shader);
-    if(findFragmentShaderByName(shader.fName) == nullptr)
-    {
-      fFragmentShaders.emplace_back(fragmentShader);
-      if(iState.fCurrentShader && iState.fCurrentShader.value() == shader.fName)
-      {
-        setCurrentFragmentShader(fragmentShader);
-        fCurrentFragmentShaderNameRequest = shader.fName;
-      }
-    }
-  }
-  fUndoManager.enable();
+  return {
+    .fSettings = computeStateSettings(),
+    .fShaders = computeStateShaders()
+  };
 }
 
 //------------------------------------------------------------------------
@@ -1284,17 +1266,6 @@ void MainWindow::setWindowOrder()
 }
 
 //------------------------------------------------------------------------
-// MainWindow::onClipboardString
-//------------------------------------------------------------------------
-void MainWindow::onClipboardString(std::string_view iValue)
-{
-  if(fCurrentFragmentShader)
-  {
-    fCurrentFragmentShader->edit().Paste(iValue.data());
-  }
-}
-
-//------------------------------------------------------------------------
 // MainWindow::onNewFile
 //------------------------------------------------------------------------
 void MainWindow::onNewFile(char const *iFilename, char const *iContent)
@@ -1304,7 +1275,7 @@ void MainWindow::onNewFile(char const *iFilename, char const *iContent)
 
   std::string filename = iFilename;
   if(impl::ends_with(filename, ".json"))
-    initFromState(Preferences::deserialize(iContent, fDefaultState));
+    loadFromState(filename, Preferences::deserialize(iContent, State{.fSettings = computeStateSettings()}));
   else
   {
     // remove the extension...

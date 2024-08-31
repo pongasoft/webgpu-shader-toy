@@ -212,15 +212,6 @@ protected:
 };
 
 //------------------------------------------------------------------------
-// MainWindow::reset
-//------------------------------------------------------------------------
-void MainWindow::reset()
-{
-  removeAllFragmentShaders();
-  initFromState(fDefaultState);
-}
-
-//------------------------------------------------------------------------
 // MainWindow::renameShader
 //------------------------------------------------------------------------
 void MainWindow::renameShader(std::string const &iOldName, std::string const &iNewName)
@@ -247,6 +238,135 @@ void MainWindow::renameShaderAction(std::string const &iOldName, std::string con
   auto shader = findFragmentShaderByName(iOldName);
   WST_INTERNAL_ASSERT(shader != nullptr);
   shader->setName(iNewName);
+}
+
+//------------------------------------------------------------------------
+// UpdateStateAction
+//------------------------------------------------------------------------
+class UpdateStateAction : public MainWindowAction<void>
+{
+public:
+  void init(std::optional<State::Settings> iSettings, std::optional<State::Shaders> iShaders, std::string iDescription)
+  {
+    fSettings = std::move(iSettings);
+    fShaders = std::move(iShaders);
+    fDescription = std::move(iDescription);
+  }
+
+  result_t execute() override
+  {
+    fState = fMainWindow->computeState();
+    if(fSettings)
+      fMainWindow->initFromStateAction(*fSettings);
+    if(fShaders)
+      fMainWindow->initFromStateAction(*fShaders);
+  }
+
+  void undo() override
+  {
+    fMainWindow->initFromStateAction(*fState);
+    fState = std::nullopt;
+  }
+
+protected:
+  std::optional<State::Settings> fSettings{};
+  std::optional<State::Shaders> fShaders{};
+  std::optional<State> fState{};
+};
+
+//------------------------------------------------------------------------
+// MainWindow::initFromStateAction
+//------------------------------------------------------------------------
+void MainWindow::initFromStateAction(State const &iState)
+{
+  initFromStateAction(iState.fSettings);
+  initFromStateAction(iState.fShaders);
+}
+
+//------------------------------------------------------------------------
+// MainWindow::initFromStateAction
+//------------------------------------------------------------------------
+void MainWindow::initFromStateAction(State::Settings const &iSettings)
+{
+  requestFontSize(iSettings.fFontSize);
+  setStyle(iSettings.fDarkStyle);
+
+  // important to do this first as it changes the sizes
+  fLayoutSwapped = iSettings.fLayoutSwapped;
+  setWindowOrder();
+  setManualLayout(iSettings.fLayoutManual);
+
+  resize(iSettings.fMainWindowSize);
+  fFragmentShaderWindow->resize(iSettings.fFragmentShaderWindowSize);
+  if(fFragmentShaderWindow->isHiDPIAware() != iSettings.fHiDPIAware)
+    fFragmentShaderWindow->toggleHiDPIAwareness();
+  fLineSpacing = iSettings.fLineSpacing;
+  fCodeShowWhiteSpace = iSettings.fCodeShowWhiteSpace;
+  fScreenshotFormat = image::format::getFormatFromMimeType(iSettings.fScreenshotMimeType);
+  fScreenshotQualityPercent = iSettings.fScreenshotQualityPercent;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::initFromStateAction
+//------------------------------------------------------------------------
+void MainWindow::initFromStateAction(State::Shaders const &iShaders)
+{
+  fFragmentShaders.clear();
+  fCurrentFragmentShader = nullptr;
+
+  for(auto &shader: iShaders.fList)
+  {
+    addFragmentShaderAction(std::make_unique<FragmentShader>(shader));
+  }
+
+  if(iShaders.fCurrent)
+  {
+    auto shader = findFragmentShaderByName(iShaders.fCurrent.value());
+    if(shader)
+      setCurrentFragmentShader(shader);
+  }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::initFromState
+//------------------------------------------------------------------------
+void MainWindow::initFromState(std::optional<State::Settings> iSettings,
+                               std::optional<State::Shaders> iShaders,
+                               std::string iDescription)
+{
+  executeAction<UpdateStateAction>(std::move(iSettings), std::move(iShaders), std::move(iDescription));
+}
+
+//------------------------------------------------------------------------
+// MainWindow::resetAll
+//------------------------------------------------------------------------
+void MainWindow::resetAll()
+{
+  initFromState(fDefaultState.fSettings, fDefaultState.fShaders, "Reset All");
+}
+
+//------------------------------------------------------------------------
+// MainWindow::resetSettings
+//------------------------------------------------------------------------
+void MainWindow::resetSettings()
+{
+  initFromState(fDefaultState.fSettings, std::nullopt, "Reset Settings");
+}
+
+//------------------------------------------------------------------------
+// MainWindow::resetShaders
+//------------------------------------------------------------------------
+void MainWindow::resetShaders()
+{
+  initFromState(std::nullopt, fDefaultState.fShaders, "Reset Shaders");
+}
+
+//------------------------------------------------------------------------
+// MainWindow::loadFromState
+//------------------------------------------------------------------------
+void MainWindow::loadFromState(std::string const &iFilename, State const &iState)
+{
+  initFromState(iState.fSettings, iState.fShaders, fmt::printf("Import %s", iFilename));
 }
 
 }
