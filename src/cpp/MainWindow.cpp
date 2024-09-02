@@ -87,7 +87,8 @@ void OnBeforeUnload(MainWindow *iMainWindow)
 }
 
 // Some shader examples
-extern std::vector<Shader> kFragmentShaderExamples;
+extern std::vector<Shader> kBuiltInFragmentShaderExamples;
+extern std::vector<std::pair<std::string, std::string>> kExternalFragmentShaderExamples;
 
 // Empty shader
 auto constexpr kEmptyShader = R"(@fragment
@@ -418,17 +419,8 @@ void MainWindow::renderMainMenuBar()
       ImGui::EndMenu();
     }
 
-    if(ImGui::BeginMenu("Examples"))
-    {
-      for(auto &shader: kFragmentShaderExamples)
-      {
-        if(ImGui::MenuItem(shader.fName.c_str()))
-        {
-          maybeNewFragmentShader("Load Example", "Add", shader);
-        }
-      }
-      ImGui::EndMenu();
-    }
+    renderExampleMenu();
+
 #ifndef NDEBUG
     if(ImGui::BeginMenu("Dev"))
     {
@@ -936,6 +928,30 @@ void MainWindow::renderDialog()
   }
 }
 
+
+//------------------------------------------------------------------------
+// MainWindow::renderExampleMenu
+//------------------------------------------------------------------------
+void MainWindow::renderExampleMenu()
+{
+  if(ImGui::BeginMenu("Examples"))
+  {
+    ImGui::SeparatorText("Built-in");
+    for(auto &shader: kBuiltInFragmentShaderExamples)
+    {
+      if(ImGui::MenuItem(shader.fName.c_str()))
+        maybeNewFragmentShader("Load Example", "Add", shader);
+    }
+    ImGui::SeparatorText("External");
+    for(auto &[name, url]: kExternalFragmentShaderExamples)
+    {
+      if(ImGui::MenuItem(name.c_str()))
+        importFromURL(url);
+    }
+    ImGui::EndMenu();
+  }
+}
+
 //------------------------------------------------------------------------
 // MainWindow::doRender
 //------------------------------------------------------------------------
@@ -1017,17 +1033,7 @@ void MainWindow::doRender()
             promptImportFromURL();
           ImGui::EndMenu();
         }
-        if(ImGui::BeginMenu("Examples"))
-        {
-          for(auto &shader: kFragmentShaderExamples)
-          {
-            if(ImGui::MenuItem(shader.fName.c_str()))
-            {
-              maybeNewFragmentShader("Load Example", "Add", shader);
-            }
-          }
-          ImGui::EndMenu();
-        }
+        renderExampleMenu();
         ImGui::EndPopup();
       }
 

@@ -169,6 +169,7 @@ private:
   void renderTimeControls();
   void renderShaderSection(bool iEditorHasFocus);
   void renderHistory();
+  void renderExampleMenu();
   void compile(std::string const &iNewCode);
   void promptNewEmtpyShader();
   void promptRenameCurrentShader();

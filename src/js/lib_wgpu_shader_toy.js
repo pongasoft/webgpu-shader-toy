@@ -141,6 +141,18 @@ let wgpu_shader_toy = {
 
     url = UTF8ToString(url);
 
+    let pathname;
+    try {
+      if(url.startsWith('/')) {
+        url = window.location.href.replace(/\/$/, '') + url;
+      }
+      pathname = new URL(url).pathname;
+      pathname = decodeURIComponent(pathname.substring(pathname.lastIndexOf('/') + 1));
+    } catch (e) {
+      WGPU_SHADER_TOY.onNewContent(iToken, url, null, `Malformed URL: ${e.message}`);
+      return;
+    }
+
     async function fetchContent() {
       const response = await fetch(url);
       if (!response.ok) {
@@ -148,9 +160,6 @@ let wgpu_shader_toy = {
       }
       return await response.text();
     }
-
-    var pathname = new URL(url).pathname;
-    pathname = pathname.substring(pathname.lastIndexOf('/') + 1);
 
     fetchContent()
       .then(content => { WGPU_SHADER_TOY.onNewContent(iToken, pathname, content, null); })

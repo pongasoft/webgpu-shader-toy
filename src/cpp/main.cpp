@@ -55,7 +55,7 @@ static void WaitLoopForEmscripten()
 }
 
 namespace shader_toy {
-extern std::vector<Shader> kFragmentShaderExamples;
+extern std::vector<Shader> kBuiltInFragmentShaderExamples;
 }
 
 shader_toy::State computeDefaultState()
@@ -70,7 +70,7 @@ shader_toy::State computeDefaultState()
   state.fSettings.fMainWindowSize = {static_cast<int>(width1), static_cast<int>(height1)};
   state.fSettings.fFragmentShaderWindowSize = {static_cast<int>(width2), static_cast<int>(height2)};
 
-  auto defaultShader = shader_toy::kFragmentShaderExamples[0];
+  auto defaultShader = shader_toy::kBuiltInFragmentShaderExamples[0];
   defaultShader.fWindowSize = state.fSettings.fFragmentShaderWindowSize;
   state.fShaders.fList.emplace_back(defaultShader);
   state.fShaders.fCurrent = defaultShader.fName;

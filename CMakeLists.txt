@@ -75,6 +75,7 @@ target_include_directories(wgpu_shader_toy PUBLIC
 )
 
 file(COPY ${CMAKE_SOURCE_DIR}/src/resources/images DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/src/resources/shaders DESTINATION ${CMAKE_BINARY_DIR})
 
 # Copy (and processes) shell.html
 set(SHELL_SRC "${CMAKE_SOURCE_DIR}/src/resources/emscripten/shell.html")
