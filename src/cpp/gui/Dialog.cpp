@@ -77,7 +77,7 @@ void IDialog::render()
         if(ImGui::Button(button.fLabel.c_str(), buttonSize))
         {
           button.execute();
-          ImGui::CloseCurrentPopup();
+          fDialogIsNotDismissed = false;
         }
         if(button.fDefaultFocus)
           ImGui::SetItemDefaultFocus();
@@ -86,7 +86,7 @@ void IDialog::render()
       ImGui::EndDisabled();
     }
 
-    if(fAllowDismissDialog && ImGui::IsKeyPressed(ImGuiKey_Escape))
+    if(!fDialogIsNotDismissed || fAllowDismissDialog && ImGui::IsKeyPressed(ImGuiKey_Escape))
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();

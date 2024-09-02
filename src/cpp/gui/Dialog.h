@@ -59,6 +59,7 @@ public:
   void render();
   bool isOpen() const;
   void initKeyboardFocusHere();
+  void dismiss() { fDialogIsNotDismissed = false; }
 
 protected:
   float computeButtonWidth() const;

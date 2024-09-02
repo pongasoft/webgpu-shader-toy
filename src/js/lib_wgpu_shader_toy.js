@@ -19,76 +19,86 @@ let wgpu_shader_toy = {
   $WGPU_SHADER_TOY__deps: ['$stringToNewUTF8', 'free'],
   $WGPU_SHADER_TOY__postset: `
     // exports
-    Module["wgpuShaderToyLoadFile"] = WGPU_SHADER_TOY.loadFile;
+    Module["wgpuShaderToyLoadFile"] = WGPU_SHADER_TOY.onFile;
     `,
   $WGPU_SHADER_TOY: {
-    fNewFileHandler: null, // {handler: <fn(userData, filename, content)>, userData: <ptr>}
-    fBeforeUnloadHandler: null, // // {handler: <fn(userData)>, userData: <ptr>}
+    fUserData: null,
+    fNewContentHandler: null, // <fn(userData, token, name, content, error)>
+    fBeforeUnloadHandler: null, // <fn(userData)>
+    fOnFileHandler: null, // <fn(userData, file)>
 
-    // onNewFile
-    onNewFile: (fragmentShaderFile, fragmentShaderContent) => {
-      if(WGPU_SHADER_TOY.fNewFileHandler) {
-        const filename = stringToNewUTF8(fragmentShaderFile.name);
-        const content = stringToNewUTF8(fragmentShaderContent);
-        {{{ makeDynCall('vppp', 'WGPU_SHADER_TOY.fNewFileHandler.handler') }}}(WGPU_SHADER_TOY.fNewFileHandler.userData, filename, content);
-        _free(content);
+    // onNewContent
+    onNewContent: (iToken, iName, iContent, iError) => {
+      if(WGPU_SHADER_TOY.fNewContentHandler) {
+        const name = stringToNewUTF8(iName);
+        const content = iContent ? stringToNewUTF8(iContent) : null;
+        const error = iError ? stringToNewUTF8(iError) : null;
+        {{{ makeDynCall('vpippp', 'WGPU_SHADER_TOY.fNewContentHandler') }}}(WGPU_SHADER_TOY.fUserData, iToken, name, content, error);
+        if(error)
+          _free(error);
+        if(content)
+          _free(content);
+        _free(name);
+      }
+    },
+
+    // onFile
+    onFile: (iFile) => {
+      if(!iFile)
+        return;
+      if(WGPU_SHADER_TOY.fOnFileHandler) {
+        const filename = stringToNewUTF8(iFile.name);
+        const token = {{{ makeDynCall('ipp', 'WGPU_SHADER_TOY.fOnFileHandler') }}}(WGPU_SHADER_TOY.fUserData, filename);
         _free(filename);
+        WGPU_SHADER_TOY.loadFile(token, iFile);
       }
     },
 
     // loadFile
-    loadFile: (file) => {
+    loadFile: (iToken, file) => {
       let reader = new FileReader();
       reader.onload = function(evt) {
-        WGPU_SHADER_TOY.onNewFile(file, evt.target.result);
+        WGPU_SHADER_TOY.onNewContent(iToken, file.name, evt.target.result, null);
+      };
+      reader.onerror = function(evt) {
+        WGPU_SHADER_TOY.onNewContent(iToken, file.name, null, reader.error.message);
       };
       reader.readAsText(file);
     },
-
-    // createFileDialog
-    createFileDialog: () => {
-      WGPU_SHADER_TOY.fFragmentShaderFileDialog = document.createElement("input");
-      WGPU_SHADER_TOY.fFragmentShaderFileDialog.type = 'file';
-      WGPU_SHADER_TOY.fFragmentShaderFileDialog.onchange = (e) => {
-        WGPU_SHADER_TOY.loadFile(e.target.files[0]);
-        // implementation note: loading the same file twice does not work unless I recreate the input...
-        WGPU_SHADER_TOY.createFileDialog();
-      }
-    }
   },
 
   // wgpu_shader_toy_install_handlers
-  wgpu_shader_toy_install_handlers: (new_file_handler, before_unload_handler, user_data) => {
-    WGPU_SHADER_TOY.fNewFileHandler = {
-      handler: new_file_handler,
-      userData: user_data
-    };
-    WGPU_SHADER_TOY.fBeforeUnloadHandler = {
-      handler: before_unload_handler,
-      userData: user_data
-    };
+  wgpu_shader_toy_install_handlers: (user_data, new_content_handler, before_unload_handler, on_file_handler) => {
+    WGPU_SHADER_TOY.fUserData = user_data;
+    WGPU_SHADER_TOY.fNewContentHandler = new_content_handler;
+    WGPU_SHADER_TOY.fBeforeUnloadHandler = before_unload_handler;
+    WGPU_SHADER_TOY.fOnFileHandler = on_file_handler;
     window.addEventListener('beforeunload', function (event) {
       if(!Module.resetRequested) {
         if(WGPU_SHADER_TOY.fBeforeUnloadHandler) {
-          {{{ makeDynCall('vp', 'WGPU_SHADER_TOY.fBeforeUnloadHandler.handler') }}}(WGPU_SHADER_TOY.fBeforeUnloadHandler.userData);
+          {{{ makeDynCall('vp', 'WGPU_SHADER_TOY.fBeforeUnloadHandler') }}}(WGPU_SHADER_TOY.fUserData);
         }
       }
     });
-    WGPU_SHADER_TOY.createFileDialog();
   },
 
   // wgpu_shader_toy_uninstall_handlers
   wgpu_shader_toy_uninstall_handlers: () => {
-    delete WGPU_SHADER_TOY.fFragmentShaderFileDialog;
+    delete WGPU_SHADER_TOY.fOnFileHandler;
     delete WGPU_SHADER_TOY.fBeforeUnloadHandler;
-    delete WGPU_SHADER_TOY.fNewFileHandler;
+    delete WGPU_SHADER_TOY.fNewContentHandler;
+    delete WGPU_SHADER_TOY.fUserData;
   },
 
   // wgpu_shader_toy_open_file_dialog
   wgpu_shader_toy_open_file_dialog: () => {
-    if(WGPU_SHADER_TOY.fFragmentShaderFileDialog) {
-      WGPU_SHADER_TOY.fFragmentShaderFileDialog.click();
+    const dialog = document.createElement("input");
+    dialog.type = 'file';
+    dialog.onchange = (e) => {
+      if(e.target.files.length > 0)
+        WGPU_SHADER_TOY.onFile(e.target.files[0]);
     }
+    dialog.click();
   },
 
   // wgpu_shader_toy_print_stack_trace
@@ -122,6 +132,29 @@ let wgpu_shader_toy = {
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
+  },
+
+  // wgpu_shader_toy_import_from_url
+  wgpu_shader_toy_import_from_url: (iToken, url) => {
+    if(!url)
+      return;
+
+    url = UTF8ToString(url);
+
+    async function fetchContent() {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Server Error [${response.status}] ${response.statusText}`);
+      }
+      return await response.text();
+    }
+
+    var pathname = new URL(url).pathname;
+    pathname = pathname.substring(pathname.lastIndexOf('/') + 1);
+
+    fetchContent()
+      .then(content => { WGPU_SHADER_TOY.onNewContent(iToken, pathname, content, null); })
+      .catch(error => { WGPU_SHADER_TOY.onNewContent(iToken, pathname, null, error.message); });
   },
 
   // wgpu_shader_toy_save_screenshot

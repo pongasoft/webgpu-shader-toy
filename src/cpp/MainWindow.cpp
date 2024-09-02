@@ -35,28 +35,44 @@
 
 namespace shader_toy {
 extern "C" {
-using OnNewFileHandler = void (*)(MainWindow *iMainWindow, char const *iFilename, char const *iContent);
+using OnFileHandler = int (*)(MainWindow *iMainWindow, char const *iName);
+using OnNewContentHandler = void (*)(MainWindow *iMainWindow, int iToken, char const *iName, char const *iContent, char const *iError);
 using OnBeforeUnloadHandler = void (*)(MainWindow *iMainWindow);
 
-void wgpu_shader_toy_install_handlers(OnNewFileHandler iOnNewFileHandler,
+void wgpu_shader_toy_install_handlers(MainWindow *iMainWindow,
+                                      OnNewContentHandler iOnNewFileHandler,
                                       OnBeforeUnloadHandler iOnBeforeUnloadHandler,
-                                      MainWindow *iMainWindow);
+                                      OnFileHandler iOnFileHandler);
 
 void wgpu_shader_toy_uninstall_handlers();
 void wgpu_shader_toy_open_file_dialog();
 void wgpu_shader_toy_export_content(char const *iFilename, char const *iContent);
+void wgpu_shader_toy_import_from_url(int iToken, char const *iURL);
 
 void wgpu_shader_toy_print_stack_trace(char const *iMessage);
 
 }
 
 namespace callbacks {
+
 //------------------------------------------------------------------------
-// callbacks::OnNewFileCallback
+// callbacks::OnFileHandler
 //------------------------------------------------------------------------
-void OnNewFileCallback(MainWindow *iMainWindow, char const *iFilename, char const *iContent)
+int OnFileCallback(MainWindow *iMainWindow, char const *iName)
 {
-  iMainWindow->onNewFile(iFilename, iContent);
+  if(iMainWindow)
+    return iMainWindow->onFile(iName);
+  else
+    return 0;
+}
+
+//------------------------------------------------------------------------
+// callbacks::OnNewContentCallback
+//------------------------------------------------------------------------
+void OnNewContentCallback(MainWindow *iMainWindow, int iToken, char const *iName, char const *iContent, char const *iError)
+{
+  if(iMainWindow)
+    iMainWindow->onNewContent(iToken, iName, iContent, iError);
 }
 
 //------------------------------------------------------------------------
@@ -64,7 +80,8 @@ void OnNewFileCallback(MainWindow *iMainWindow, char const *iFilename, char cons
 //------------------------------------------------------------------------
 void OnBeforeUnload(MainWindow *iMainWindow)
 {
-  iMainWindow->saveState();
+  if(iMainWindow)
+    iMainWindow->saveState();
 }
 
 }
@@ -157,9 +174,10 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
   setFontSize(iMainWindowArgs.state.fSettings.fFontSize);
   fSetFontSizeRequest = std::nullopt;
 
-  wgpu_shader_toy_install_handlers(callbacks::OnNewFileCallback,
+  wgpu_shader_toy_install_handlers(this,
+                                   callbacks::OnNewContentCallback,
                                    callbacks::OnBeforeUnload,
-                                   this);
+                                   callbacks::OnFileCallback);
 }
 
 //------------------------------------------------------------------------
@@ -364,7 +382,7 @@ void MainWindow::renderMainMenuBar()
       if(ImGui::MenuItem("Export (disk)"))
         promptExportProject();
       if(ImGui::MenuItem("Import (disk)"))
-        wgpu_shader_toy_open_file_dialog();
+        importFromDisk();
       ImGui::Separator();
       if(ImGui::BeginMenu("Reset"))
       {
@@ -991,8 +1009,14 @@ void MainWindow::doRender()
       {
         if(ImGui::MenuItem("New"))
           promptNewEmtpyShader();
-        if(ImGui::MenuItem("Import"))
-          wgpu_shader_toy_open_file_dialog();
+        if(ImGui::BeginMenu("Import"))
+        {
+          if(ImGui::MenuItem("From Disk"))
+            importFromDisk();
+          if(ImGui::MenuItem("From URL"))
+            promptImportFromURL();
+          ImGui::EndMenu();
+        }
         if(ImGui::BeginMenu("Examples"))
         {
           for(auto &shader: kFragmentShaderExamples)
@@ -1266,23 +1290,62 @@ void MainWindow::setWindowOrder()
 }
 
 //------------------------------------------------------------------------
-// MainWindow::onNewFile
+// MainWindow::onFile
 //------------------------------------------------------------------------
-void MainWindow::onNewFile(char const *iFilename, char const *iContent)
+int MainWindow::onFile(char const *iName)
 {
-  if(iFilename == nullptr || iContent == nullptr)
+  if(!iName)
+    return 0;
+
+  return newContentRequest({NewContentRequest::File{iName}});
+}
+
+//------------------------------------------------------------------------
+// MainWindow::onNewContent
+//------------------------------------------------------------------------
+void MainWindow::onNewContent(int iToken, char const *iName, char const *iContent, char const *iError)
+{
+  if(iName == nullptr || (iContent == nullptr && iError == nullptr))
     return;
 
-  std::string filename = iFilename;
-  if(impl::ends_with(filename, ".json"))
-    loadFromState(filename, Preferences::deserialize(iContent, State{.fSettings = computeStateSettings()}));
+  // asynchronous call mismatch (ignored)
+  if(!fNewContentRequest || fNewContentRequest->fToken != iToken)
+    return;
+
+  auto request = std::exchange(fNewContentRequest, std::nullopt);
+
+  if(iError)
+  {
+    newDialog("Error")
+      .content([request, error = std::string(iError)]{
+        ImGui::Text("There was an error while importing %s", request->getValue().c_str());
+        ImGui::TextUnformatted(error.c_str());
+      })
+      .buttonOk();
+    return;
+  }
+
+  if(request->isFile())
+    onNewFile(iName, iContent);
+  else
+    onURLImported(request->getValue(), iName, iContent);
+}
+
+//------------------------------------------------------------------------
+// MainWindow::onNewFile
+//------------------------------------------------------------------------
+void MainWindow::onNewFile(char const *iName, char const *iContent)
+{
+  std::string name = iName;
+  if(impl::ends_with(name, ".json"))
+    loadFromState(name, Preferences::deserialize(iContent, State{.fSettings = computeStateSettings()}));
   else
   {
     // remove the extension...
-    if(impl::ends_with(filename, ".wgsl"))
-      filename = filename.substr(0, filename.find_last_of('.'));
+    if(impl::ends_with(name, ".wgsl"))
+      name = name.substr(0, name.find_last_of('.'));
 
-    maybeNewFragmentShader("Import Shader", "Continue", {filename, iContent});
+    maybeNewFragmentShader("Import Shader", "Continue", {name, iContent});
   }
 }
 
@@ -1519,6 +1582,93 @@ void MainWindow::renderHistory()
     if(redoAction)
       deferBeforeImGuiFrame([mgr = &fUndoManager, redoAction] { mgr->redoUntil(redoAction); });
   }
+}
+
+//------------------------------------------------------------------------
+// MainWindow::importFromDisk
+//------------------------------------------------------------------------
+void MainWindow::importFromDisk()
+{
+  wgpu_shader_toy_open_file_dialog();
+}
+
+// https://gist.githubusercontent.com/ypujante/5ad3b5ab04639fa3add6a123fa24504d/raw/6cc17bd3b9e055348a2cea2a0f85cd379025ad7a/Fire.wgsl
+// https://gist.github.com/ypujante/5ad3b5ab04639fa3add6a123fa24504d/raw/6cc17bd3b9e055348a2cea2a0f85cd379025ad7a/Fire.wgsl [cors error]
+
+//------------------------------------------------------------------------
+// MainWindow::promptImportFromURL
+//------------------------------------------------------------------------
+void MainWindow::promptImportFromURL()
+{
+  static std::string kURL{};
+
+  newDialog<std::string &>("Import Shader", kURL)
+    .content([] (auto &iDialog) {
+      ImGui::SeparatorText("URL");
+      iDialog.initKeyboardFocusHere();
+      ImGui::SetNextItemWidth(ImGui::GetMainViewport()->WorkSize.x * 0.66f);
+      ImGui::InputText("###url", &iDialog.state());
+      iDialog.button(0).fEnabled = !iDialog.state().empty();
+    })
+    .button("Import", [this] (auto &iDialog) {
+      importFromURL(iDialog.state());
+    }, true)
+    .buttonCancel()
+    ;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::importFromURL
+//------------------------------------------------------------------------
+void MainWindow::importFromURL(std::string const &iURL)
+{
+  wgpu_shader_toy_import_from_url(newContentRequest(NewContentRequest::URL{iURL}), iURL.c_str());
+}
+
+//------------------------------------------------------------------------
+// MainWindow::onURLImported
+//------------------------------------------------------------------------
+void MainWindow::onURLImported(std::string const &iURL, char const *iName, char const *iContent)
+{
+  std::string name = iName;
+  // remove the extension...
+  if(impl::ends_with(name, ".wgsl"))
+    name = name.substr(0, name.find_last_of('.'));
+
+  maybeNewFragmentShader("Import Shader", "Continue", {name, iContent});
+}
+
+//------------------------------------------------------------------------
+// MainWindow::newContentRequest
+//------------------------------------------------------------------------
+int MainWindow::newContentRequest(MainWindow::NewContentRequest::Source iSource)
+{
+  fNewContentRequest = NewContentRequest{std::move(iSource)};
+  newDialog("Loading Shader...")
+    .content([this, token = fNewContentRequest->fToken, progress = 0.0f] (auto &iDialog) mutable {
+      if(!fNewContentRequest || fNewContentRequest->fToken != token)
+        iDialog.dismiss();
+      else
+      {
+        ImGui::Text("Loading shader from %s", fNewContentRequest->getValue().c_str());
+        progress += 1.0f/60.0f;
+        if(progress > 1.0f)
+          progress = 0;
+        ImGui::ProgressBar(progress, ImVec2(-FLT_MIN, 0), "");
+      }
+    })
+    .button("Cancel", [this] { fNewContentRequest = std::nullopt; });
+  return fNewContentRequest->fToken;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::NewContentRequest::NewContentRequest
+//------------------------------------------------------------------------
+MainWindow::NewContentRequest::NewContentRequest(MainWindow::NewContentRequest::Source iSource) :
+  fSource{std::move(iSource)}
+{
+  static int kLastToken = 1;
+  fToken = kLastToken++;
 }
 
 //------------------------------------------------------------------------

@@ -95,7 +95,8 @@ public:
 
   void afterFrame() override;
 
-  void onNewFile(char const *iFilename, char const *iContent);
+  int onFile(char const *iName);
+  void onNewContent(int iToken, char const *iName, char const *iContent, char const *iError);
   void maybeNewFragmentShader(std::string const &iTitle, std::string const &iOkButton, Shader const &iShader);
   void saveState();
 
@@ -116,6 +117,22 @@ protected:
 private:
   using gui_action_t = std::function<void()>;
 
+  struct NewContentRequest
+  {
+    struct File{std::string name;};
+    struct URL{std::string url;};
+
+    using Source = std::variant<File, URL>;
+
+    explicit NewContentRequest(Source iSource);
+    constexpr bool isFile() const { return std::holds_alternative<File>(fSource); }
+    constexpr bool isURL() const { return std::holds_alternative<URL>(fSource); }
+    constexpr std::string const &getValue() const { return isFile() ? std::get<File>(fSource).name : std::get<URL>(fSource).url; }
+
+    int fToken;
+    Source fSource;
+  };
+
 private:
 
   template<IsMainWindowAction T, class... Args >
@@ -131,6 +148,11 @@ private:
   void resetAll();
   void initFromState(std::optional<State::Settings> iSettings, std::optional<State::Shaders> iShaders, std::string iDescription);
   void loadFromState(std::string const &iFilename, State const &iState);
+  void importFromDisk();
+  void promptImportFromURL();
+  void importFromURL(std::string const &iURL);
+  void onNewFile(char const *iName, char const *iContent);
+  void onURLImported(std::string const &iURL, char const *iName, char const *iContent);
   void setStyle(bool iDarkStyle);
   void setFontSize(float iFontSize);
   void requestFontSize(float iFontSize);
@@ -163,6 +185,7 @@ private:
   void saveCurrentFragmentShaderScreenshot(std::string const &iFilename);
   void renameShader(std::string const &iOldName, std::string const &iNewName);
   void resizeShader(Renderable::Size const &iSize, bool iApplyToAll);
+  int newContentRequest(NewContentRequest::Source iSource);
   void newAboutDialog();
   void newHelpDialog();
   void help() const;
@@ -207,6 +230,8 @@ private:
   std::optional<std::string> fCurrentFragmentShaderNameRequest{};
 
   pongasoft::utils::UndoManager fUndoManager{};
+
+  std::optional<NewContentRequest> fNewContentRequest{};
 
   // UI
   ImVec2 fIconButtonSize{};
