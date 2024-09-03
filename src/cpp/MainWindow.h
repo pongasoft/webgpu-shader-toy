@@ -141,7 +141,6 @@ private:
   void onNewFragmentShader(Shader const &iShader);
   void onNewFragmentShader(std::unique_ptr<FragmentShader> iFragmentShader);
   int removeFragmentShader(std::string const &iName);
-  void removeAllFragmentShaders();
   void setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader);
   void resetSettings();
   void resetShaders();

@@ -167,23 +167,6 @@ int MainWindow::removeFragmentShader(std::string const &iName)
 }
 
 //------------------------------------------------------------------------
-// MainWindow::removeAllFragmentShaders
-//------------------------------------------------------------------------
-void MainWindow::removeAllFragmentShaders()
-{
-  if(fFragmentShaders.empty())
-    return;
-
-  fUndoManager.beginTx("Remove All Shaders");
-  auto names = fFragmentShaders
-               | std::views::transform([](auto &shader) { return shader->getName(); })
-               | std::ranges::to<std::vector>();
-  for(auto &name: names)
-    removeFragmentShader(name);
-  fUndoManager.commitTx();
-}
-
-//------------------------------------------------------------------------
 // MainWindow::RenameFragmentShaderAction
 //------------------------------------------------------------------------
 class RenameFragmentShaderAction : public MainWindowAction<void>
@@ -324,6 +307,18 @@ void MainWindow::initFromStateAction(State::Shaders const &iShaders)
     auto shader = findFragmentShaderByName(iShaders.fCurrent.value());
     if(shader)
       setCurrentFragmentShader(shader);
+  }
+
+  if(!fCurrentFragmentShader)
+  {
+    if(fFragmentShaders.empty())
+    {
+      setTitle("WebGPU Shader Toy");
+      fFragmentShaderWindow->setTitle("WebGPU Shader Toy");
+      fFragmentShaderWindow->setCurrentFragmentShader(nullptr);
+    }
+    else
+      setCurrentFragmentShader(fFragmentShaders[0]);
   }
 }
 
