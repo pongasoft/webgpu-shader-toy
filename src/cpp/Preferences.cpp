@@ -94,6 +94,7 @@ std::string Preferences::serialize(State const &iState)
     {"fCodeShowWhiteSpace", settings.fCodeShowWhiteSpace},
     {"fScreenshotMimeType", settings.fScreenshotMimeType},
     {"fScreenshotQualityPercent", settings.fScreenshotQualityPercent},
+    {"fProjectFilename", settings.fProjectFilename},
     {"fShaders", shaders}
   };
 
@@ -123,7 +124,7 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
     settings.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", settings.fCodeShowWhiteSpace);
     settings.fScreenshotMimeType = data.value("fScreenshotMimeType", settings.fScreenshotMimeType);
     settings.fScreenshotQualityPercent = data.value("fScreenshotQualityPercent", settings.fScreenshotQualityPercent);
-//    state.fAspectRatio = data.value("fAspectRatio", state.fAspectRatio);
+    settings.fProjectFilename = data.value("fProjectFilename", settings.fProjectFilename);
     settings.fMainWindowSize = impl::value(data, "fMainWindowSize", settings.fMainWindowSize);
     settings.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", settings.fFragmentShaderWindowSize);
     if(data.find("fShaders") != data.end())

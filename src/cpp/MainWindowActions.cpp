@@ -287,6 +287,7 @@ void MainWindow::initFromStateAction(State::Settings const &iSettings)
   fCodeShowWhiteSpace = iSettings.fCodeShowWhiteSpace;
   fScreenshotFormat = image::format::getFormatFromMimeType(iSettings.fScreenshotMimeType);
   fScreenshotQualityPercent = iSettings.fScreenshotQualityPercent;
+  fProjectFilename = iSettings.fProjectFilename;
 }
 
 //------------------------------------------------------------------------

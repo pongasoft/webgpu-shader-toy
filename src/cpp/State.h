@@ -52,6 +52,7 @@ struct State
     bool fCodeShowWhiteSpace{false};
     std::string fScreenshotMimeType{"image/png"};
     int fScreenshotQualityPercent{85};
+    std::string fProjectFilename{"WebGPUShaderToy.json"};
   };
 
   struct Shaders

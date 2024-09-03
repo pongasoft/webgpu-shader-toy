@@ -180,6 +180,7 @@ private:
                         std::shared_ptr<FragmentShader> iShader = nullptr);
   void promptExportShader(std::string const &iFilename, std::string const &iContent);
   void promptExportProject();
+  void exportProject();
   void promptShaderFrameSize();
   void promptSaveCurrentFragmentShaderScreenshot();
   void saveCurrentFragmentShaderScreenshot(std::string const &iFilename);
@@ -212,6 +213,7 @@ private:
   bool fCodeShowWhiteSpace{false};
   image::format::Format fScreenshotFormat{image::format::kPNG};
   int fScreenshotQualityPercent{85};
+  std::string fProjectFilename{"WebGPUShaderToy.json"};
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
 

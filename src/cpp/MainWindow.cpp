@@ -382,6 +382,8 @@ void MainWindow::renderMainMenuBar()
         saveState();
       if(ImGui::MenuItem("Export (disk)"))
         promptExportProject();
+      if(ImGui::MenuItem("Quick Export (disk)", getShortcutString("D")))
+        exportProject();
       if(ImGui::MenuItem("Import (disk)"))
         importFromDisk();
       ImGui::Separator();
@@ -710,7 +712,7 @@ void MainWindow::promptExportShader(std::string const &iFilename, std::string co
 //------------------------------------------------------------------------
 void MainWindow::promptExportProject()
 {
-  newDialog("Export Project", std::string("WebGPUShaderToy.json"))
+  newDialog("Export Project", std::string(fProjectFilename))
     .content([] (auto &iDialog) {
       ImGui::SeparatorText("Filename");
       iDialog.initKeyboardFocusHere();
@@ -718,10 +720,19 @@ void MainWindow::promptExportProject()
       iDialog.button(0).fEnabled = !iDialog.state().empty();
     })
     .button("Export", [this] (auto &iDialog) {
-      wgpu_shader_toy_export_content(iDialog.state().c_str(), fPreferences->serialize(computeState()).c_str());
+      fProjectFilename = iDialog.state();
+      exportProject();
     }, true)
     .buttonCancel()
     ;
+}
+
+//------------------------------------------------------------------------
+// MainWindow::exportProject
+//------------------------------------------------------------------------
+void MainWindow::exportProject()
+{
+  wgpu_shader_toy_export_content(fProjectFilename.c_str(), fPreferences->serialize(computeState()).c_str());
 }
 
 //------------------------------------------------------------------------
@@ -1154,6 +1165,10 @@ void MainWindow::afterFrame()
     }
     fLastComputedStateTime = time;
   }
+
+  // Quick Export
+  if(ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_S))
+    exportProject();
 }
 
 //------------------------------------------------------------------------
@@ -1190,6 +1205,7 @@ State::Settings MainWindow::computeStateSettings() const
     .fCodeShowWhiteSpace = fCodeShowWhiteSpace,
     .fScreenshotMimeType = fScreenshotFormat.fMimeType,
     .fScreenshotQualityPercent = fScreenshotQualityPercent,
+    .fProjectFilename = fProjectFilename,
   };
 }
 
@@ -1423,6 +1439,7 @@ void MainWindow::help() const
     {"Ctrl + Shift + A", {"Select All"}},
     {"Ctrl + [ or ]", {"Indentation change"}},
     {"Ctrl + /", {"Toggle line comment"}},
+    {"Ctrl + S", {"Quick Export (disk)"}},
     {"Ctrl + A", {"Beginning of line"}},
     {"Ctrl + E", {"End of line"}},
     {"Home or End", {"Beginning or End of line"}},
@@ -1440,6 +1457,7 @@ void MainWindow::help() const
     {"Cmd + Shift + A", {"Select All"}},
     {"Cmd + [ or ]", {"Indentation change"}},
     {"Cmd + /", {"Toggle line comment"}},
+    {"Cmd + S", {"Quick Export (disk)"}},
     {"Cmd|Ctrl + A", {"Beginning of line"}},
     {"Cmd|Ctrl + E", {"End of line"}},
     {"Home or End", {"Beginning or End of line"}},
