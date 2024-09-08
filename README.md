@@ -19,7 +19,7 @@ There is a [video](https://www.youtube.com/watch?v=DZjFbFUaxy8) on YouTube showi
 Project
 -------
 
-> #### Note
+> [!NOTE]
 > This section describes the **project** itself, not the **product**.
 > Check the WebGPU Shader Toy [documentation](https://pongasoft.com/webgpu-shader-toy/index.html) for information about the tool and its behavior.
 
@@ -42,7 +42,7 @@ This tool uses [emscripten-glfw](https://github.com/pongasoft/emscripten-glfw) w
 
 ### Building
 
-> #### Note
+> [!NOTE]
 > This tool is meant to run in a browser and is not a desktop application.
 > As a result, it requires [emscripten](https://emscripten.org/) to compile.
 
