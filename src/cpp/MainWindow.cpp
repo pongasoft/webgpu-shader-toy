@@ -382,7 +382,7 @@ void MainWindow::renderMainMenuBar()
         saveState();
       if(ImGui::MenuItem("Export (disk)"))
         promptExportProject();
-      if(ImGui::MenuItem("Quick Export (disk)", getShortcutString("D")))
+      if(ImGui::MenuItem("Quick Export (disk)", getShortcutString("S")))
         exportProject();
       if(ImGui::MenuItem("Import (disk)"))
         importFromDisk();
@@ -1106,15 +1106,19 @@ void MainWindow::maybeNewFragmentShader(std::string const &iTitle, std::string c
 //------------------------------------------------------------------------
 void MainWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShader> iFragmentShader)
 {
-  fCurrentFragmentShader = std::move(iFragmentShader);
-  if(fLayoutManual)
-    fFragmentShaderWindow->resize(fCurrentFragmentShader->getWindowSize());
-  else
-    fCurrentFragmentShader->setWindowSize(fFragmentShaderWindow->getSize());
-  fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
-  auto title = fmt::printf("WebGPU Shader Toy | %s", fCurrentFragmentShader->getName());
-  setTitle(title);
-  fFragmentShaderWindow->setTitle(title);
+  if(fCurrentFragmentShader != iFragmentShader)
+  {
+    fCurrentFragmentShader = std::move(iFragmentShader);
+    if(fLayoutManual)
+      fFragmentShaderWindow->resize(fCurrentFragmentShader->getWindowSize());
+    else
+      fCurrentFragmentShader->setWindowSize(fFragmentShaderWindow->getSize());
+    fFragmentShaderWindow->setCurrentFragmentShader(fCurrentFragmentShader);
+    auto title = fmt::printf("WebGPU Shader Toy | %s", fCurrentFragmentShader->getName());
+    setTitle(title);
+    fFragmentShaderWindow->setTitle(title);
+    fCurrentFragmentShaderNameRequest = fCurrentFragmentShader->getName();
+  }
 }
 
 //------------------------------------------------------------------------
@@ -1384,7 +1388,7 @@ void MainWindow::newAboutDialog()
       ImGui::Text("And to have fun while doing it :)");
       ImGui::SeparatorText("Versions");
       ImGui::Text("Version:    %s", kFullVersion);
-      ImGui::Text("emscripten: %d.%d.%d", __EMSCRIPTEN_major__, __EMSCRIPTEN_minor__, __EMSCRIPTEN_tiny__);
+      ImGui::Text("Emscripten: %d.%d.%d", __EMSCRIPTEN_major__, __EMSCRIPTEN_minor__, __EMSCRIPTEN_tiny__);
       ImGui::Text("ImGui:      %s", IMGUI_VERSION);
       ImGui::Text("GLFW:       %s", glfwGetVersionString());
     })
