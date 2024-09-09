@@ -288,6 +288,7 @@ void MainWindow::initFromStateAction(State::Settings const &iSettings)
   fScreenshotFormat = image::format::getFormatFromMimeType(iSettings.fScreenshotMimeType);
   fScreenshotQualityPercent = iSettings.fScreenshotQualityPercent;
   fProjectFilename = iSettings.fProjectFilename;
+  fBrowserAutoSave = iSettings.fBrowserAutoSave;
 }
 
 //------------------------------------------------------------------------

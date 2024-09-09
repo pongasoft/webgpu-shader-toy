@@ -98,7 +98,7 @@ public:
   int onFile(char const *iName);
   void onNewContent(int iToken, char const *iName, char const *iContent, char const *iError);
   void maybeNewFragmentShader(std::string const &iTitle, std::string const &iOkButton, Shader const &iShader);
-  void saveState();
+  void maybeSaveState();
 
   State computeState() const;
   State::Settings computeStateSettings() const;
@@ -181,6 +181,7 @@ private:
   void promptExportShader(std::string const &iFilename, std::string const &iContent);
   void promptExportProject();
   void exportProject();
+  void saveState();
   void promptShaderFrameSize();
   void promptSaveCurrentFragmentShaderScreenshot();
   void saveCurrentFragmentShaderScreenshot(std::string const &iFilename);
@@ -214,6 +215,7 @@ private:
   image::format::Format fScreenshotFormat{image::format::kPNG};
   int fScreenshotQualityPercent{85};
   std::string fProjectFilename{"WebGPUShaderToy.json"};
+  bool fBrowserAutoSave{true};
 
   std::shared_ptr<FragmentShaderWindow> fFragmentShaderWindow;
 

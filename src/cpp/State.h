@@ -53,6 +53,7 @@ struct State
     std::string fScreenshotMimeType{"image/png"};
     int fScreenshotQualityPercent{85};
     std::string fProjectFilename{"WebGPUShaderToy.json"};
+    bool fBrowserAutoSave{true};
   };
 
   struct Shaders

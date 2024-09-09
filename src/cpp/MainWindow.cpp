@@ -81,7 +81,7 @@ void OnNewContentCallback(MainWindow *iMainWindow, int iToken, char const *iName
 void OnBeforeUnload(MainWindow *iMainWindow)
 {
   if(iMainWindow)
-    iMainWindow->saveState();
+    iMainWindow->maybeSaveState();
 }
 
 }
@@ -377,14 +377,16 @@ void MainWindow::renderMainMenuBar()
         newHelpDialog();
       ImGui::SeparatorText("Settings");
       renderSettingsMenu();
-      ImGui::SeparatorText("Project");
-      if(ImGui::MenuItem("Save (browser)"))
+      ImGui::SeparatorText("Project | Browser");
+      ImGui::MenuItem("Auto Save", nullptr, &fBrowserAutoSave);
+      if(ImGui::MenuItem("Save"))
         saveState();
-      if(ImGui::MenuItem("Export (disk)"))
+      ImGui::SeparatorText("Project | Disk");
+      if(ImGui::MenuItem("Export"))
         promptExportProject();
-      if(ImGui::MenuItem("Quick Export (disk)", getShortcutString("S")))
+      if(ImGui::MenuItem("Quick Export", getShortcutString("S")))
         exportProject();
-      if(ImGui::MenuItem("Import (disk)"))
+      if(ImGui::MenuItem("Import"))
         importFromDisk();
       ImGui::Separator();
       if(ImGui::BeginMenu("Reset"))
@@ -1156,7 +1158,7 @@ void MainWindow::afterFrame()
   Renderable::afterFrame();
   auto time = glfwGetTime();
   // check every 10s
-  if(fLastComputedStateTime + 10.0 < time)
+  if(fBrowserAutoSave && fLastComputedStateTime + 10.0 < time)
   {
 //    printf("Checking... [%f], [%f]\n", fLastComputedStateTime, time);
     auto state = computeState();
@@ -1193,6 +1195,15 @@ void MainWindow::saveState()
 }
 
 //------------------------------------------------------------------------
+// MainWindow::maybeSaveState
+//------------------------------------------------------------------------
+void MainWindow::maybeSaveState()
+{
+  if(fBrowserAutoSave)
+    saveState();
+}
+
+//------------------------------------------------------------------------
 // MainWindow::computeStateSettings
 //------------------------------------------------------------------------
 State::Settings MainWindow::computeStateSettings() const
@@ -1210,6 +1221,7 @@ State::Settings MainWindow::computeStateSettings() const
     .fScreenshotMimeType = fScreenshotFormat.fMimeType,
     .fScreenshotQualityPercent = fScreenshotQualityPercent,
     .fProjectFilename = fProjectFilename,
+    .fBrowserAutoSave = fBrowserAutoSave,
   };
 }
 

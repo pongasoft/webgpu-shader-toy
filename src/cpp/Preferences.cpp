@@ -95,6 +95,7 @@ std::string Preferences::serialize(State const &iState)
     {"fScreenshotMimeType", settings.fScreenshotMimeType},
     {"fScreenshotQualityPercent", settings.fScreenshotQualityPercent},
     {"fProjectFilename", settings.fProjectFilename},
+    {"fBrowserAutoSave", settings.fBrowserAutoSave},
     {"fShaders", shaders}
   };
 
@@ -111,33 +112,34 @@ std::string Preferences::serialize(State const &iState)
 State Preferences::deserialize(std::string const &iState, State const &iDefaultState)
 {
   auto state = iDefaultState; // we initialize with the default state in case some values are missing
-  auto data = json::parse(iState);
-  auto &settings = state.fSettings;
-  if(data.is_object())
+  try
   {
-    settings.fDarkStyle = data.value("fDarkStyle", settings.fDarkStyle);
-    settings.fLayoutManual = data.value("fLayoutManual", settings.fLayoutManual);
-    settings.fLayoutSwapped = data.value("fLayoutSwapped", settings.fLayoutSwapped);
-    settings.fHiDPIAware = data.value("fHiDPIAware", settings.fHiDPIAware);
-    settings.fFontSize = data.value("fFontSize", settings.fFontSize);
-    settings.fLineSpacing = data.value("fLineSpacing", settings.fLineSpacing);
-    settings.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", settings.fCodeShowWhiteSpace);
-    settings.fScreenshotMimeType = data.value("fScreenshotMimeType", settings.fScreenshotMimeType);
-    settings.fScreenshotQualityPercent = data.value("fScreenshotQualityPercent", settings.fScreenshotQualityPercent);
-    settings.fProjectFilename = data.value("fProjectFilename", settings.fProjectFilename);
-    settings.fMainWindowSize = impl::value(data, "fMainWindowSize", settings.fMainWindowSize);
-    settings.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", settings.fFragmentShaderWindowSize);
-    if(data.find("fShaders") != data.end())
+    auto data = json::parse(iState);
+    auto &settings = state.fSettings;
+    if(data.is_object())
     {
-      state.fShaders.fList.clear();
-      auto shaders = data.value("fShaders", json::array_t{});
-      if(!shaders.empty())
+      settings.fDarkStyle = data.value("fDarkStyle", settings.fDarkStyle);
+      settings.fLayoutManual = data.value("fLayoutManual", settings.fLayoutManual);
+      settings.fLayoutSwapped = data.value("fLayoutSwapped", settings.fLayoutSwapped);
+      settings.fHiDPIAware = data.value("fHiDPIAware", settings.fHiDPIAware);
+      settings.fFontSize = data.value("fFontSize", settings.fFontSize);
+      settings.fLineSpacing = data.value("fLineSpacing", settings.fLineSpacing);
+      settings.fCodeShowWhiteSpace = data.value("fCodeShowWhiteSpace", settings.fCodeShowWhiteSpace);
+      settings.fScreenshotMimeType = data.value("fScreenshotMimeType", settings.fScreenshotMimeType);
+      settings.fScreenshotQualityPercent = data.value("fScreenshotQualityPercent", settings.fScreenshotQualityPercent);
+      settings.fProjectFilename = data.value("fProjectFilename", settings.fProjectFilename);
+      settings.fBrowserAutoSave = data.value("fBrowserAutoSave", settings.fBrowserAutoSave);
+      settings.fMainWindowSize = impl::value(data, "fMainWindowSize", settings.fMainWindowSize);
+      settings.fFragmentShaderWindowSize = impl::value(data, "fFragmentShaderWindowSize", settings.fFragmentShaderWindowSize);
+      if(data.find("fShaders") != data.end())
       {
-        for(auto &shader: shaders)
+        state.fShaders.fList.clear();
+        auto shaders = data.value("fShaders", json::array_t{});
+        if(!shaders.empty())
         {
-          if(shader.is_object())
+          for(auto &shader: shaders)
           {
-            try
+            if(shader.is_object())
             {
               Shader s{};
               s.fName = shader.at("fName");
@@ -147,17 +149,21 @@ State Preferences::deserialize(std::string const &iState, State const &iDefaultS
               s.fWindowSize = impl::value(shader, "fWindowSize", state.fSettings.fFragmentShaderWindowSize);
               state.fShaders.fList.emplace_back(s);
             }
-            catch(...)
-            {
-              printf("Warning: Invalid syntax detected [ignored]\n");
-            }
           }
         }
       }
+      auto currentShader = data.value("fCurrentShader", "");
+      if(!currentShader.empty())
+        state.fShaders.fCurrent = currentShader;
     }
-    auto currentShader = data.value("fCurrentShader", "");
-    if(!currentShader.empty())
-      state.fShaders.fCurrent = currentShader;
+  }
+  catch(json::exception &e)
+  {
+    printf("Warning: Invalid json syntax detected [%s] [ignored]\n", e.what());
+  }
+  catch(...)
+  {
+    printf("Warning: Invalid json syntax detected [ignored]\n");
   }
   return state;
 }
