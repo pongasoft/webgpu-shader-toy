@@ -49,7 +49,7 @@ fn raymarch(ro: vec3f, rd: vec3f, tminmax: vec2f ) -> vec3f
 {
   var t = tminmax.x;
   var dt = .02;
-  //float dt = .2 - .195*cos(iTime*.05);//animated
+  //var dt = .2 - .195*cos(inputs.time*.05);//animated
   var col= vec3(0.);
   var c = 0.;
   for(var i: i32 =0; i<64; i++ )
