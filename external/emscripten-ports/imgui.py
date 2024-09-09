@@ -16,18 +16,16 @@
 
 import os
 from typing import Union, Dict, Optional
-from tools import utils
 
-TAG = '1.91.0'
+TAG = '1.91.1'
 
+# Run this file as a script to see which command to run to generate the checksums
 DISTRIBUTIONS = {
     'master': {
-        # curl -sfL https://github.com/ocornut/imgui/archive/refs/tags/v{TAG}.zip | shasum -a 512
-        'hash': '09cdd91537b9e7daf45fc075641940d6358697947ae6da3f16d5b41936352ca1a3598db206509eab6ca8987eb3702c1424214a479f2fec87c67947b015a85502'
+        'hash': 'd810eb37336379b4ed106c7f02eb7a5b5f3603ec07426e23539787b0d3e6602db320aafb908a81041ef4c9bb1a810bb2d845b10fe6d0412a28d90daec7c582cb'
     },
     'docking': {
-        # curl -sfL https://github.com/ocornut/imgui/archive/refs/tags/v{TAG}-docking.zip | shasum -a 512
-        'hash': '99f5618b163d7b1841c566ebe156d8e596b2932c34316ab3978ff2d4fbe68ad09fce8417faac689434ba87f2d3cfd9324a9e24cf492e6abb9811be0c0e18e5aa'
+        'hash': '402ae1c33cbe13312052297a7d8aa657326dff8279460288e8991937c118f7028639cb9801101569472e56964c22e9e1a319ad1a21ecefbeffca8cac1a08488c'
     }
 }
 
@@ -93,6 +91,8 @@ def get_lib_name(settings):
 
 
 def get(ports, settings, shared):
+    from tools import utils
+
     if opts['backend'] is None or opts['renderer'] is None:
         utils.exit_with_error(f'imgui port requires both backend and renderer options to be defined')
 
@@ -181,3 +181,11 @@ def handle_options(options, error_handler):
     else:
         deps.append('sdl2')
         build_deps['sdl2'] = 'sdl2'
+
+if __name__ == "__main__":
+    print(f'''# To compute checksums run this
+# master    
+curl -sfL https://github.com/ocornut/imgui/archive/refs/tags/v{TAG}.zip | shasum -a 512
+# docking    
+curl -sfL https://github.com/ocornut/imgui/archive/refs/tags/v{TAG}-docking.zip | shasum -a 512
+''')
