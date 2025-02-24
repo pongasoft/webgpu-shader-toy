@@ -19,6 +19,7 @@
 #include <GLFW/glfw3.h>
 #include "Application.h"
 #include "Errors.h"
+#include <emscripten/version.h>
 
 namespace shader_toy {
 
@@ -39,7 +40,8 @@ Application::Application()
   glfwSetErrorCallback(consoleErrorHandler);
 
   // print the version on the console
-  printf("%s\n", glfwGetVersionString());
+  printf("GLFW: %s\n", glfwGetVersionString());
+  printf("Emscripten: %d.%d.%d\n", __EMSCRIPTEN_major__, __EMSCRIPTEN_minor__, __EMSCRIPTEN_tiny__);
 
   // initialize the library
   WST_INTERNAL_ASSERT(glfwInit() == GLFW_TRUE);

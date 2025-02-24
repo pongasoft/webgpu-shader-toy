@@ -1,10 +1,8 @@
 # Copyright (c) 2024 pongasoft
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
+# Licensed under the MIT License. You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+# https://opensource.org/licenses/MIT
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -17,15 +15,15 @@
 import os
 from typing import Union, Dict, Optional
 
-TAG = '1.91.1'
+TAG = '1.91.8'
 
 # Run this file as a script to see which command to run to generate the checksums
 DISTRIBUTIONS = {
     'master': {
-        'hash': 'd810eb37336379b4ed106c7f02eb7a5b5f3603ec07426e23539787b0d3e6602db320aafb908a81041ef4c9bb1a810bb2d845b10fe6d0412a28d90daec7c582cb'
+        'hash': '4f4a95d879b5bbd15bc33a4ac3fd8d32554b521b2c18d7cc71f9d27e19eae7c52559963f572d1693b62cc5eb2fd56f2d58fa0e75f818296cb7e04f7014f43ddd'
     },
     'docking': {
-        'hash': '402ae1c33cbe13312052297a7d8aa657326dff8279460288e8991937c118f7028639cb9801101569472e56964c22e9e1a319ad1a21ecefbeffca8cac1a08488c'
+        'hash': '27441ed64868993fc9d89296081ac6bea9233f66ac1b748ed82491ec7dea3f4160fd072db2b59d3d9876323be380ff9b0617d0a89c2db8ae8a96c91852f158ab'
     }
 }
 
@@ -40,6 +38,7 @@ VALID_OPTION_VALUES = {
     'branch': DISTRIBUTIONS.keys(),
     'disableDemo': ['true', 'false'],
     'disableImGuiStdLib': ['true', 'false'],
+    'disableDefaultFont': ['true', 'false'],
     'optimizationLevel': ['0', '1', '2', '3', 'g', 's', 'z']  # all -OX possibilities
 }
 
@@ -52,9 +51,10 @@ VALID_RENDERERS = {
 OPTIONS = {
     'renderer': f'Which renderer to use: {VALID_OPTION_VALUES["renderer"]} (required)',
     'backend': f'Which backend to use: {VALID_OPTION_VALUES["backend"]} (required)',
-    'branch': 'Which branch to use: master (default) or docking',
+    'branch': 'Which branch to use: master or docking (default to master)',
     'disableDemo': 'A boolean to disable ImGui demo (enabled by default)',
     'disableImGuiStdLib': 'A boolean to disable misc/cpp/imgui_stdlib.cpp (enabled by default)',
+    'disableDefaultFont': 'A boolean to disable the default font (enabled by default)',
     'optimizationLevel': f'Optimization level: {VALID_OPTION_VALUES["optimizationLevel"]} (default to 2)',
 }
 
@@ -65,6 +65,7 @@ opts: Dict[str, Union[Optional[str], bool]] = {
     'branch': 'master',
     'disableDemo': False,
     'disableImGuiStdLib': False,
+    'disableDefaultFont': False,
     'optimizationLevel': '2'
 }
 
@@ -87,6 +88,7 @@ def get_lib_name(settings):
     return (f'lib_{port_name}_{get_tag()}-{opts["backend"]}-{opts["renderer"]}-O{opts["optimizationLevel"]}' +
             ('-nd' if opts['disableDemo'] else '') +
             ('-nl' if opts['disableImGuiStdLib'] else '') +
+            ('-nf' if opts['disableDefaultFont'] else '') +
             '.a')
 
 
@@ -116,6 +118,10 @@ def get(ports, settings, shared):
 
         flags = [f'--use-port={value}' for value in build_deps.values()]
         flags.append(f'-O{opts["optimizationLevel"]}')
+        flags.append('-Wno-nontrivial-memaccess')
+
+        if opts['disableDefaultFont']:
+            flags.append('-DIMGUI_DISABLE_DEFAULT_FONT')
 
         ports.build_port(source_path, final, port_name, srcs=srcs, flags=flags)
 
@@ -176,8 +182,11 @@ def handle_options(options, error_handler):
     if opts['backend'] == 'glfw':
         deps.append('emscripten-glfw3')
         patch_src_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-        build_deps['emscripten-glfw3'] = \
-            f"{os.path.join(patch_src_directory, 'emscripten-glfw3.py')}:optimizationLevel={opts['optimizationLevel']}"
+        glfw3_options = {'optimizationLevel': opts['optimizationLevel']}
+        if opts['renderer'] == 'wgpu':
+          glfw3_options['disableWebGL2'] = 'true'
+        glfw3_options = ':'.join(f"{key}={value}" for key, value in glfw3_options.items())
+        build_deps['emscripten-glfw3'] = f"{os.path.join(patch_src_directory, 'emscripten-glfw3.py')}:{glfw3_options}"
     else:
         deps.append('sdl2')
         build_deps['sdl2'] = 'sdl2'

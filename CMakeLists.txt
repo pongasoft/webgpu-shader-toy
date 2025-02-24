@@ -93,8 +93,8 @@ set(PORTS_OPTIMIZATION_LEVEL "$<IF:$<CONFIG:Debug>,0,2>")
 
 #set(wgpu_shader_toy_options "--use-port=contrib.glfw3" "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:disableDemo=$<IF:$<CONFIG:Debug>,false,true>")
 set(wgpu_shader_toy_options
-    "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/emscripten-glfw3.py:optimizationLevel=${PORTS_OPTIMIZATION_LEVEL}"
-    "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:disableDemo=${IMGUI_DISABLE_DEMO}:optimizationLevel=${PORTS_OPTIMIZATION_LEVEL}")
+    "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/emscripten-glfw3.py:optimizationLevel=${PORTS_OPTIMIZATION_LEVEL}:disableWebGL2=true"
+    "--use-port=${CMAKE_SOURCE_DIR}/external/emscripten-ports/imgui.py:backend=glfw:renderer=wgpu:disableDemo=${IMGUI_DISABLE_DEMO}:optimizationLevel=${PORTS_OPTIMIZATION_LEVEL}:disableDefaultFont=true")
 
 target_compile_options(wgpu_shader_toy PUBLIC
     "${wgpu_shader_toy_options}"
