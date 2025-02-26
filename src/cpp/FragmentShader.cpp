@@ -68,13 +68,12 @@ TextEditor &FragmentShader::edit()
 //------------------------------------------------------------------------
 // FragmentShader::toggleRunning
 //------------------------------------------------------------------------
-void FragmentShader::toggleRunning(double iCurrentTime)
+void FragmentShader::toggleRunning()
 {
-  if(fRunning)
-    fInputs.time = static_cast<gpu::f32>(iCurrentTime - fStartTime);
+  if(fClock.isRunning())
+    fClock.pause();
   else
-    fStartTime = iCurrentTime - fInputs.time;
-  fRunning = ! fRunning;
+    fClock.resume();
 }
 
 //------------------------------------------------------------------------
@@ -99,41 +98,39 @@ char const *FragmentShader::getStatus() const
 }
 
 //------------------------------------------------------------------------
-// FragmentShader::nextFrame
+// FragmentShader::updateInputsFromClock
 //------------------------------------------------------------------------
-void FragmentShader::nextFrame(double iCurrentTime, int frameCount)
+void FragmentShader::updateInputsFromClock()
 {
-  fManualTime = true;
-
-  fStartTime = iCurrentTime - fInputs.time;
-  fInputs.frame += frameCount;
-  fInputs.time = static_cast<gpu::f32>(iCurrentTime - fStartTime) + static_cast<float>(frameCount) / 60.0f;
+  fInputs.time = static_cast<gpu::f32>(fClock.getTime());
+  fInputs.frame = fClock.getFrame();
 }
 
 //------------------------------------------------------------------------
-// FragmentShader::previousFrame
+// FragmentShader::resetTime
 //------------------------------------------------------------------------
-void FragmentShader::previousFrame(double iCurrentTime, int frameCount)
+void FragmentShader::resetTime()
 {
-  fManualTime = true;
-
-  fStartTime = iCurrentTime - fInputs.time;
-  fInputs.frame = std::max(0, fInputs.frame - frameCount);
-  fInputs.time =
-    std::max(0.0f, static_cast<gpu::f32>(iCurrentTime - fStartTime) - static_cast<float>(frameCount) / 60.0f);
+  fClock.reset();
+  updateInputsFromClock();
 }
 
 //------------------------------------------------------------------------
-// FragmentShader::stopManualTime
+// FragmentShader::tickTime
 //------------------------------------------------------------------------
-void FragmentShader::stopManualTime(double iCurrentTime)
+void FragmentShader::tickTime(double iTimeDelta)
 {
-  if(fManualTime)
-  {
-    if(fRunning)
-      fStartTime = iCurrentTime - fInputs.time;
-    fManualTime = false;
-  }
+  fClock.tickTime(iTimeDelta);
+  updateInputsFromClock();
+}
+
+//------------------------------------------------------------------------
+// FragmentShader::tickFrame
+//------------------------------------------------------------------------
+void FragmentShader::tickFrame(int iFrameCount)
+{
+  fClock.tickFrame(iFrameCount);
+  updateInputsFromClock();
 }
 
 //------------------------------------------------------------------------

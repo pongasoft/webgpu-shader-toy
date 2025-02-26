@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.28)
 # CLion configuration. Note that Ninja does NOT work with c++ 20 for some unknown reason...
 # -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=/usr/local/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Debug
 
-set(wgpu-shader-toy_RELEASE_YEAR  "2024")
-set(wgpu-shader-toy_RELEASE_MONTH "09"  )
-set(wgpu-shader-toy_RELEASE_DAY   "08"  )
+set(wgpu-shader-toy_RELEASE_YEAR  "2025")
+set(wgpu-shader-toy_RELEASE_MONTH "02"  )
+set(wgpu-shader-toy_RELEASE_DAY   "26"  )
 
 set(wgpu-shader-toy_VERSION "${wgpu-shader-toy_RELEASE_YEAR}.${wgpu-shader-toy_RELEASE_MONTH}.${wgpu-shader-toy_RELEASE_DAY}")
 
@@ -51,6 +51,7 @@ set(wgpu_shader_toy_sources
     src/cpp/gpu/Window.h
     src/cpp/gpu/Window.cpp
 
+    src/cpp/utils/Clock.h
     src/cpp/utils/DataManager.h
     src/cpp/utils/DataManager.cpp
     src/cpp/utils/JSStorage.cpp

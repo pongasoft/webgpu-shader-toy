@@ -26,6 +26,7 @@
 #include <webgpu/webgpu_cpp.h>
 #include "TextEditor.h"
 #include "State.h"
+#include "utils/Clock.h"
 
 namespace pongasoft::gpu {
 using vec2f = ImVec2;
@@ -96,22 +97,20 @@ public:
   inline int getCompilationErrorLine() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorLine; }
   constexpr bool isCompiled() const { return std::holds_alternative<FragmentShader::State::Compiled>(fState); }
 
-  void setStartTime(double iTime) { fStartTime = iTime; fInputs.time = 0; fInputs.frame = 0; }
-  void toggleRunning(double iCurrentTime);
-  constexpr bool isRunning() const { return fRunning; }
+  void toggleRunning();
+  constexpr bool isRunning() const { return fClock.isRunning(); }
+  void resetTime();
+  void startManualClock() { fClock.setManual(true); }
+  void endManualClock() { fClock.setManual(false); }
 
   constexpr bool isEnabled() const { return fEnabled; }
   constexpr void toggleEnabled() { fEnabled = !fEnabled; }
 
   char const* getStatus() const;
 
-  void nextFrame(double iCurrentTime, int frameCount = 1);
+  void nextFrame(int iFrameCount = 1) { tickFrame(iFrameCount); }
 
-  void previousFrame(double iCurrentTime, int frameCount = 1);
-
-  void stopManualTime(double iCurrentTime);
-
-  constexpr bool isTimeEnabled() const { return fRunning && !fManualTime; }
+  void previousFrame(int iFrameCount = 1) { tickFrame(-iFrameCount); }
 
   TextEditor &edit();
 
@@ -126,6 +125,9 @@ private:
   constexpr bool isCompiling() const { return std::holds_alternative<FragmentShader::State::Compiling>(fState); }
   constexpr bool isNotCompiled() const { return std::holds_alternative<FragmentShader::State::NotCompiled>(fState); }
   inline wgpu::RenderPipeline getRenderPipeline() const { return std::get<FragmentShader::State::Compiled>(fState).fRenderPipeline; }
+  void tickTime(double iTimeDelta);
+  void tickFrame(int iFrameCount);
+  void updateInputsFromClock();
 
 private:
   std::string fName;
@@ -135,12 +137,10 @@ private:
   ShaderToyInputs fInputs{};
 
   state_t fState{State::NotCompiled{}};
-  double fStartTime{};
 
   std::optional<TextEditor> fTextEditor{};
 
-  bool fRunning{true};
-  bool fManualTime{false};
+  utils::Clock fClock{};
   bool fEnabled{true};
 };
 

@@ -357,10 +357,7 @@ void FragmentShaderWindow::setCurrentFragmentShader(std::shared_ptr<FragmentShad
 void FragmentShaderWindow::initFragmentShader(std::shared_ptr<FragmentShader> const &iFragmentShader) const
 {
   if(iFragmentShader)
-  {
-    iFragmentShader->fStartTime = getCurrentTime();
-    iFragmentShader->fInputs.frame = 0;
-  }
+    iFragmentShader->resetTime();
 }
 
 //------------------------------------------------------------------------
@@ -369,6 +366,10 @@ void FragmentShaderWindow::initFragmentShader(std::shared_ptr<FragmentShader> co
 void FragmentShaderWindow::beforeFrame()
 {
   Window::beforeFrame();
+
+  auto currentTime = getCurrentTime();
+  auto deltaTime = currentTime - fLastFrameCurrentTime;
+  fLastFrameCurrentTime = currentTime;
 
   if(glfwGetMouseButton(fWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
   {
@@ -388,11 +389,8 @@ void FragmentShaderWindow::beforeFrame()
     {
       glfwGetWindowContentScale(fWindow, &fContentScale.x, &fContentScale.y);
 
-      if(fCurrentFragmentShader->isTimeEnabled())
-      {
-        fCurrentFragmentShader->fInputs.frame++;
-        fCurrentFragmentShader->fInputs.time = static_cast<gpu::f32>(getCurrentTime() - fCurrentFragmentShader->fStartTime);
-      }
+      fCurrentFragmentShader->tickTime(deltaTime);
+
       fCurrentFragmentShader->fInputs.size = {
         static_cast<float>(fFrameBufferSize.width), static_cast<float>(fFrameBufferSize.height),
         fContentScale.x, fContentScale.y

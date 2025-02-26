@@ -80,6 +80,7 @@ private:
 
   ImVec2 fContentScale{1.0, 1.0};
   ImVec2 fMouseClick{-1, -1};
+  double fLastFrameCurrentTime{};
 };
 
 }

@@ -444,7 +444,7 @@ void MainWindow::renderTimeControls()
 {
   // Reset time
   if(ImGui::Button(fa::kClockRotateLeft, fIconButtonSize))
-    fCurrentFragmentShader->setStartTime(getCurrentTime());
+    fCurrentFragmentShader->resetTime();
 
   ImGui::SameLine();
 
@@ -454,14 +454,17 @@ void MainWindow::renderTimeControls()
   // Previous frame
   ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0);
   {
+    static bool kClockState{};
     ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
-    auto button = ImGui::Button(isKeyAlt ? fa::kBackward : fa::kBackwardFast, fIconButtonSize);
+    auto button = ImGui::Button(isKeyAlt ? ICON_FA_Backward "###Previous" : ICON_FA_BackwardFast "###Previous", fIconButtonSize);
     if(ImGui::IsItemDeactivated())
-      fCurrentFragmentShader->stopManualTime(getCurrentTime());
+      fCurrentFragmentShader->endManualClock();
     else
     {
-      if(button || ImGui::IsItemActivated())
-        fCurrentFragmentShader->previousFrame(getCurrentTime(), frameCount);
+      if(ImGui::IsItemActivated())
+        fCurrentFragmentShader->startManualClock();
+      if(button)
+        fCurrentFragmentShader->previousFrame(frameCount);
     }
     ImGui::PopItemFlag();
   }
@@ -471,20 +474,22 @@ void MainWindow::renderTimeControls()
 
   // Play / Pause
   if(ImGui::Button(fCurrentFragmentShader->isRunning() ? fa::kCirclePause : fa::kCirclePlay, fIconButtonSize))
-    fCurrentFragmentShader->toggleRunning(getCurrentTime());
+    fCurrentFragmentShader->toggleRunning();
 
   ImGui::SameLine();
 
   // Next frame
   ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
   {
-    auto button = ImGui::Button(isKeyAlt ? fa::kForward : fa::kForwardFast, fIconButtonSize);
+    auto button = ImGui::Button(isKeyAlt ? ICON_FA_Forward "###Next" : ICON_FA_ForwardFast "###Next", fIconButtonSize);
     if(ImGui::IsItemDeactivated())
-      fCurrentFragmentShader->stopManualTime(getCurrentTime());
+      fCurrentFragmentShader->endManualClock();
     else
     {
-      if(button || ImGui::IsItemActivated())
-        fCurrentFragmentShader->nextFrame(getCurrentTime(), frameCount);
+      if(ImGui::IsItemActivated())
+        fCurrentFragmentShader->startManualClock();
+      if(button)
+        fCurrentFragmentShader->nextFrame(frameCount);
     }
   }
   ImGui::PopItemFlag();
