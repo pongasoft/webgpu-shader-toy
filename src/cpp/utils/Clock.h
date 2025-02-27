@@ -49,6 +49,7 @@ public:
   void resume() { fPaused = false; }
 
   void setManual(bool iManual) { fManual = iManual; }
+  constexpr bool isManual() const { return fManual; }
 
   void reset()
   {

@@ -102,6 +102,7 @@ public:
   void resetTime();
   void startManualClock() { fClock.setManual(true); }
   void endManualClock() { fClock.setManual(false); }
+  constexpr bool isManualClock() const { return fClock.isManual(); }
 
   constexpr bool isEnabled() const { return fEnabled; }
   constexpr void toggleEnabled() { fEnabled = !fEnabled; }

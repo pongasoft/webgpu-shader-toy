@@ -452,7 +452,7 @@ void MainWindow::renderTimeControls()
   auto const frameCount = isKeyAlt ? 1 : 12;
 
   // Previous frame
-  ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0);
+  ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0 && !fCurrentFragmentShader->isManualClock());
   {
     static bool kClockState{};
     ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
