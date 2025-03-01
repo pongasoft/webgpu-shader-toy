@@ -6,7 +6,7 @@ fn rand(n: vec2f) -> f32 {
 fn noise(n: vec2f) -> f32 {
   const d = vec2f(0.0, 1.0);
   var b = floor(n);
-  var f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+  var f = smoothstep(vec2f(0.0), vec2f(1.0), fract(n));
   return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
 }
 
@@ -35,7 +35,7 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   var fragCoord = vec2f(pos.x, inputs.size.y - pos.y);
   var iResolution = inputs.size;
 
-  const speed = vec2(0.1, 0.9);
+  const speed = vec2f(0.1, 0.9);
   var shift = 1.327+sin(iTime*2.0)/2.4;
   const alpha = 1.0;
     
@@ -58,8 +58,8 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   var color = vec3f(1.0/(pow(c+1.61,vec3f(4.0))) * cos(shift * fragCoord.y / iResolution.y));
     
   color = vec3f(1.0,.2,.05)/(pow((r.y+r.y)* max(.0,p.y)+0.1, 4.0));;
-//  color += (texture(iChannel0,uv*0.6+vec2f(.5,.1)).xyz*0.01*pow((r.y+r.y)*.65,5.0)+0.055)*mix( vec3(.9,.4,.3),vec3(.7,.5,.2), uv.y);
-  color = color/(1.0+max(vec3(0),color));
+//  color += (texture(iChannel0,uv*0.6+vec2f(.5,.1)).xyz*0.01*pow((r.y+r.y)*.65,5.0)+0.055)*mix( vec3f(.9,.4,.3),vec3f(.7,.5,.2), uv.y);
+  color = color/(1.0+max(vec3f(0),color));
 
   return vec4f(color.x, color.y, color.z, alpha);
  }
