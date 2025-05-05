@@ -35,11 +35,11 @@ static void MainLoopForEmscripten()
 }
 
 //! wstDoneWaiting()
-EM_JS(bool, wstDoneWaiting, (), { return Module.wst_done_waiting; })
+EM_JS(bool, wstDoneWaiting, (), { return Module['wst_done_waiting']; })
 
 //! wstWaitForContinue()
 EM_JS(bool, wstWaitForContinue, (bool iManualLayout, int iLeftPaneSize, int iRightPaneSize), {
-  Module.wst_wait_for_continue(iManualLayout, iLeftPaneSize, iRightPaneSize);
+  Module['wst_wait_for_continue'](iManualLayout, iLeftPaneSize, iRightPaneSize);
 })
 
 /**

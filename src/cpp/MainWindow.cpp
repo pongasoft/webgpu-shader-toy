@@ -139,20 +139,20 @@ static void mergeFontAwesome(float iSize)
 //------------------------------------------------------------------------
 // JSSetStyle
 //------------------------------------------------------------------------
-EM_JS(void, JSSetStyle, (bool iDarkStyle), { Module.wst_set_style(iDarkStyle); })
+EM_JS(void, JSSetStyle, (bool iDarkStyle), { Module['wst_set_style'](iDarkStyle); })
 
 //------------------------------------------------------------------------
 // JSSetLayout
 //------------------------------------------------------------------------
 EM_JS(void, JSSetLayout, (bool iManualLayout, int iLeftPaneWidth, int iRightPaneWidth), {
-  Module.wst_set_layout(iManualLayout, iLeftPaneWidth, iRightPaneWidth);
+  Module['wst_set_layout'](iManualLayout, iLeftPaneWidth, iRightPaneWidth);
 })
 
 //------------------------------------------------------------------------
 // JSSetWindowOrder
 //------------------------------------------------------------------------
 EM_JS(void, JSSetWindowOrder, (GLFWwindow *iLeftWindow, GLFWwindow *iRightWindow), {
-  Module.wst_set_window_order(iLeftWindow, iRightWindow);}
+  Module['wst_set_window_order'](iLeftWindow, iRightWindow);}
 )
 
 // wst_set_window_order
