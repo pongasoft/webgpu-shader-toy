@@ -21,6 +21,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <memory>
 
 namespace fmt {
 
