@@ -82,6 +82,14 @@
       background-color: #888888;
     }
 
+    #canvases.resizing {
+      cursor: ew-resize !important;
+    }
+
+    .separator.resizing {
+      background-color: #888888;
+    }
+
     .separator.manual-layout {
       width: 0;
       padding: 2px;
@@ -632,12 +640,12 @@
 
       function setPanesWidth(leftPaneWidth) {
         SplitPaneMgr.getLeftPane().style.width = `${leftPaneWidth}px`;
-        SplitPaneMgr.getRightPane().style.width = `calc(100% - ${leftPaneWidth}px)`;
+        SplitPaneMgr.getRightPane().style.width = `calc(100% - 10px - ${leftPaneWidth}px)`;
       }
 
       function splitPanesEvenly() {
         SplitPaneMgr.getLeftPane().style.width = '50%';
-        SplitPaneMgr.getRightPane().style.width = '50%';
+        SplitPaneMgr.getRightPane().style.width = `calc(50% - 10px)`;
       }
 
       if(iLeftPaneWidth === iRightPaneWidth)
@@ -654,6 +662,8 @@
 
       function startResize(e) {
         e.preventDefault();
+        addClass('#canvases', 'resizing');
+        addClass('.separator', 'resizing');
         lastDownX = computeDownX(e);
         leftPaneWidth = computeWidth(SplitPaneMgr.getLeftPane());
         Module.isResizing = true;
@@ -661,6 +671,8 @@
 
       function stopResize() {
         lastDownX = 0;
+        removeClass('#canvases', 'resizing');
+        removeClass('.separator', 'resizing');
         Module.isResizing = false;
       }
 

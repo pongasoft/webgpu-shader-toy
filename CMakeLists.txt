@@ -4,8 +4,8 @@ cmake_minimum_required(VERSION 3.28)
 # -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=/usr/local/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Debug
 
 set(wgpu-shader-toy_RELEASE_YEAR  "2025")
-set(wgpu-shader-toy_RELEASE_MONTH "08"  )
-set(wgpu-shader-toy_RELEASE_DAY   "24"  )
+set(wgpu-shader-toy_RELEASE_MONTH "09"  )
+set(wgpu-shader-toy_RELEASE_DAY   "29"  )
 
 set(wgpu-shader-toy_VERSION "${wgpu-shader-toy_RELEASE_YEAR}.${wgpu-shader-toy_RELEASE_MONTH}.${wgpu-shader-toy_RELEASE_DAY}")
 
