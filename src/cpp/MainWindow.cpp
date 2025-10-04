@@ -107,12 +107,14 @@ fn fragmentMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
 //  {"3x4", Window::AspectRatio{3, 4}},
 //};
 
+constexpr auto kDefaultFontSize = State{}.fSettings.fFontSize;
+
 namespace impl {
 
 //------------------------------------------------------------------------
 // impl::mergeFontAwesome
 //------------------------------------------------------------------------
-static void mergeFontAwesome(float iSize)
+static void mergeFontAwesome()
 {
   static auto kFontData = utils::DataManager::loadCompressedBase85(IconsFontWGPUShaderToy_compressed_data_base85);
 
@@ -122,14 +124,13 @@ static void mergeFontAwesome(float iSize)
   icons_config.GlyphOffset = {0, 1};
   icons_config.MergeMode = true;
   icons_config.PixelSnapH = true;
-  icons_config.OversampleH = 2;
   icons_config.FontDataOwnedByAtlas = false;
-  icons_config.GlyphMinAdvanceX = iSize; // to make it monospace
+  icons_config.GlyphMinAdvanceX = kDefaultFontSize; // to make it monospace
 
   icons_config.FontDataOwnedByAtlas = false;
   io.Fonts->AddFontFromMemoryTTF(kFontData.data(),
                                  static_cast<int>(kFontData.size()),
-                                 iSize,
+                                 kDefaultFontSize,
                                  &icons_config,
                                  icons_ranges);
 }
@@ -172,8 +173,8 @@ MainWindow::MainWindow(std::shared_ptr<GPU> iGPU, Window::Args const &iWindowArg
                                                       }
 {
   initFromStateAction(iMainWindowArgs.state);
+  loadFont();
   setFontSize(iMainWindowArgs.state.fSettings.fFontSize);
-  fSetFontSizeRequest = std::nullopt;
 
   wgpu_shader_toy_install_handlers(this,
                                    callbacks::OnNewContentCallback,
@@ -196,39 +197,27 @@ std::shared_ptr<FragmentShader> MainWindow::findFragmentShaderByName(std::string
 }
 
 //------------------------------------------------------------------------
-// MainWindow::setFontSize
+// MainWindow::loadFont
 //------------------------------------------------------------------------
-void MainWindow::setFontSize(float iFontSize)
+void MainWindow::loadFont()
 {
   static auto kFontData = utils::DataManager::loadCompressedBase85(JetBrainsMonoRegular_compressed_data_base85);
-
-  if(fFontSize == iFontSize)
-    return;
-
-  fFontSize = iFontSize;
 
   auto &io = ImGui::GetIO();
   io.Fonts->Clear();
   ImFontConfig fontConfig;
-  fontConfig.OversampleH = 2;
-  float fontScale; float dummy;
-  glfwGetWindowContentScale(fWindow, &fontScale, &dummy);
-  auto const size = fFontSize * fontScale;
   fontConfig.FontDataOwnedByAtlas = false;
-  io.Fonts->AddFontFromMemoryTTF(kFontData.data(), static_cast<int>(kFontData.size()), size, &fontConfig);
-  impl::mergeFontAwesome(size);
-  io.FontGlobalScale = 1.0f / fontScale;
+  io.Fonts->AddFontFromMemoryTTF(kFontData.data(), static_cast<int>(kFontData.size()), kDefaultFontSize, &fontConfig);
+  impl::mergeFontAwesome();
 }
 
-
 //------------------------------------------------------------------------
-// MainWindow::requestFontSize
+// MainWindow::setFontSize
 //------------------------------------------------------------------------
-void MainWindow::requestFontSize(float iFontSize)
+void MainWindow::setFontSize(float iFontSize)
 {
   iFontSize = std::clamp(iFontSize, 8.0f, 30.0f);
-  if(fFontSize != iFontSize)
-    fSetFontSizeRequest = iFontSize;
+  fFontSize = iFontSize;
 }
 
 //------------------------------------------------------------------------
@@ -297,15 +286,15 @@ void MainWindow::renderSettingsMenu()
     newDialog("Font Size")
       .content([this] {
         if(ImGui::Button(" + "))
-          requestFontSize(fFontSize + 1.0f);
+          setFontSize(fFontSize + 1.0f);
         ImGui::SameLine();
         if(ImGui::Button(" - "))
-          requestFontSize(fFontSize - 1.0f);
+          setFontSize(fFontSize - 1.0f);
         ImGui::SameLine();
         ImGui::Text("%.0fpx", fFontSize);
       })
       .buttonOk()
-      .button("Cancel", [fontSize = fFontSize, this] { requestFontSize(fontSize); });
+      .button("Cancel", [fontSize = fFontSize, this] { setFontSize(fontSize); });
   }
   if(ImGui::BeginMenu("Code"))
   {
@@ -975,6 +964,8 @@ void MainWindow::renderExampleMenu()
 //------------------------------------------------------------------------
 void MainWindow::doRender()
 {
+  ImGui::PushFont(nullptr, fFontSize);
+
   fIconButtonSize = {ImGui::CalcTextSize(fa::kCameraPolaroid).x + 2 * ImGui::GetStyle().ItemInnerSpacing.x, 0};
 
   renderMainMenuBar();
@@ -1071,6 +1062,8 @@ void MainWindow::doRender()
   }
   ImGui::End();
 
+  ImGui::PopFont();
+
 #ifndef NDEBUG
   if(kShowDemoWindow)
     ImGui::ShowDemoWindow(&kShowDemoWindow);
@@ -1138,14 +1131,6 @@ void MainWindow::beforeFrame()
     action();
 
   ImGuiWindow::beforeFrame();
-
-  if(fSetFontSizeRequest)
-  {
-    setFontSize(*fSetFontSizeRequest);
-    fSetFontSizeRequest = std::nullopt;
-    // forcing rebuild of device (where the font is created)
-    doHandleFrameBufferSizeChange(getFrameBufferSize());
-  }
 
 //  if(fAspectRatioRequest)
 //  {

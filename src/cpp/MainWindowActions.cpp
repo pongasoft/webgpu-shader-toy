@@ -271,7 +271,7 @@ void MainWindow::initFromStateAction(State const &iState)
 //------------------------------------------------------------------------
 void MainWindow::initFromStateAction(State::Settings const &iSettings)
 {
-  requestFontSize(iSettings.fFontSize);
+  setFontSize(iSettings.fFontSize);
   setStyle(iSettings.fDarkStyle);
 
   // important to do this first as it changes the sizes

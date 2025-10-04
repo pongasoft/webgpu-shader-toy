@@ -154,7 +154,7 @@ private:
   void onURLImported(std::string const &iURL, char const *iName, char const *iContent);
   void setStyle(bool iDarkStyle);
   void setFontSize(float iFontSize);
-  void requestFontSize(float iFontSize);
+  void loadFont();
   void setManualLayout(bool iManualLayout, std::optional<Size> iLeftPaneSize = std::nullopt, std::optional<Size> iRightPaneSize = std::nullopt);
   void switchToManualLayout();
   void switchToAutomaticLayout();
@@ -221,7 +221,6 @@ private:
 
 //  std::string fCurrentAspectRatio{"Free"};
 //  std::optional<AspectRatio> fAspectRatioRequest{};
-  std::optional<float> fSetFontSizeRequest{};
 
   std::vector<gui_action_t> fBeforeImGuiFrameActions{};
 
