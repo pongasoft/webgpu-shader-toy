@@ -44,9 +44,14 @@ This tool uses [emscripten-glfw](https://github.com/pongasoft/emscripten-glfw) w
 
 > [!NOTE]
 > This tool is meant to run in a browser and is not a desktop application.
-> As a result, it requires [emscripten](https://emscripten.org/) to compile.
+> As a result, it requires [Emscripten](https://emscripten.org/) to compile.
 
-Assuming `emscripten` and `CMake` are properly setup and in your path,
+> [!WARNING]
+> This tool has not been [updated yet](https://github.com/pongasoft/webgpu-shader-toy/issues/4)
+> to use the new WebGPU APIs introduced with Emscripten 4.0.18 (`--use-port=emdawnwebgpu`).
+> As a result you need to use Emscripten 4.0.17 (or earlier) to build it.
+
+Assuming `Emscripten` and `CMake` are properly setup and in your path,
 this project is straightforward to build:
 
 ```text
