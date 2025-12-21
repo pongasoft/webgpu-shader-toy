@@ -24,7 +24,8 @@
 namespace pongasoft::gpu {
 
 extern "C" {
-void wgpu_shader_toy_save_screenshot(GLFWwindow const *iWindow, char const *iFilename, char const *iType, float iQuality);
+void wgpu_shader_toy_save_screenshot(GLFWwindow const *iWindow, char const *iFilename, char const *iType,
+                                     float iQuality);
 }
 
 namespace callbacks {
@@ -59,14 +60,16 @@ Window::Window(std::shared_ptr<GPU> iGPU, Args const &iArgs) :
 
   glfwSetWindowUserPointer(fWindow, this);
 
-  wgpu::SurfaceDescriptorFromCanvasHTMLSelector html_surface_desc = {};
+  wgpu::EmscriptenSurfaceSourceCanvasHTMLSelector html_surface_desc = {};
   html_surface_desc.selector = iArgs.canvas.selector;
 
   wgpu::SurfaceDescriptor surface_desc = { .nextInChain = &html_surface_desc };
 
   fSurface = fGPU->getInstance().CreateSurface(&surface_desc);
   WST_INTERNAL_ASSERT(fSurface != nullptr, "Cannot create surface for [%s]", iArgs.canvas.selector);
-  initPreferredFormat(fSurface.GetPreferredFormat(nullptr));
+  wgpu::SurfaceCapabilities capabilities;
+  fSurface.GetCapabilities(fGPU->getAdapter(), &capabilities);
+  initPreferredFormat(capabilities.formatCount > 0 ? capabilities.formats[0] : wgpu::TextureFormat::BGRA8Unorm);
 
   // will initialize the swapchain on first frame
   int w, h;
@@ -129,21 +132,25 @@ void Window::handleFramebufferSizeChange()
 //------------------------------------------------------------------------
 void Window::doHandleFrameBufferSizeChange(Size const &iSize)
 {
-  createSwapChain(iSize);
+  // Instead of creating a new swapchain, we re-configure the surface
+  configureSurface(iSize);
 }
 
 //------------------------------------------------------------------------
-// Window::createSwapChain
+// Window::configureSurface
 //------------------------------------------------------------------------
-void Window::createSwapChain(Renderable::Size const &iSize)
+void Window::configureSurface(Size const &iSize)
 {
-  wgpu::SwapChainDescriptor scDesc{
-    .usage = wgpu::TextureUsage::RenderAttachment,
-    .format = fPreferredFormat,
-    .width = static_cast<uint32_t>(iSize.width),
-    .height = static_cast<uint32_t>(iSize.height),
-    .presentMode = wgpu::PresentMode::Fifo};
-  fSwapChain = fGPU->getDevice().CreateSwapChain(fSurface, &scDesc);
+  wgpu::SurfaceConfiguration config = {};
+  config.device = fGPU->getDevice();
+  config.format = fPreferredFormat;
+  config.usage = wgpu::TextureUsage::RenderAttachment;
+  config.width = iSize.width;
+  config.height = iSize.height;
+  config.presentMode = wgpu::PresentMode::Fifo;
+  config.alphaMode = wgpu::CompositeAlphaMode::Auto;
+
+  fSurface.Configure(&config);
 }
 
 //------------------------------------------------------------------------
@@ -151,7 +158,16 @@ void Window::createSwapChain(Renderable::Size const &iSize)
 //------------------------------------------------------------------------
 wgpu::TextureView Window::getTextureView() const
 {
-  return fSwapChain.GetCurrentTextureView();
+  wgpu::SurfaceTexture surfaceTexture;
+  fSurface.GetCurrentTexture(&surfaceTexture);
+
+  if(surfaceTexture.status == wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal ||
+     surfaceTexture.status == wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal)
+  {
+    return surfaceTexture.texture.CreateView();
+  }
+
+  return nullptr;
 }
 
 //------------------------------------------------------------------------

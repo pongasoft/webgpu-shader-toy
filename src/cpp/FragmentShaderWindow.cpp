@@ -154,10 +154,10 @@ void FragmentShaderWindow::initGPU()
   fGroup0BindGroup = device.CreateBindGroup(&group0BindGroupDescriptor);
 
   // vertex shader
-  wgpu::ShaderModuleWGSLDescriptor vertexShaderModuleWGSLDescriptor{};
-  vertexShaderModuleWGSLDescriptor.code = kVertexShader;
+  wgpu::ShaderSourceWGSL vertexShaderSource{};
+  vertexShaderSource.code = kVertexShader;
   wgpu::ShaderModuleDescriptor vertexShaderModuleDescriptor{
-    .nextInChain = &vertexShaderModuleWGSLDescriptor,
+    .nextInChain = &vertexShaderSource,
     .label = "FragmentShaderWindow | Vertex Shader"
   };
   fVertexShaderModule = device.CreateShaderModule(&vertexShaderModuleDescriptor);
@@ -184,10 +184,10 @@ void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> iFragmentShad
   auto shader = std::string(FragmentShader::kHeader) + iFragmentShader->getCode();
 
   // fragment shader
-  wgpu::ShaderModuleWGSLDescriptor fragmentShaderModuleWGSLDescriptor{};
-  fragmentShaderModuleWGSLDescriptor.code = shader.c_str();
+  wgpu::ShaderSourceWGSL fragmentShaderSource{};
+  fragmentShaderSource.code = shader.c_str();
   wgpu::ShaderModuleDescriptor fragmentShaderModuleDescriptor{
-    .nextInChain = &fragmentShaderModuleWGSLDescriptor,
+    .nextInChain = &fragmentShaderSource,
     .label = "FragmentShaderWindow | Fragment Shader"
   };
 
@@ -202,8 +202,13 @@ void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> iFragmentShad
       .fShaderModule = shaderModule
     });
 
-  shaderModule.GetCompilationInfo(callbacks::onShaderCompilationResult,
-                                  callbacks::kFragmentShaderCompilationRequest.get());
+  shaderModule.GetCompilationInfo(wgpu::CallbackMode::AllowSpontaneous,
+                                  [](wgpu::CompilationInfoRequestStatus iStatus,
+                                     const wgpu::CompilationInfo* iCompilationInfo) {
+                                    callbacks::onShaderCompilationResult(static_cast<WGPUCompilationInfoRequestStatus>(iStatus),
+                                                                         reinterpret_cast<const WGPUCompilationInfo*>(iCompilationInfo),
+                                                                         callbacks::kFragmentShaderCompilationRequest.get());
+                                  });
 }
 
 namespace impl {

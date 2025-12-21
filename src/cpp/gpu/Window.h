@@ -28,6 +28,7 @@ namespace pongasoft::gpu {
 class Window: public Renderable
 {
 public:
+  // Types
   struct Args
   {
     Size size{320, 200};
@@ -45,7 +46,7 @@ public:
     int denominator{GLFW_DONT_CARE};
   };
 
-public:
+  // Methods
   Window(std::shared_ptr<GPU> iGPU, Args const &iArgs);
   ~Window() override;
 
@@ -81,7 +82,7 @@ protected:
   wgpu::TextureView getTextureView() const override;
 
 private:
-  void createSwapChain(Size const &iSize);
+  void configureSurface(Size const &iSize);
 
 protected:
   GLFWwindow *fWindow{};
@@ -90,7 +91,6 @@ protected:
 private:
   std::optional<Size> fNewFrameBufferSize{};
   wgpu::Surface fSurface{};
-  wgpu::SwapChain fSwapChain{};
 };
 
 }

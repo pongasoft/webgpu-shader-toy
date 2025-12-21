@@ -106,6 +106,8 @@ target_link_options(wgpu_shader_toy PUBLIC
     "-fwasm-exceptions"
     "${wgpu_shader_toy_options}"
     "--js-library" "${CMAKE_CURRENT_LIST_DIR}/src/js/lib_wgpu_shader_toy.js"
+    "-sASYNCIFY=1"
+    "-sASYNCIFY_STACK_SIZE=65536"
 )
 
 add_dependencies(wgpu_shader_toy copy_shell_html)

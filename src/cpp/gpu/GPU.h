@@ -32,23 +32,22 @@ namespace pongasoft::gpu {
 class GPU
 {
 public:
+  // Types
   struct Error
   {
     wgpu::ErrorType fType{wgpu::ErrorType::NoError};
     std::string fMessage{};
   };
 
-public:
+  // Aliases
   using render_pass_fn_t = std::function<void(wgpu::RenderPassEncoder &)>;
 
-public:
+  // Methods
   static std::unique_ptr<GPU> create();
 
-  void createSurface(GLFWwindow *iWindow, std::string_view iImGuiCanvasSelector);
-  void createSwapChain(int iWidth, int iHeight);
-
-  wgpu::Device getDevice() const { return fDevice; }
   wgpu::Instance getInstance() const { return fInstance; }
+  wgpu::Adapter getAdapter() const { return fAdapter; }
+  wgpu::Device getDevice() const { return fDevice; }
 
   inline bool hasError() const { return fError.has_value(); }
   inline Error getError() const { return fError ? *fError : Error{}; }
@@ -107,24 +106,28 @@ public:
         return "Validation";
       case wgpu::ErrorType::OutOfMemory:
         return "Out of memory";
-      case wgpu::ErrorType::DeviceLost:
-        return "Device lost";
+      case wgpu::ErrorType::Internal:
+        return "Internal";
       case wgpu::ErrorType::Unknown:
       default:
         return "Unknown";
     }
   }
 
-
-public: // should be private but called from C
-  void onGPUError(wgpu::ErrorType iErrorType, const char *iMessage);
-
-private:
-  explicit GPU(wgpu::Device iDevice);
+  // should be private but usage requires different *sigh*
+  void onGPUError(wgpu::ErrorType iErrorType, wgpu::StringView iMessage); // public because called from C
+  explicit GPU(wgpu::Instance iInstance); // public because of std::make_unique
 
 private:
+  // Methods
+  void initDevice();
+
+  wgpu::WaitStatus wait(wgpu::Future f) const { return fInstance.WaitAny(f, UINT64_MAX); }
+
+  // Members
   wgpu::Instance fInstance;
-  wgpu::Device fDevice;
+  wgpu::Adapter fAdapter{};
+  wgpu::Device fDevice{};
   wgpu::CommandEncoder fCommandEncoder{};
 
   std::optional<Error> fError{};

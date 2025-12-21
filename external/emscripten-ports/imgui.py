@@ -15,16 +15,16 @@
 import os
 from typing import Union, Dict, Optional
 
-TAG = '1.92.3'
+TAG = '1.92.5'
 
 # Run this file as a script to see which command to run to generate the checksums
 DISTRIBUTIONS = {
-  'master': {
-    'hash': '6a3947c9f7ae27467173a4d222a132db98fa8190fcea487826ecdd8dd92b0d051dc8967ff682273a8dbe3c389568866280d138d8cd73e811d3e72267c9aac45c'
-  },
-  'docking': {
-    'hash': 'e8ef00d26abf96b0ae80feac1a30315c77fc6a6d69f55986f7d6ae7afe6d00430bef3badd1391348cd3119632fe79c148b8c02ac274cfb7922acf6d68f2449fe'
-  }
+    'master': {
+        'hash': '689338deecfa75d94d5796a42872f2d807eb853a3b9b3e4c2904e2a36a53bdce5de2e74b7812e38548ebdc02cfd70652d49d8c7aa1d20fd46193eb912e10b826'
+    },
+    'docking': {
+        'hash': '3a70d90bff9b55cf2d346f193c16c27c2889aa80a392db8c9594eeacf5942495e58a2e61fa51c99463ab6b92282612d1c0b267baa3ce6b0f58ada8a4ea062e8c'
+    }
 }
 
 # contrib port information (required)
@@ -147,8 +147,9 @@ def process_args(ports):
 
 
 def linker_setup(ports, settings):
-    if opts['renderer'] == 'wgpu':
-        settings.USE_WEBGPU = 1
+    if opts['backend'] == 'glfw':
+        settings.MIN_WEBGL_VERSION = 2
+        settings.MAX_WEBGL_VERSION = 2
 
 
 def check_option(option, value, error_handler):
@@ -185,6 +186,8 @@ def handle_options(options, error_handler):
         glfw3_options = {'optimizationLevel': opts['optimizationLevel']}
         if opts['renderer'] == 'wgpu':
           glfw3_options['disableWebGL2'] = 'true'
+          deps.append('emdawnwebgpu')
+          build_deps['emdawnwebgpu'] = 'emdawnwebgpu'
         glfw3_options = ':'.join(f"{key}={value}" for key, value in glfw3_options.items())
         build_deps['emscripten-glfw3'] = f"{os.path.join(patch_src_directory, 'emscripten-glfw3.py')}:{glfw3_options}"
     else:

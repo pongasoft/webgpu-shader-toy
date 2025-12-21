@@ -16,7 +16,6 @@
  * @author Yan Pujante
  */
 
-#include <emscripten/html5_webgpu.h>
 #include "GPU.h"
 #include "../Errors.h"
 #include <utility>
@@ -26,10 +25,10 @@ namespace pongasoft::gpu {
 //------------------------------------------------------------------------
 // wgpuErrorCallback
 //------------------------------------------------------------------------
-static void wgpuErrorCallback(WGPUErrorType iErrorType, const char *iMessage, void *iUserData)
+static void wgpuErrorCallback(const wgpu::Device &, const wgpu::ErrorType iErrorType, const wgpu::StringView iMessage,
+                              GPU *iGPU)
 {
-  auto gpu = reinterpret_cast<GPU *>(iUserData);
-  gpu->onGPUError(static_cast<wgpu::ErrorType>(iErrorType), iMessage);
+  iGPU->onGPUError(iErrorType, iMessage);
 }
 
 //------------------------------------------------------------------------
@@ -37,19 +36,75 @@ static void wgpuErrorCallback(WGPUErrorType iErrorType, const char *iMessage, vo
 //------------------------------------------------------------------------
 std::unique_ptr<GPU> GPU::create()
 {
-  wgpu::Device device = emscripten_webgpu_get_device();
-  WST_INTERNAL_ASSERT(device != nullptr, "Device not initialized");
-  return std::unique_ptr<GPU>(new GPU(std::move(device)));
+  // 1. Create the instance => enable async
+  wgpu::InstanceDescriptor instanceDescriptor;
+  static constexpr auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
+  instanceDescriptor.requiredFeatureCount = 1;
+  instanceDescriptor.requiredFeatures = &kTimedWaitAny;
+  // 2. Initialize the device
+  auto gpu = std::make_unique<GPU>(wgpu::CreateInstance(&instanceDescriptor));
+  gpu->initDevice();
+  return gpu;
 }
 
 //------------------------------------------------------------------------
 // GPU::GPU
 //------------------------------------------------------------------------
-GPU::GPU(wgpu::Device iDevice) :
-  fInstance{wgpu::CreateInstance()},
-  fDevice{std::move(iDevice)}
+GPU::GPU(wgpu::Instance iInstance) : fInstance{std::move(iInstance)}
 {
-  fDevice.SetUncapturedErrorCallback(wgpuErrorCallback, this);
+  // Should have been checked before but making sure
+  WST_INTERNAL_ASSERT(fInstance != nullptr);
+}
+
+//------------------------------------------------------------------------
+// GPU::initDevice
+//------------------------------------------------------------------------
+void GPU::initDevice()
+{
+  wgpu::Limits limits;
+  wgpu::DeviceDescriptor deviceDescriptor;
+  deviceDescriptor.requiredLimits = &limits;
+  deviceDescriptor.SetUncapturedErrorCallback(wgpuErrorCallback, this);
+  deviceDescriptor.SetDeviceLostCallback(wgpu::CallbackMode::AllowSpontaneous,
+                                         [](const wgpu::Device &, wgpu::DeviceLostReason reason,
+                                            wgpu::StringView message) {
+                                           printf("DeviceLost (reason=%d): %.*s\n", reason, (int) message.length,
+                                                  message.data);
+                                         });
+
+  wgpu::RequestAdapterWebXROptions xrOptions = {};
+  wgpu::RequestAdapterOptions options = {};
+  options.nextInChain = &xrOptions;
+
+  wgpu::Adapter adapter;
+  wgpu::Future f1 = fInstance.RequestAdapter(&options, wgpu::CallbackMode::WaitAnyOnly,
+                                             [&adapter](wgpu::RequestAdapterStatus status, wgpu::Adapter ad,
+                                                        wgpu::StringView message) {
+                                               if(message.length)
+                                               {
+                                                 printf("RequestAdapter: %.*s\n", (int) message.length, message.data);
+                                               }
+                                               WST_INTERNAL_ASSERT(status == wgpu::RequestAdapterStatus::Success);
+                                               adapter = std::move(ad);
+                                             });
+  wait(f1);
+  WST_INTERNAL_ASSERT(adapter != nullptr, "Cannot create Adapter");
+  fAdapter = std::move(adapter);
+
+  wgpu::Device device;
+  auto f2 = fAdapter.RequestDevice(&deviceDescriptor, wgpu::CallbackMode::WaitAnyOnly,
+                                   [&device](wgpu::RequestDeviceStatus status, wgpu::Device dev,
+                                             wgpu::StringView message) {
+                                     if(message.length)
+                                     {
+                                       printf("RequestDevice: %.*s\n", (int) message.length, message.data);
+                                     }
+                                     WST_INTERNAL_ASSERT(status == wgpu::RequestDeviceStatus::Success);
+                                     device = std::move(dev);
+                                   });
+  wait(f2);
+  WST_INTERNAL_ASSERT(device != nullptr, "Cannot create device");
+  fDevice = std::move(device);
 }
 
 //------------------------------------------------------------------------
@@ -75,11 +130,13 @@ void GPU::endFrame()
 // GPU::renderPass
 //------------------------------------------------------------------------
 void GPU::renderPass(wgpu::Color const &iColor,
-                     GPU::render_pass_fn_t const &iRenderPassFn,
+                     render_pass_fn_t const &iRenderPassFn,
                      wgpu::TextureView const &iTextureView)
 {
   WST_INTERNAL_ASSERT(fCommandEncoder != nullptr, "GPU::beginFrame has not been called");
-  WST_INTERNAL_ASSERT(iTextureView != nullptr);
+
+  if(iTextureView == nullptr)
+    return;
 
   wgpu::RenderPassColorAttachment attachment{
     .view = iTextureView,
@@ -101,11 +158,11 @@ void GPU::renderPass(wgpu::Color const &iColor,
 //------------------------------------------------------------------------
 // GPU::onGPUError
 //------------------------------------------------------------------------
-void GPU::onGPUError(wgpu::ErrorType iErrorType, char const *iMessage)
+void GPU::onGPUError(wgpu::ErrorType iErrorType, wgpu::StringView iMessage)
 {
-  fError = {iErrorType, iMessage};
-  // can dynamically be changed (for example when parsing new shader code)
-  printf("[WebGPU] %s error | %s\n", errorTypeAsString(iErrorType), iMessage);
+  fError = {iErrorType, std::string(iMessage)};
+  // can dynamically be changed (for example, when parsing new shader code)
+  printf("[WebGPU] %s error | %.*s\n", errorTypeAsString(iErrorType), static_cast<int>(iMessage.length), iMessage.data);
 }
 
 }
