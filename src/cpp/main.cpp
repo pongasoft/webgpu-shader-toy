@@ -6,6 +6,9 @@
 #include "MainWindow.h"
 #include "State.h"
 
+using MaybeApplication = std::future<std::unique_ptr<shader_toy::Application>>;
+
+MaybeApplication kApplicationFuture{};
 std::unique_ptr<shader_toy::Application> kApplication;
 
 /**
@@ -40,22 +43,38 @@ EM_JS(bool, wstDoneWaiting, (), { return Module['wst_done_waiting']; })
 //! wstWaitForContinue()
 EM_JS(bool, wstWaitForContinue, (), { Module['wst_wait_for_continue'](); })
 
+//! wstShowError(message)
+EM_JS(void, wstShowError, (char const *iMessage), {
+  Module['wst_show_error']('<h3>' + UTF8ToString(iMessage) + '</h3>');
+})
+
+/**
+ * Cancel the current main loop and set a new one */
+static void emscripten_update_main_loop(em_callback_func func, int fps, bool simulate_infinite_loop)
+{
+  emscripten_cancel_main_loop();
+  emscripten_set_main_loop(func, fps, simulate_infinite_loop);
+}
+
+
 /**
  * Wait loop: wait for the user to click continue to swap emscripten main loop
  */
-static void WaitLoopForEmscripten()
+static void WaitLoopUserClickContinue()
 {
   if(wstDoneWaiting())
   {
-    emscripten_cancel_main_loop();
-    emscripten_set_main_loop(MainLoopForEmscripten, 0, true);
+    emscripten_update_main_loop(MainLoopForEmscripten, 0, true);
   }
 }
 
 namespace shader_toy {
+
 extern std::vector<Shader> kBuiltInFragmentShaderExamples;
 }
 
+/**
+ * Computes the default state of the application before applying user preferences */
 shader_toy::State computeDefaultState()
 {
   double width2, height2;
@@ -76,59 +95,80 @@ shader_toy::State computeDefaultState()
   return state;
 }
 
+/**
+ * The first phase is to wait for the application to be created: we check the future every time
+ * Emscripten invokes the main loop.
+ */
+static void WaitLoopForApplication()
+{
+  if(kApplicationFuture.wait_for(std::chrono::milliseconds(5)) == std::future_status::ready)
+  {
+    // The application was created => we can proceed
+    kApplication = kApplicationFuture.get();
+    kApplicationFuture = {};
+
+    try
+    {
+      std::shared_ptr preferences =
+      std::make_unique<shader_toy::Preferences>(std::make_unique<utils::JSStorage>());
+
+      auto defaultState = computeDefaultState();
+      auto state = preferences->loadState(shader_toy::Preferences::kStateKey, defaultState);
+      defaultState.fShaders.fList.clear();
+      defaultState.fShaders.fCurrent = std::nullopt;
+
+      kApplication
+        ->registerRenderable<shader_toy::MainWindow>(Window::Args{
+                                                       .size = state.fSettings.fMainWindowSize,
+                                                       .title = "WebGPU Shader Toy",
+                                                       .canvas = { .selector = "#canvas1" }
+                                                     },
+                                                     shader_toy::MainWindow::Args {
+                                                       .fragmentShaderWindow = {
+                                                         .size = state.fSettings.fFragmentShaderWindowSize,
+                                                         .title = "WebGPU Shader Toy",
+                                                         .canvas = { .selector = "#canvas2" }
+                                                       },
+                                                       .defaultState = defaultState,
+                                                       .state = state,
+                                                       .preferences = preferences
+                                                     })
+        ->show();
+    }
+    catch(std::exception &e)
+    {
+      printf("ABORT| Unrecoverable exception detected: %s\n", e.what());
+      abort();
+    }
+    catch(...)
+    {
+      printf("ABORT| Unrecoverable exception detected: Unknown exception\n");
+      abort();
+    }
+
+    // We notify the page that initialization is complete, and it's time to display the "Continue" button
+    wstWaitForContinue();
+
+    emscripten_update_main_loop(WaitLoopUserClickContinue, 0, true);
+  }
+}
+
 // Main code
 int main(int, char **)
 {
-  try
-  {
-    kApplication = std::make_unique<shader_toy::Application>();
+  kApplicationFuture = shader_toy::Application::asyncCreate([](std::string_view message) {
+    // Error while creating the application...
 
-    std::shared_ptr<shader_toy::Preferences> preferences =
-      std::make_unique<shader_toy::Preferences>(std::make_unique<utils::JSStorage>());
+    // cancel main loop
+    emscripten_cancel_main_loop();
 
-    auto defaultState = computeDefaultState();
-    auto state = preferences->loadState(shader_toy::Preferences::kStateKey, defaultState);
-    defaultState.fShaders.fList.clear();
-    defaultState.fShaders.fCurrent = std::nullopt;
+    // render error message
+    char errorMessage[1024];
+    snprintf(errorMessage, 1024, "%.*s\n", static_cast<int>(message.length()), message.data());
+    wstShowError(errorMessage);
+  });
 
-    kApplication
-      ->registerRenderable<shader_toy::MainWindow>(Window::Args{
-                                                     .size = state.fSettings.fMainWindowSize,
-                                                     .title = "WebGPU Shader Toy",
-                                                     .canvas = { .selector = "#canvas1" }
-                                                   },
-                                                   shader_toy::MainWindow::Args {
-                                                     .fragmentShaderWindow = {
-                                                       .size = state.fSettings.fFragmentShaderWindowSize,
-                                                       .title = "WebGPU Shader Toy",
-                                                       .canvas = { .selector = "#canvas2" }
-                                                     },
-                                                     .defaultState = defaultState,
-                                                     .state = state,
-                                                     .preferences = preferences
-                                                   })
-      ->show();
-
-#ifndef NDEBUG
-    emscripten::glfw3::AddBrowserKeyCallback([](GLFWwindow* window, int key, int scancode, int action, int mods) {
-      return mods == 0 && action == GLFW_PRESS && key == GLFW_KEY_F12;
-    });
-#endif
-
-    wstWaitForContinue();
-
-    emscripten_set_main_loop(WaitLoopForEmscripten, 0, true);
-  }
-  catch(std::exception &e)
-  {
-    printf("ABORT| Unrecoverable exception detected: %s\n", e.what());
-    abort();
-  }
-  catch(...)
-  {
-    printf("ABORT| Unrecoverable exception detected: Unknown exception\n");
-    abort();
-  }
+  emscripten_set_main_loop(WaitLoopForApplication, 0, true);
 
   return 0;
 }

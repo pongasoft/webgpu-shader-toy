@@ -408,53 +408,44 @@
       showErrorDialog(reason);
     }
 
-    (async () => {
-      try {
-        const adapter = await navigator.gpu.requestAdapter();
-        Module.preinitializedWebGPUDevice = await adapter.requestDevice();
-        Module.wst_done_waiting = false;
-      } catch(error) {
-        console.log(`Cannot acquire WebGPU adapter: ${error}`);
-        showError(`<h3>${error}</h3>`);
+    Module.wst_done_waiting = false;
+    Module.wst_show_error = showError;
+
+    // Module.wst_set_style
+    Module.wst_set_style = (darkStyle) => {
+      document.body.style.backgroundColor = darkStyle ? "black" : "white";
+    };
+
+    // Module.wst_set_layout
+    Module.wst_set_layout = (manualLayout, leftPaneWidth, rightPaneWidth) => {
+      SplitPaneMgr.setLayout(manualLayout, leftPaneWidth, rightPaneWidth);
+    };
+
+    // Module.wst_set_window_order
+    Module.wst_set_window_order = (leftWindow, rightWindow) => {
+      SplitPaneMgr.setWindowOrder(leftWindow, rightWindow);
+    };
+
+    // Module.wst_wait_for_continue
+    Module.wst_wait_for_continue = async () => {
+      fadeAndRemove("#intro .status", 0);
+      fadeAndRemove("#intro .error", 0);
+      if(Module.wst_done_waiting)
         return;
-      }
+      const button = document.getElementById("continue");
+      button.style.display = 'inline-block';
+      const promise = new Promise(resolve => button.addEventListener("click", resolve, { once: true }));
+      await promise;
+      Module.wst_done_waiting = true;
+      fadeAndRemove("#intro", 250);
+    }
 
-      // Module.wst_set_style
-      Module.wst_set_style = (darkStyle) => {
-        document.body.style.backgroundColor = darkStyle ? "black" : "white";
-      };
-
-      // Module.wst_set_layout
-      Module.wst_set_layout = (manualLayout, leftPaneWidth, rightPaneWidth) => {
-        SplitPaneMgr.setLayout(manualLayout, leftPaneWidth, rightPaneWidth);
-      };
-
-      // Module.wst_set_window_order
-      Module.wst_set_window_order = (leftWindow, rightWindow) => {
-        SplitPaneMgr.setWindowOrder(leftWindow, rightWindow);
-      };
-
-      // Module.wst_wait_for_continue
-      Module.wst_wait_for_continue = async () => {
-        fadeAndRemove("#intro .status", 0);
-        fadeAndRemove("#intro .error", 0);
-        if(Module.wst_done_waiting)
-          return;
-        const button = document.getElementById("continue");
-        button.style.display = 'inline-block';
-        const promise = new Promise(resolve => button.addEventListener("click", resolve, { once: true }));
-        await promise;
-        Module.wst_done_waiting = true;
-        fadeAndRemove("#intro", 250);
-      }
-
-      // load the main wasm code
-      let scriptTag = document.createElement("script");
-      scriptTag.type = "text/javascript";
-      scriptTag.src = "index.js?v@wgpu-shader-toy_VERSION@";
-      scriptTag.async = true;
-      document.head.appendChild(scriptTag);
-    })();
+    // load the main wasm code
+    let scriptTag = document.createElement("script");
+    scriptTag.type = "text/javascript";
+    scriptTag.src = "index.js?v@wgpu-shader-toy_VERSION@";
+    scriptTag.async = true;
+    document.head.appendChild(scriptTag);
   }
   else
   {

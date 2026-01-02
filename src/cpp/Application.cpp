@@ -21,6 +21,8 @@
 #include "Errors.h"
 #include <emscripten/version.h>
 
+#include <utility>
+
 namespace shader_toy {
 
 //------------------------------------------------------------------------
@@ -34,7 +36,7 @@ void consoleErrorHandler(int iErrorCode, char const *iErrorMessage)
 //------------------------------------------------------------------------
 // Application::Application
 //------------------------------------------------------------------------
-Application::Application()
+Application::Application(std::shared_ptr<GPU> iGPU) : fGPU{std::move(iGPU)}
 {
   // set a callback for errors otherwise if there is a problem, we won't know
   glfwSetErrorCallback(consoleErrorHandler);
@@ -48,15 +50,27 @@ Application::Application()
 
   // no OpenGL (use WebGPU)
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-  fGPU = GPU::create();
 }
 
+//------------------------------------------------------------------------
+// Application::asyncCreate
+//------------------------------------------------------------------------
+std::future<std::unique_ptr<Application>> Application::asyncCreate(std::function<void(std::string_view)> onError)
+{
+  auto promise = std::make_shared<std::promise<std::unique_ptr<Application>>>();
+  auto future = promise->get_future();
+
+  GPU::asyncCreate([p = std::move(promise)](std::shared_ptr<GPU> iGPU) {
+    p->set_value(std::make_unique<Application>(std::move(iGPU)));
+  }, std::move(onError));
+
+  return future;
+}
 
 //------------------------------------------------------------------------
 // Application::~Application
 //------------------------------------------------------------------------
-shader_toy::Application::~Application()
+Application::~Application()
 {
   fRenderableList.clear();
   fGPU = nullptr;
@@ -112,6 +126,4 @@ void Application::mainLoop()
   }
 
 }
-
-
 }

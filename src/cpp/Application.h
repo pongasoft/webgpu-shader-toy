@@ -20,10 +20,9 @@
 #define WGPU_SHADER_TOY_APPLICATION_H
 
 #include "gpu/GPU.h"
-#include "gpu/ImGuiWindow.h"
 #include "FragmentShaderWindow.h"
-#include <GLFW/glfw3.h>
 #include <vector>
+#include <future>
 
 namespace shader_toy {
 
@@ -32,7 +31,7 @@ using namespace pongasoft::gpu;
 class Application
 {
 public:
-  Application();
+  explicit Application(std::shared_ptr<GPU> iGPU);
   ~Application();
 
   template<IsRenderable R, typename... Args>
@@ -40,6 +39,8 @@ public:
 
   void mainLoop();
   constexpr bool running() const { return fRunning; }
+
+  static std::future<std::unique_ptr<Application>> asyncCreate(std::function<void(std::string_view)> onError);
 
 private:
   std::shared_ptr<GPU> fGPU{};

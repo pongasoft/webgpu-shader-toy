@@ -43,14 +43,15 @@ public:
   using render_pass_fn_t = std::function<void(wgpu::RenderPassEncoder &)>;
 
   // Methods
-  static std::unique_ptr<GPU> create();
+  static void asyncCreate(std::function<void(std::shared_ptr<GPU> iGPU)> onCreated,
+                          std::function<void(wgpu::StringView)> onError);
 
   wgpu::Instance getInstance() const { return fInstance; }
   wgpu::Adapter getAdapter() const { return fAdapter; }
   wgpu::Device getDevice() const { return fDevice; }
 
-  inline bool hasError() const { return fError.has_value(); }
-  inline Error getError() const { return fError ? *fError : Error{}; }
+  bool hasError() const { return fError.has_value(); }
+  Error getError() const { return fError ? *fError : Error{}; }
   std::optional<Error> consumeError() { auto error = fError; fError = std::nullopt; return error; }
 
   void beginFrame();
@@ -120,9 +121,8 @@ public:
 
 private:
   // Methods
-  void initDevice();
-
-  wgpu::WaitStatus wait(wgpu::Future f) const { return fInstance.WaitAny(f, UINT64_MAX); }
+  void asyncInitDevice(std::function<void()> const &onDeviceInitialized,
+                       std::function<void(wgpu::StringView)> const &onError);
 
   // Members
   wgpu::Instance fInstance;

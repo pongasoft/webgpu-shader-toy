@@ -23,28 +23,15 @@
 namespace pongasoft::gpu {
 
 //------------------------------------------------------------------------
-// wgpuErrorCallback
+// GPU::asyncCreate
 //------------------------------------------------------------------------
-static void wgpuErrorCallback(const wgpu::Device &, const wgpu::ErrorType iErrorType, const wgpu::StringView iMessage,
-                              GPU *iGPU)
+void GPU::asyncCreate(std::function<void(std::shared_ptr<GPU> iGPU)> onCreated,
+                      std::function<void(wgpu::StringView)> onError)
 {
-  iGPU->onGPUError(iErrorType, iMessage);
-}
-
-//------------------------------------------------------------------------
-// GPU::create
-//------------------------------------------------------------------------
-std::unique_ptr<GPU> GPU::create()
-{
-  // 1. Create the instance => enable async
-  wgpu::InstanceDescriptor instanceDescriptor;
-  static constexpr auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
-  instanceDescriptor.requiredFeatureCount = 1;
-  instanceDescriptor.requiredFeatures = &kTimedWaitAny;
-  // 2. Initialize the device
-  auto gpu = std::make_unique<GPU>(wgpu::CreateInstance(&instanceDescriptor));
-  gpu->initDevice();
-  return gpu;
+  auto gpu = std::make_shared<GPU>(wgpu::CreateInstance());
+  gpu->asyncInitDevice([gpu, onCreated = std::move(onCreated)] {
+    onCreated(gpu);
+  }, std::move(onError));
 }
 
 //------------------------------------------------------------------------
@@ -52,59 +39,62 @@ std::unique_ptr<GPU> GPU::create()
 //------------------------------------------------------------------------
 GPU::GPU(wgpu::Instance iInstance) : fInstance{std::move(iInstance)}
 {
-  // Should have been checked before but making sure
   WST_INTERNAL_ASSERT(fInstance != nullptr);
 }
 
 //------------------------------------------------------------------------
-// GPU::initDevice
+// GPU::asyncInitDevice
 //------------------------------------------------------------------------
-void GPU::initDevice()
+void GPU::asyncInitDevice(std::function<void()> const &onDeviceInitialized,
+                          std::function<void(wgpu::StringView)> const &onError)
 {
-  wgpu::Limits limits;
-  wgpu::DeviceDescriptor deviceDescriptor;
-  deviceDescriptor.requiredLimits = &limits;
-  deviceDescriptor.SetUncapturedErrorCallback(wgpuErrorCallback, this);
-  deviceDescriptor.SetDeviceLostCallback(wgpu::CallbackMode::AllowSpontaneous,
-                                         [](const wgpu::Device &, wgpu::DeviceLostReason reason,
-                                            wgpu::StringView message) {
-                                           printf("DeviceLost (reason=%d): %.*s\n", reason, (int) message.length,
-                                                  message.data);
-                                         });
-
   wgpu::RequestAdapterWebXROptions xrOptions = {};
   wgpu::RequestAdapterOptions options = {};
   options.nextInChain = &xrOptions;
 
-  wgpu::Adapter adapter;
-  wgpu::Future f1 = fInstance.RequestAdapter(&options, wgpu::CallbackMode::WaitAnyOnly,
-                                             [&adapter](wgpu::RequestAdapterStatus status, wgpu::Adapter ad,
-                                                        wgpu::StringView message) {
-                                               if(message.length)
-                                               {
-                                                 printf("RequestAdapter: %.*s\n", (int) message.length, message.data);
-                                               }
-                                               WST_INTERNAL_ASSERT(status == wgpu::RequestAdapterStatus::Success);
-                                               adapter = std::move(ad);
-                                             });
-  wait(f1);
-  WST_INTERNAL_ASSERT(adapter != nullptr, "Cannot create Adapter");
-  fAdapter = std::move(adapter);
+  fInstance.RequestAdapter(&options, wgpu::CallbackMode::AllowSpontaneous,
+                           [this, onDeviceInitialized, onError](wgpu::RequestAdapterStatus status,
+                                                                wgpu::Adapter ad,
+                                                                wgpu::StringView message) {
+                             if(status != wgpu::RequestAdapterStatus::Success)
+                             {
+                               onError(message);
+                               return;
+                             }
+                             fAdapter = std::move(ad);
 
-  wgpu::Device device;
-  auto f2 = fAdapter.RequestDevice(&deviceDescriptor, wgpu::CallbackMode::WaitAnyOnly,
-                                   [&device](wgpu::RequestDeviceStatus status, wgpu::Device dev,
-                                             wgpu::StringView message) {
-                                     if(message.length)
-                                     {
-                                       printf("RequestDevice: %.*s\n", (int) message.length, message.data);
-                                     }
-                                     WST_INTERNAL_ASSERT(status == wgpu::RequestDeviceStatus::Success);
-                                     device = std::move(dev);
-                                   });
-  wait(f2);
-  WST_INTERNAL_ASSERT(device != nullptr, "Cannot create device");
-  fDevice = std::move(device);
+                             wgpu::Limits limits;
+                             wgpu::DeviceDescriptor deviceDescriptor;
+                             deviceDescriptor.requiredLimits = &limits;
+                             deviceDescriptor.SetUncapturedErrorCallback([](const wgpu::Device &, // unused
+                                                                            const wgpu::ErrorType iErrorType,
+                                                                            const wgpu::StringView iMessage,
+                                                                            GPU *iGPU) {
+                                                                           iGPU->onGPUError(iErrorType, iMessage);
+                                                                         },
+                                                                         this);
+                             deviceDescriptor.SetDeviceLostCallback(wgpu::CallbackMode::AllowProcessEvents,
+                                                                    [](const wgpu::Device &,
+                                                                       wgpu::DeviceLostReason reason,
+                                                                       wgpu::StringView message) {
+                                                                      printf("DeviceLost (reason=%d): %.*s\n", reason, (int) message.length,
+                                                                             message.data);
+                                                                    });
+
+                             wgpu::Device device;
+                             fAdapter.RequestDevice(&deviceDescriptor, wgpu::CallbackMode::AllowSpontaneous,
+                                                    [this, onDeviceInitialized, onError](wgpu::RequestDeviceStatus status,
+                                                                                         wgpu::Device dev,
+                                                                                         wgpu::StringView message) {
+                                                      if(status != wgpu::RequestDeviceStatus::Success)
+                                                      {
+                                                        onError(message);
+                                                        return;
+                                                      }
+                                                      fDevice = std::move(dev);
+                                                      onDeviceInitialized();
+                                                    });
+                           });
 }
 
 //------------------------------------------------------------------------
