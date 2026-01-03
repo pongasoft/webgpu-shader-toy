@@ -86,6 +86,10 @@ void Application::mainLoop()
 
   try
   {
+    // This makes sure that we control exactly when the asynchronous callbacks using
+    // wgpu::CallbackMode::AllowProcessEvents are triggered (shader compilation)
+    fGPU->pollEvents();
+
     // beforeFrame
     for(auto &r: fRenderableList)
     {

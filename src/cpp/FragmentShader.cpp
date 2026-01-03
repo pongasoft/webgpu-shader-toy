@@ -39,7 +39,7 @@ FragmentShader::FragmentShader(Shader const &iShader) :
 //------------------------------------------------------------------------
 // FragmentShader::getEditedCode
 //------------------------------------------------------------------------
-std::optional<std::string> shader_toy::FragmentShader::getEditedCode() const
+std::optional<std::string> FragmentShader::getEditedCode() const
 {
   if(!fTextEditor)
     return std::nullopt;

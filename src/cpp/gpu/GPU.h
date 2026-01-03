@@ -58,6 +58,8 @@ public:
   void renderPass(wgpu::Color const &iColor, render_pass_fn_t const &iRenderPassFn, wgpu::TextureView const &iTextureView = nullptr);
   void endFrame();
 
+  void pollEvents();
+
   //------------------------------------------------------------------------
   // GPU::computeGamma
   //------------------------------------------------------------------------

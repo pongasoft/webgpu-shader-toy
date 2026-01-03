@@ -76,7 +76,7 @@ void onContentScaleChange(GLFWwindow *window, float xScale, float yScale)
 // implementation note: API is using webgpu.h style, not wegpu_cpp.h
 //------------------------------------------------------------------------
 void onShaderCompilationResult(WGPUCompilationInfoRequestStatus iStatus,
-                               struct WGPUCompilationInfo const *iCompilationInfo,
+                               WGPUCompilationInfo const *iCompilationInfo,
                                void *iUserData)
 {
   WST_INTERNAL_ASSERT(kFragmentShaderCompilationRequest && iUserData == kFragmentShaderCompilationRequest.get());
@@ -202,7 +202,7 @@ void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> iFragmentShad
       .fShaderModule = shaderModule
     });
 
-  shaderModule.GetCompilationInfo(wgpu::CallbackMode::AllowSpontaneous,
+  shaderModule.GetCompilationInfo(wgpu::CallbackMode::AllowProcessEvents,
                                   [](wgpu::CompilationInfoRequestStatus iStatus,
                                      const wgpu::CompilationInfo* iCompilationInfo) {
                                     callbacks::onShaderCompilationResult(static_cast<WGPUCompilationInfoRequestStatus>(iStatus),
@@ -212,36 +212,42 @@ void FragmentShaderWindow::compile(std::shared_ptr<FragmentShader> iFragmentShad
 }
 
 namespace impl {
-//------------------------------------------------------------------------
-// impl::computeState
-//------------------------------------------------------------------------
-FragmentShader::State::CompiledInError computeState(gpu::GPU::Error const &iError)
-{
-  static std::regex kLineAndColumnRegex("(.+:)([0-9]+):([0-9]+)((.|\\n)*)");
-  static auto kHeaderLineCount = std::count(std::begin(FragmentShader::kHeader), std::end(FragmentShader::kHeader), '\n') + 1;
 
-  std::smatch match;
-  if(std::regex_search(iError.fMessage, match, kLineAndColumnRegex))
+//------------------------------------------------------------------------
+// impl::computeErrorState
+//------------------------------------------------------------------------
+std::optional<FragmentShader::State::CompiledInError> computeErrorState(wgpu::CompilationInfoRequestStatus iStatus,
+                                                                        WGPUCompilationInfo const *iCompilationInfo)
+{
+  static auto kHeaderLineCount =
+    std::count(std::begin(FragmentShader::kHeader), std::end(FragmentShader::kHeader), '\n') + 1;
+
+  if(iStatus != wgpu::CompilationInfoRequestStatus::Success || !iCompilationInfo)
   {
-    int lineNumber = std::stoi(match[2]) - kHeaderLineCount + 1;
-    if(lineNumber < 0)
-      lineNumber = -1;
-    int columnNumber = std::stoi(match[3]);
-    auto message = fmt::printf("%s%d:%d%s",
-                               match.str(1).c_str(),
-                               lineNumber,
-                               columnNumber,
-                               match.str(4).c_str());
-    return FragmentShader::State::CompiledInError{
-      .fErrorMessage = fmt::printf("[%s]: %s", gpu::GPU::errorTypeAsString(iError.fType), message),
-      .fErrorLine = lineNumber,
-      .fErrorColumn = columnNumber
-    };
+    return FragmentShader::State::CompiledInError{.fErrorMessage = "Unknown error while compiling the shader"};
   }
-  else
+
+  // Handling errors
+  for(auto i = 0; i < iCompilationInfo->messageCount; i++)
   {
-    return FragmentShader::State::CompiledInError{.fErrorMessage = fmt::printf("[%s]: %s", gpu::GPU::errorTypeAsString(iError.fType), iError.fMessage) };
+    auto &message = iCompilationInfo->messages[i];
+    if(message.type == WGPUCompilationMessageType_Error)
+    {
+      auto lineNumber = static_cast<int>(message.lineNum - kHeaderLineCount + 1);
+      auto columnNumber = static_cast<int>(message.linePos);
+      return FragmentShader::State::CompiledInError{
+        .fErrorMessage = fmt::printf("Compilation error: :%d:%d %.*s",
+                                     lineNumber,
+                                     columnNumber,
+                                     static_cast<int>(message.message.length),
+                                     message.message.data),
+        .fErrorLine = lineNumber,
+        .fErrorColumn = columnNumber
+      };
+    }
   }
+
+  return std::nullopt;
 }
 
 }
@@ -259,78 +265,63 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
   // it is possible (rare) that compile() was called again before this async callback is called
   if(iFragmentShader->isCompiling())
   {
-    // at this time, it always returns success even when failure...
-//  if(iStatus != wgpu::CompilationInfoRequestStatus::Success)
-//  {
-//    printf("Fragment shader compilation error\n");
-//    if(iCompilationInfo)
-//    {
-//      for(auto i = 0; i < iCompilationInfo->messageCount; i++)
-//      {
-//        printf("Message[%d] | %s", i, iCompilationInfo->messages[0].message);
-//      }
-//    }
-//    return;
-//  }
-
-    // compilation resulted in error
-    if(fGPU->hasError())
+    if(auto errorState = impl::computeErrorState(iStatus, iCompilationInfo))
     {
-      iFragmentShader->fState = impl::computeState(fGPU->consumeError().value());
+      iFragmentShader->fState = errorState.value();
+      fGPU->consumeError();
+      return;
     }
-    else
-    {
-      auto device = fGPU->getDevice();
 
-      wgpu::BlendState blendState {
-        .color {
-          .operation = wgpu::BlendOperation::Add,
-          .srcFactor = wgpu::BlendFactor::SrcAlpha,
-          .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-        },
-        // note: copied from imgui (!= from learn webgpu)
-        .alpha {
-          .operation = wgpu::BlendOperation::Add,
-          .srcFactor = wgpu::BlendFactor::SrcAlpha,
-          .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-        }
-      };
+    auto device = fGPU->getDevice();
 
-      wgpu::ColorTargetState colorTargetState{.format = fPreferredFormat, .blend = &blendState};
+    wgpu::BlendState blendState {
+      .color {
+        .operation = wgpu::BlendOperation::Add,
+        .srcFactor = wgpu::BlendFactor::SrcAlpha,
+        .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
+      },
+      // note: copied from imgui (!= from learn webgpu)
+      .alpha {
+        .operation = wgpu::BlendOperation::Add,
+        .srcFactor = wgpu::BlendFactor::SrcAlpha,
+        .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
+      }
+    };
 
-      wgpu::FragmentState fragmentState{
-        .module = std::move(iShaderModule),
-        .entryPoint = "fragmentMain",
-        .constantCount = 0,
-        .constants = nullptr,
-        .targetCount = 1,
-        .targets = &colorTargetState
-      };
+    wgpu::ColorTargetState colorTargetState{.format = fPreferredFormat, .blend = &blendState};
 
-      wgpu::PipelineLayoutDescriptor pipeLineLayoutDescriptor = {
-        .label = "Fragment Shader Pipeline Layout",
-        .bindGroupLayoutCount = 1,
-        .bindGroupLayouts = &fGroup0BindGroupLayout
-      };
+    wgpu::FragmentState fragmentState{
+      .module = std::move(iShaderModule),
+      .entryPoint = "fragmentMain",
+      .constantCount = 0,
+      .constants = nullptr,
+      .targetCount = 1,
+      .targets = &colorTargetState
+    };
 
-      wgpu::RenderPipelineDescriptor renderPipelineDescriptor{
-        .label = "Fragment Shader Pipeline",
-        .layout = device.CreatePipelineLayout(&pipeLineLayoutDescriptor),
-        .vertex{
-          .module = fVertexShaderModule,
-          .entryPoint = "vertexMain"
-        },
-        .primitive = wgpu::PrimitiveState{},
-        .multisample = wgpu::MultisampleState{},
-        .fragment = &fragmentState,
-      };
+    wgpu::PipelineLayoutDescriptor pipeLineLayoutDescriptor = {
+      .label = "Fragment Shader Pipeline Layout",
+      .bindGroupLayoutCount = 1,
+      .bindGroupLayouts = &fGroup0BindGroupLayout
+    };
 
-      auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
-      WST_INTERNAL_ASSERT(pipeline != nullptr, "Cannot create render pipeline");
+    wgpu::RenderPipelineDescriptor renderPipelineDescriptor{
+      .label = "Fragment Shader Pipeline",
+      .layout = device.CreatePipelineLayout(&pipeLineLayoutDescriptor),
+      .vertex{
+        .module = fVertexShaderModule,
+        .entryPoint = "vertexMain"
+      },
+      .primitive = wgpu::PrimitiveState{},
+      .multisample = wgpu::MultisampleState{},
+      .fragment = &fragmentState,
+    };
 
-      iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
-      initFragmentShader(iFragmentShader);
-    }
+    auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
+    WST_INTERNAL_ASSERT(pipeline != nullptr, "Cannot create render pipeline");
+
+    iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
+    initFragmentShader(iFragmentShader);
   }
 
   // scheduling the next one if there is a pending one

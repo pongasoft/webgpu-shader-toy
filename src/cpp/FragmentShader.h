@@ -83,7 +83,7 @@ struct ShaderToyInputs {
 public:
   explicit FragmentShader(Shader const &iShader);
 
-  inline ShaderToyInputs const &getInputs() const { return fInputs; }
+  ShaderToyInputs const &getInputs() const { return fInputs; }
 
   std::string const &getName() const { return fName; }
   void setName(std::string iName) { fName = std::move(iName); }
@@ -93,8 +93,8 @@ public:
   void setWindowSize(gpu::Renderable::Size const &iSize) { fWindowSize = iSize; }
 
   constexpr bool hasCompilationError() const { return std::holds_alternative<FragmentShader::State::CompiledInError>(fState); }
-  inline std::string getCompilationErrorMessage() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorMessage; }
-  inline int getCompilationErrorLine() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorLine; }
+  std::string getCompilationErrorMessage() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorMessage; }
+  int getCompilationErrorLine() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorLine; }
   constexpr bool isCompiled() const { return std::holds_alternative<FragmentShader::State::Compiled>(fState); }
 
   void toggleRunning();
@@ -125,7 +125,7 @@ private:
   constexpr bool isCompilationPending() const { return std::holds_alternative<FragmentShader::State::CompilationPending>(fState); }
   constexpr bool isCompiling() const { return std::holds_alternative<FragmentShader::State::Compiling>(fState); }
   constexpr bool isNotCompiled() const { return std::holds_alternative<FragmentShader::State::NotCompiled>(fState); }
-  inline wgpu::RenderPipeline getRenderPipeline() const { return std::get<FragmentShader::State::Compiled>(fState).fRenderPipeline; }
+  wgpu::RenderPipeline getRenderPipeline() const { return std::get<FragmentShader::State::Compiled>(fState).fRenderPipeline; }
   void tickTime(double iTimeDelta);
   void tickFrame(int iFrameCount);
   void updateInputsFromClock();
