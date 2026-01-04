@@ -267,7 +267,7 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
   {
     if(auto errorState = impl::computeErrorState(iStatus, iCompilationInfo))
     {
-      iFragmentShader->fState = errorState.value();
+      iFragmentShader->setCompilationError(errorState.value());
       fGPU->consumeError();
       return;
     }

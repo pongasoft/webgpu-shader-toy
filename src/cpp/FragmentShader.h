@@ -95,6 +95,7 @@ public:
   constexpr bool hasCompilationError() const { return std::holds_alternative<FragmentShader::State::CompiledInError>(fState); }
   std::string getCompilationErrorMessage() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorMessage; }
   int getCompilationErrorLine() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorLine; }
+  int getCompilationErrorColumn() const { return std::get<FragmentShader::State::CompiledInError>(fState).fErrorColumn; }
   constexpr bool isCompiled() const { return std::holds_alternative<FragmentShader::State::Compiled>(fState); }
 
   void toggleRunning();
@@ -129,6 +130,7 @@ private:
   void tickTime(double iTimeDelta);
   void tickFrame(int iFrameCount);
   void updateInputsFromClock();
+  void setCompilationError(State::CompiledInError const &iError);
 
 private:
   std::string fName;

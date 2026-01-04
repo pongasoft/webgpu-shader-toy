@@ -107,6 +107,15 @@ void FragmentShader::updateInputsFromClock()
 }
 
 //------------------------------------------------------------------------
+// FragmentShader::setCompilationError
+//------------------------------------------------------------------------
+void FragmentShader::setCompilationError(State::CompiledInError const &iError)
+{
+  fState = iError;
+  edit().AddErrorMarker(iError.fErrorLine, iError.fErrorColumn, iError.fErrorMessage);
+}
+
+//------------------------------------------------------------------------
 // FragmentShader::resetTime
 //------------------------------------------------------------------------
 void FragmentShader::resetTime()
@@ -140,7 +149,10 @@ void FragmentShader::updateCode(std::string iCode)
 {
   fCode = std::move(iCode);
   if(!isCompilationPending())
+  {
+    edit().ClearErrorMarkers();
     fState = State::NotCompiled{};
+  }
 }
 
 //------------------------------------------------------------------------

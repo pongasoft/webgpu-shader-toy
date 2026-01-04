@@ -79,7 +79,7 @@ public:
   int GetFirstVisibleLine();
   int GetLastVisibleLine();
   void SetViewAtLine(int aLine, SetViewAtLineMode aMode);
-  void AddErrorMarker(int aLine, std::string aErrorMessage) { mErrorMarkers[aLine] = std::move(aErrorMessage); }
+  void AddErrorMarker(int aLine, int aColumn, std::string aErrorMessage);
   void ClearErrorMarkers() { mErrorMarkers.clear(); }
   ImU32 GetErrorMarkerColor() const { return mPalette[(int) PaletteIndex::ErrorMarker]; }
 

@@ -867,10 +867,6 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
       {
         if(ImGui::BeginMenuBar())
         {
-          if(!edited && fCurrentFragmentShader->hasCompilationError())
-            editor.AddErrorMarker(fCurrentFragmentShader->getCompilationErrorLine(), fCurrentFragmentShader->getCompilationErrorMessage());
-          else
-            editor.ClearErrorMarkers();
           int lineCount, columnCount;
           editor.GetCursorPosition(lineCount, columnCount);
           ImGui::Text("%d/%d | %d lines", lineCount + 1, columnCount + 1, editor.GetLineCount());

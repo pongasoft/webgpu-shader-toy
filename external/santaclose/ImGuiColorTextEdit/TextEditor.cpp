@@ -205,6 +205,15 @@ void TextEditor::SetViewAtLine(int aLine, SetViewAtLineMode aMode)
   mSetViewAtLineMode = aMode;
 }
 
+void TextEditor::AddErrorMarker(int aLine, int aColumn, std::string aErrorMessage)
+{
+  if(!mErrorMarkers.contains(aLine))
+  {
+    mErrorMarkers[aLine] = std::move(aErrorMessage);
+    SetCursorPosition(aLine - 1, aColumn - 1);
+  }
+}
+
 void TextEditor::Copy()
 {
   if(AnyCursorHasSelection())
