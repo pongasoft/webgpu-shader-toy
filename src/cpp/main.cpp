@@ -47,7 +47,7 @@ EM_JS(bool, wstWaitForContinue, (), { Module['wst_wait_for_continue'](); })
 EM_JS(void, wstShowError, (char const *iMessage), {
   Module['wst_show_error']('<h3>' +
     UTF8ToString(iMessage) +
-    '<br>WebGPU might not supported by this browser' +
+    '<br>WebGPU might not be supported by this browser' +
     '<br>Try with Google Chrome or Microsoft Edge' +
     '<br>Check <a href="https://caniuse.com/webgpu">this site</a> for details' +
     '</h3>');
