@@ -443,7 +443,6 @@ void MainWindow::renderTimeControls()
   // Previous frame
   ImGui::BeginDisabled(fCurrentFragmentShader->getInputs().frame == 0 && !fCurrentFragmentShader->isManualClock());
   {
-    static bool kClockState{};
     ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
     auto button = ImGui::Button(isKeyAlt ? ICON_FA_Backward "###Previous" : ICON_FA_BackwardFast "###Previous", fIconButtonSize);
     if(ImGui::IsItemDeactivated())
@@ -883,8 +882,8 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
       if(fCurrentFragmentShader->hasCompilationError())
       {
         long lines = impl::lineCount(fCurrentFragmentShader->getCompilationErrorMessage());
-        if(lines < 2L)
-          lines = 2L;
+        if(lines < 3L)
+          lines = 3L;
         if(lines > 10L)
           lines = 10L;
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(editor.GetErrorMarkerColor()));

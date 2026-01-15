@@ -317,11 +317,28 @@ void FragmentShaderWindow::onShaderCompilationResult(std::shared_ptr<FragmentSha
       .fragment = &fragmentState,
     };
 
+    // Once the code does not have any error, there could still be a problem
+    // if the main entry point (fragmentMain) is missing because the user renamed it
+    // or simply cleared the file
+    device.PushErrorScope(wgpu::ErrorFilter::Validation);
     auto pipeline = device.CreateRenderPipeline(&renderPipelineDescriptor);
     WST_INTERNAL_ASSERT(pipeline != nullptr, "Cannot create render pipeline");
-
-    iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = std::move(pipeline)};
-    initFragmentShader(iFragmentShader);
+    device.PopErrorScope(wgpu::CallbackMode::AllowProcessEvents,
+                         [iFragmentShader, pipeline, this](wgpu::PopErrorScopeStatus iPopStatus,
+                                                           wgpu::ErrorType iErrorType,
+                                                           char const *iErrorMessage) {
+                           if(iPopStatus == wgpu::PopErrorScopeStatus::Success && iErrorType != wgpu::ErrorType::NoError)
+                           {
+                             iFragmentShader->setCompilationError({
+                               .fErrorMessage = fmt::printf("Validation error: Make sure there is a function called fragmentMain\n%s", iErrorMessage)
+                             });
+                           }
+                           else
+                           {
+                             iFragmentShader->fState = FragmentShader::State::Compiled{.fRenderPipeline = pipeline};
+                             initFragmentShader(iFragmentShader);
+                           }
+                         });
   }
 
   // scheduling the next one if there is a pending one

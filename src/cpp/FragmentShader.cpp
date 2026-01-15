@@ -112,7 +112,8 @@ void FragmentShader::updateInputsFromClock()
 void FragmentShader::setCompilationError(State::CompiledInError const &iError)
 {
   fState = iError;
-  edit().AddErrorMarker(iError.fErrorLine, iError.fErrorColumn, iError.fErrorMessage);
+  if(iError.fErrorLine != -1)
+    edit().AddErrorMarker(iError.fErrorLine, iError.fErrorColumn, iError.fErrorMessage);
 }
 
 //------------------------------------------------------------------------
