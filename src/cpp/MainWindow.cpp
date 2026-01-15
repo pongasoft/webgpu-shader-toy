@@ -889,9 +889,14 @@ void MainWindow::renderShaderSection(bool iEditorHasFocus)
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(editor.GetErrorMarkerColor()));
         ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 1),
                                             ImVec2(FLT_MAX, ImGui::GetTextLineHeightWithSpacing() * static_cast<float>(lines)));
-        if(ImGui::BeginChild("Error MSG", {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_HorizontalScrollbar))
+        if(ImGui::BeginChild("Error MSG", {}, 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavInputs))
         {
-          ImGui::Text("%s", fCurrentFragmentShader->getCompilationErrorMessage().c_str());
+          ImGui::PushTextWrapPos(0.0f); // 0.0f uses the remaining window width
+          ImGui::TextUnformatted(fCurrentFragmentShader->getCompilationErrorMessage().c_str());
+          ImGui::PopTextWrapPos();
+
+          // Add a tiny bit of padding at the bottom so the last line isn't touching the edge
+          ImGui::Dummy(ImVec2(0.0f, 2.0f));
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
