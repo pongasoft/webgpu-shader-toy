@@ -40,12 +40,18 @@ public:
   void mainLoop();
   constexpr bool running() const { return fRunning; }
 
+  void onDocumentVisibilityChange(bool hidden);
+
   static std::future<std::unique_ptr<Application>> asyncCreate(std::function<void(std::string_view)> onError);
+
+private:
+  bool isMainLoopEnabled() const { return !fHiddenTime.has_value(); }
 
 private:
   std::shared_ptr<GPU> fGPU{};
   std::vector<std::shared_ptr<Renderable>> fRenderableList{};
   bool fRunning{true};
+  std::optional<double> fHiddenTime{};
 };
 
 //------------------------------------------------------------------------

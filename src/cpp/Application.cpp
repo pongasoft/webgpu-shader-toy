@@ -19,7 +19,7 @@
 #include <GLFW/glfw3.h>
 #include "Application.h"
 #include "Errors.h"
-#include <emscripten/version.h>
+#include <emscripten/html5.h>
 
 #include <utility>
 
@@ -31,6 +31,16 @@ namespace shader_toy {
 void consoleErrorHandler(int iErrorCode, char const *iErrorMessage)
 {
   printf("glfwError: %d | %s\n", iErrorCode, iErrorMessage);
+}
+
+//------------------------------------------------------------------------
+// OnVisibilityChangeCallback
+//------------------------------------------------------------------------
+bool OnVisibilityChangeCallback(int /* eventType */, const EmscriptenVisibilityChangeEvent *visibilityChangeEvent, void *iApplication)
+{
+  auto *app = static_cast<Application *>(iApplication);
+  app->onDocumentVisibilityChange(visibilityChangeEvent->hidden);
+  return false;
 }
 
 //------------------------------------------------------------------------
@@ -50,6 +60,26 @@ Application::Application(std::shared_ptr<GPU> iGPU) : fGPU{std::move(iGPU)}
 
   // no OpenGL (use WebGPU)
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+  // Keep track of visibility changes to stop the clock and rendering
+  emscripten_set_visibilitychange_callback(this, false, OnVisibilityChangeCallback);
+}
+
+//------------------------------------------------------------------------
+// Application::onDocumentVisibilityChange
+//------------------------------------------------------------------------
+void Application::onDocumentVisibilityChange(bool hidden)
+{
+  if(hidden)
+    fHiddenTime = glfwGetTime();
+  else
+  {
+    if(fHiddenTime)
+    {
+      glfwSetTime(fHiddenTime.value());
+      fHiddenTime = std::nullopt;
+    }
+  }
 }
 
 //------------------------------------------------------------------------
@@ -72,6 +102,7 @@ std::future<std::unique_ptr<Application>> Application::asyncCreate(std::function
 //------------------------------------------------------------------------
 Application::~Application()
 {
+  emscripten_html5_remove_event_listener(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, this, EMSCRIPTEN_EVENT_VISIBILITYCHANGE, reinterpret_cast<void *>(OnVisibilityChangeCallback));
   fRenderableList.clear();
   fGPU = nullptr;
   glfwTerminate();
@@ -82,6 +113,9 @@ Application::~Application()
 //------------------------------------------------------------------------
 void Application::mainLoop()
 {
+  if(!isMainLoopEnabled())
+    return;
+
   glfwPollEvents();
 
   try
