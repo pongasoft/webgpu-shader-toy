@@ -1,3 +1,6 @@
+> [!WARNING]
+> This project is now hosted on [Codeberg](https://codeberg.org/pongasoft/webgpu-shader-toy).
+
 Introduction
 ------------
 
